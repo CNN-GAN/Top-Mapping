@@ -28,7 +28,7 @@ flags = tf.app.flags
 flags.DEFINE_integer("epoch", 35, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_float("lamda", 0.5, "lamda for cycle updating")
+flags.DEFINE_float("lamda", 0.9, "lamda for cycle updating")
 flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
 flags.DEFINE_integer("batch_size", 64, "The number of batch images [64]")
 flags.DEFINE_integer("image_size", 500, "The size of image to use (will be center cropped) [108]")
@@ -94,7 +94,7 @@ def main(_):
         tf.summary.image('real', true_image[0:4], 4)
 
     with tf.name_scope('fake'):
-        fake_image = tf.reshape(n_cyc_X.outputs, [-1, 64, 64, 3])
+        fake_image = tf.reshape(cyc_X, [-1, 64, 64, 3])
         tf.summary.image('fake', fake_image[0:4], 4)
 
     # Discriminator for X
@@ -127,21 +127,31 @@ def main(_):
     with tf.name_scope('discriminator'):
         
         # generator for encoder x -> fake_Z
-        en_loss = tf.reduce_mean((fake_Z - 1)**2) + tf.reduce_mean((dic_J)**2) \
-                + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
-                + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
+        #en_loss = tf.reduce_mean((fake_Z - 1)**2) + tf.reduce_mean((dic_J)**2) \
+        #        + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
+        #        + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
+        en_loss = 0.0*tf.reduce_mean((fake_Z - 1)**2) \
+                  + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
+                  + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
         tf.summary.scalar('en_loss', en_loss)
 
         # generator for decoder z -> fake_X
-        de_loss = tf.reduce_mean((fake_X - 1)**2) + tf.reduce_mean((dic_fJ - 1)**2) \
-                + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
-                + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
+        #de_loss = tf.reduce_mean((fake_X - 1)**2) + tf.reduce_mean((dic_fJ - 1)**2) \
+        #        + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
+        #        + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
+        de_loss = 0.0*tf.reduce_mean((fake_X - 1)**2) \
+                  + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
+                  + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
         tf.summary.scalar('de_loss', de_loss)
 
         """ Least Square Loss """
         # discriminator for Joint
         dic_J_loss = 0.5 * (tf.reduce_mean((dic_J - 1)**2) + tf.reduce_mean((dic_fJ)**2))
         tf.summary.scalar('d_J_loss', dic_J_loss)
+
+        # discriminator for Joint Fake
+        dic_fJ_loss = 0.5 * (tf.reduce_mean((dic_J)**2) + tf.reduce_mean((dic_fJ - 1)**2))
+        tf.summary.scalar('d_fJ_loss', dic_fJ_loss)
 
         # discriminator for X
         dic_X_loss = 0.5 * (tf.reduce_mean((dic_X - 1)**2) + tf.reduce_mean((dic_fX)**2))
@@ -154,8 +164,8 @@ def main(_):
     with tf.name_scope('generator'):
         en_vars = tl.layers.get_variables_with_name('ENCODER', True, True)
         de_vars = tl.layers.get_variables_with_name('DECODER', True, True)
-        #g_vars.extend(g2_vars)
-        #variable_summaries(g_vars)
+        gen_vars = en_vars
+        gen_vars.extend(de_vars)
 
     with tf.name_scope('discriminator'):
         Z_vars = tl.layers.get_variables_with_name('DISC_Z', True, True)
@@ -178,6 +188,8 @@ def main(_):
                           .minimize(dic_Z_loss, var_list=Z_vars)    
     dic_J_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
                           .minimize(dic_J_loss, var_list=J_vars)
+    dic_fJ_optim = tf.train.AdamOptimizer(FLAGS.learning_rate, beta1=FLAGS.beta1) \
+                          .minimize(dic_fJ_loss, var_list=gen_vars)
 
     # Limit GPU usage
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
@@ -200,7 +212,7 @@ def main(_):
     sample_seed = np.random.normal(loc=0.0, scale=1.0, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
 
     merged = tf.summary.merge_all()
-    logger = tf.summary.FileWriter('/tmp/tensorflow/ali/', sess.graph)
+    logger = tf.summary.FileWriter('./logs', sess.graph)
     tf.global_variables_initializer().run()
 
     # dataset: 0 for loam, 1 for mnist
@@ -303,38 +315,39 @@ def main(_):
                 
                 ### Update Nets ###
                 # updates the discriminator
-                print ("update discriminator")
+                # print ("update discriminator")
                 feed_dict={z: batch_z, real_images: batch_images}
                 feed_dict.update(n_dic_J.all_drop)
                 feed_dict.update(n_dic_fJ.all_drop)
                 feed_dict.update(n_dic_Z.all_drop)
                 feed_dict.update(n_dic_fZ.all_drop)
-                errX, _ = sess.run([dic_X_loss, dic_X_optim], feed_dict=feed_dict)
+                #errX, _ = sess.run([dic_X_loss, dic_X_optim], feed_dict=feed_dict)
+                #errZ, _ = sess.run([dic_Z_loss, dic_Z_optim], feed_dict=feed_dict)
                 errJ, _ = sess.run([dic_J_loss, dic_J_optim], feed_dict=feed_dict)
-                errZ, _ = sess.run([dic_Z_loss, dic_Z_optim], feed_dict=feed_dict)
 
-
-
-                # updates the generator, run generator 5 times to make sure that d_loss does not go to zero (difference from paper)
+                # updates the generator, run generator 5 times to make sure 
+                # that d_loss does not go to zero (difference from paper)
                 for _ in range(8):
-                    feed_dict={z: batch_z, real_images: batch_images}
-                    #feed_dict.update(n_dic_J.all_drop)
-                    #feed_dict.update(n_dic_fJ.all_drop)
-                    errEN, _ = sess.run([en_loss, en_optim], feed_dict=feed_dict)
-                    errDE, _ = sess.run([de_loss, de_optim], feed_dict=feed_dict)
+                    errfJ, _ = sess.run([dic_fJ_loss, dic_fJ_optim], feed_dict=feed_dict)
+                
+                errEN, _ = sess.run([en_loss, en_optim], feed_dict=feed_dict)
+                errDE, _ = sess.run([de_loss, de_optim], feed_dict=feed_dict)
 
-                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, dX_loss: %.8f, dZ_loss: %.8f, dJ_loss: %.8f, en_loss: %.8f, de_loss: %.8f" \
-                      % (epoch, FLAGS.epoch, idx, batch_idxs,
-                         time.time() - start_time, errX, errZ, errJ, errEN, errDE))
+                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss_loss: %.8f" \
+                           % (epoch, FLAGS.epoch, idx, batch_idxs,
+                              time.time() - start_time, errJ, errfJ))
+
+                #print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, dX_loss: %.8f, dZ_loss: %.8f, dJ_loss: %.8f, en_loss: %.8f, de_loss: %.8f" \
+                #      % (epoch, FLAGS.epoch, idx, batch_idxs, time.time() - start_time, errX, errZ, errJ, errEN, errDE))
                 sys.stdout.flush()
 
                 iter_counter += 1
-                print iter_counter
                 
                 if np.mod(iter_counter, FLAGS.sample_step) == 0:
                     # generate and visualize generated images
-                    summary, img, errX, errZ, errJ, errEN, errDE = sess.run( \
-                                [merged, net_g.outputs, dic_X_loss, dic_Z_loss, dic_J_loss, en_loss, de_loss], feed_dict=feed_dict)
+                    summary, img, errX, errZ, errJ, errEN, errDE = \
+                        sess.run([merged, n_fake_X.outputs, dic_X_loss, dic_Z_loss, dic_J_loss, en_loss, de_loss], feed_dict=feed_dict)
+                    #summary, img, errJ, errfJ = sess.run([merged, n_fake_X.outputs, dic_J_loss, dic_fJ_loss], feed_dict=feed_dict)
                     logger.add_summary(summary, iter_counter)
                 
                     img255 = (np.array(img) + 1) / 2 * 255
@@ -346,7 +359,7 @@ def main(_):
                                 './{}/train_{:02d}_{:04d}.png'.format(FLAGS.sample_dir, epoch, idx))
                     
                     #print("[Sample] d_loss: %.8f, g_loss: %.8f" % (errD, errG))
-                    #sys.stdout.flush()
+                    sys.stdout.flush()
 
                 if np.mod(iter_counter, FLAGS.save_step) == 0:
                     # save current network parameters

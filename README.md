@@ -1,1 +1,3 @@
-tensorboard --logdir=/tmp/tensorflow/ali
+python ali.py
+
+tensorboard --logdir=./log
