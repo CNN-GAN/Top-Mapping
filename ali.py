@@ -28,7 +28,8 @@ flags = tf.app.flags
 flags.DEFINE_integer("epoch", 35, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_float("lamda", 0.9, "lamda for cycle updating")
+flags.DEFINE_float("side_dic", 0.1, "side discriminator for cycle updating")
+flags.DEFINE_float("lamda", 0.2, "lamda for cycle updating")
 flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
 flags.DEFINE_integer("batch_size", 64, "The number of batch images [64]")
 flags.DEFINE_integer("image_size", 500, "The size of image to use (will be center cropped) [108]")
@@ -130,7 +131,7 @@ def main(_):
         #en_loss = tf.reduce_mean((fake_Z - 1)**2) + tf.reduce_mean((dic_J)**2) \
         #        + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
         #        + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
-        en_loss = 0.0*tf.reduce_mean((fake_Z - 1)**2) \
+        en_loss = FLAGS.side_dic * tf.reduce_mean((fake_Z - 1)**2) \
                   + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
                   + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
         tf.summary.scalar('en_loss', en_loss)
@@ -139,7 +140,7 @@ def main(_):
         #de_loss = tf.reduce_mean((fake_X - 1)**2) + tf.reduce_mean((dic_fJ - 1)**2) \
         #        + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
         #        + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
-        de_loss = 0.0*tf.reduce_mean((fake_X - 1)**2) \
+        de_loss = FLAGS.side_dic * tf.reduce_mean((fake_X - 1)**2) \
                   + FLAGS.lamda * tf.reduce_mean(tf.abs(real_images - cyc_X)) \
                   + FLAGS.lamda * tf.reduce_mean(tf.abs(z - cyc_Z))
         tf.summary.scalar('de_loss', de_loss)
@@ -154,11 +155,11 @@ def main(_):
         tf.summary.scalar('d_fJ_loss', dic_fJ_loss)
 
         # discriminator for X
-        dic_X_loss = 0.5 * (tf.reduce_mean((dic_X - 1)**2) + tf.reduce_mean((dic_fX)**2))
+        dic_X_loss = FLAGS.side_dic * 0.5 * (tf.reduce_mean((dic_X - 1)**2) + tf.reduce_mean((dic_fX)**2))
         tf.summary.scalar('d_X_loss', dic_X_loss)
 
         # discriminator for Z
-        dic_Z_loss = 0.5 * (tf.reduce_mean((dic_Z - 1)**2) + tf.reduce_mean((dic_fZ)**2))
+        dic_Z_loss = FLAGS.side_dic * 0.5 * (tf.reduce_mean((dic_Z - 1)**2) + tf.reduce_mean((dic_fZ)**2))
         tf.summary.scalar('d_Z_loss', dic_Z_loss)
     
     with tf.name_scope('generator'):
@@ -321,18 +322,17 @@ def main(_):
                 feed_dict.update(n_dic_fJ.all_drop)
                 feed_dict.update(n_dic_Z.all_drop)
                 feed_dict.update(n_dic_fZ.all_drop)
-                #errX, _ = sess.run([dic_X_loss, dic_X_optim], feed_dict=feed_dict)
-                #errZ, _ = sess.run([dic_Z_loss, dic_Z_optim], feed_dict=feed_dict)
+                errX, _ = sess.run([dic_X_loss, dic_X_optim], feed_dict=feed_dict)
+                errZ, _ = sess.run([dic_Z_loss, dic_Z_optim], feed_dict=feed_dict)
                 errJ, _ = sess.run([dic_J_loss, dic_J_optim], feed_dict=feed_dict)
 
-                # updates the generator, run generator 5 times to make sure 
+                # updates the generator, run generator 8 times to make sure 
                 # that d_loss does not go to zero (difference from paper)
                 for _ in range(8):
                     errfJ, _ = sess.run([dic_fJ_loss, dic_fJ_optim], feed_dict=feed_dict)
+                    errEN, _ = sess.run([en_loss, en_optim], feed_dict=feed_dict)
+                    errDE, _ = sess.run([de_loss, de_optim], feed_dict=feed_dict)
                 
-                errEN, _ = sess.run([en_loss, en_optim], feed_dict=feed_dict)
-                errDE, _ = sess.run([de_loss, de_optim], feed_dict=feed_dict)
-
                 print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss_loss: %.8f" \
                            % (epoch, FLAGS.epoch, idx, batch_idxs,
                               time.time() - start_time, errJ, errfJ))
