@@ -41,7 +41,7 @@ flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [50
 flags.DEFINE_string("dataset", "loam", "The name of dataset [celebA, mnist, loam, lsun]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
+flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", True, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
 FLAGS = flags.FLAGS
@@ -206,9 +206,11 @@ def main(_):
     tl.files.exists_or_mkdir(FLAGS.sample_dir)
     tl.files.exists_or_mkdir(save_dir)
     # load the latest checkpoints
-    net_g_name = os.path.join(save_dir, 'net_g.npz')
-    net_e_name = os.path.join(save_dir, 'net_e.npz')
-    net_d_name = os.path.join(save_dir, 'net_d.npz')
+    net_de_name = os.path.join(save_dir, 'net_de.npz')
+    net_en_name = os.path.join(save_dir, 'net_en.npz')
+    net_dX_name = os.path.join(save_dir, 'net_dX.npz')
+    net_dZ_name = os.path.join(save_dir, 'net_dZ.npz')
+    net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
 
     data_files = glob(os.path.join("./data", FLAGS.dataset, "*.jpg"))
     # sample_seed = np.random.uniform(low=-1, high=1, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
@@ -226,12 +228,18 @@ def main(_):
         ##========================= TEST  MODELS ================================##
 
         ## load parameters
-        load_g = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_g.npz")
-        load_d = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_d.npz")
-        load_e = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_e.npz")
-        tl.files.assign_params(sess, load_g, net_g)
-        tl.files.assign_params(sess, load_d, net_d)
-        tl.files.assign_params(sess, load_e, net_e)
+        #load_de = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_de_2600.npz")
+        load_en = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_en_2200.npz")
+        #load_dX = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dX_2600.npz")
+        #load_dZ = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dZ_2600.npz")
+        #load_dJ = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dJ_2600.npz")
+
+        #tl.files.assign_params(sess, load_de, n_fake_X)
+        tl.files.assign_params(sess, load_en, n_fake_Z)
+        #tl.files.assign_params(sess, load_dX, n_dic_X)
+        #tl.files.assign_params(sess, load_dZ, n_dic_Z)
+        #tl.files.assign_params(sess, load_dJ, n_dic_J)
+
         print ("[*] Load NPZ successfully!")
 
         ## evaulate data
@@ -239,26 +247,25 @@ def main(_):
         data_files.sort()
         H_code = np.zeros([sample_len, 512]).astype(np.float32)
         for id in range(H_code.shape[0]):
-            sample_file = data_files[id]
+            sample_file = data_files[id+5000]
             sample = get_image(sample_file, FLAGS.image_size, dataset, is_crop=FLAGS.is_crop, resize_w=FLAGS.output_size, is_grayscale=0)
             sample_image = np.array(sample).astype(np.float32)
             sample_image = sample_image.reshape([1,64,64,3])
             print ("Load data {}".format(sample_file))
             feed_dict={real_images: sample_image}
-            H_code[id]  = sess.run(e2_logits, feed_dict=feed_dict)
+            H_code[id]  = sess.run(fake_Z, feed_dict=feed_dict)
+
         print ("Code Extraction done!")
 
         #np.set_printoptions(threshold='nan') 
         
-        '''
         ## Measure the Euclidean Distance
         D_Euclid = np.zeros([H_code.shape[0], H_code.shape[0]])
         for x in range(H_code.shape[0]):
             for y in range(H_code.shape[0]):
                 D_Euclid[x,y] = np.linalg.norm(H_code[x]-H_code[y])
-        print ("The vector Euclidean is ")
-        print D_Euclid
 
+        '''
         ## Measure the Manhattan Distance
         D_Manha = np.zeros([H_code.shape[0], H_code.shape[0]])
         for x in range(H_code.shape[0]):
@@ -276,16 +283,17 @@ def main(_):
         print D_Cheby
 
         '''
+        '''
         ## Measure the Cosine Difference
         D_Cosin = np.zeros([H_code.shape[0], H_code.shape[0]])
         for x in range(H_code.shape[0]):
             for y in range(H_code.shape[0]):
                 D_Cosin[x,y] = np.sum(H_code[x]*H_code[y])/(np.linalg.norm(H_code[x])*np.linalg.norm(H_code[y]))
-        
+        '''
         ## Measure vector corrcoeffience
         #D_coeff = np.corrcoef([H_code[id] for id in range(H_code.shape[0])])
         
-        scipy.misc.imsave('f_map.jpg', D_Cosin * 255)
+        scipy.misc.imsave('f_map.jpg', D_Euclid * 255)
         
     else:
         ##========================= TRAIN MODELS ================================##

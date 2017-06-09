@@ -1,3 +1,3 @@
 python ali.py
 
-tensorboard --logdir=./log
+tensorboard --logdir=./logs --port=8008
