@@ -212,13 +212,9 @@ def main(_):
     net_dZ_name = os.path.join(save_dir, 'net_dZ.npz')
     net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
 
-    data_files = glob(os.path.join("./data", FLAGS.dataset, "*.jpg"))
+    data_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
     # sample_seed = np.random.uniform(low=-1, high=1, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
     sample_seed = np.random.normal(loc=0.0, scale=1.0, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
-
-    merged = tf.summary.merge_all()
-    logger = tf.summary.FileWriter('./logs', sess.graph)
-    tf.global_variables_initializer().run()
 
     # dataset: 0 for loam, 1 for mnist
     dataset = 0
@@ -229,7 +225,7 @@ def main(_):
 
         ## load parameters
         #load_de = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_de_2600.npz")
-        load_en = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_en_2200.npz")
+        load_en = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_en_1600.npz")
         #load_dX = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dX_2600.npz")
         #load_dZ = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dZ_2600.npz")
         #load_dJ = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_64_64/"), name="net_dJ_2600.npz")
@@ -244,26 +240,44 @@ def main(_):
 
         ## evaulate data
         sample_len = 1000
-        data_files.sort()
-        H_code = np.zeros([sample_len, 512]).astype(np.float32)
-        for id in range(H_code.shape[0]):
-            sample_file = data_files[id+5000]
+        train_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
+        test_files = glob(os.path.join("./data", FLAGS.dataset, "test_T5_R0.5/*.jpg"))
+        train_files.sort()
+        test_files.sort()
+        
+        ## Extract Train data code
+        train_code = np.zeros([sample_len, 512]).astype(np.float32)
+        for id in range(train_code.shape[0]):
+            sample_file = train_files[id]
             sample = get_image(sample_file, FLAGS.image_size, dataset, is_crop=FLAGS.is_crop, resize_w=FLAGS.output_size, is_grayscale=0)
             sample_image = np.array(sample).astype(np.float32)
             sample_image = sample_image.reshape([1,64,64,3])
             print ("Load data {}".format(sample_file))
             feed_dict={real_images: sample_image}
-            H_code[id]  = sess.run(fake_Z, feed_dict=feed_dict)
+            train_code[id]  = sess.run(fake_Z, feed_dict=feed_dict)
 
-        print ("Code Extraction done!")
+        print ("Train code extraction done!")
+
+        ## Extract Test data code
+        test_code = np.zeros([sample_len, 512]).astype(np.float32)
+        for id in range(test_code.shape[0]):
+            sample_file = test_files[id]
+            sample = get_image(sample_file, FLAGS.image_size, dataset, is_crop=FLAGS.is_crop, resize_w=FLAGS.output_size, is_grayscale=0)
+            sample_image = np.array(sample).astype(np.float32)
+            sample_image = sample_image.reshape([1,64,64,3])
+            print ("Load data {}".format(sample_file))
+            feed_dict={real_images: sample_image}
+            test_code[id]  = sess.run(fake_Z, feed_dict=feed_dict)
+
+        print ("Test code extraction done!")
 
         #np.set_printoptions(threshold='nan') 
         
         ## Measure the Euclidean Distance
-        D_Euclid = np.zeros([H_code.shape[0], H_code.shape[0]])
-        for x in range(H_code.shape[0]):
-            for y in range(H_code.shape[0]):
-                D_Euclid[x,y] = np.linalg.norm(H_code[x]-H_code[y])
+        D_Euclid = np.zeros([train_code.shape[0], test_code.shape[0]])
+        for x in range(train_code.shape[0]):
+            for y in range(test_code.shape[0]):
+                D_Euclid[x,y] = np.linalg.norm(train_code[x]-test_code[y])
 
         '''
         ## Measure the Manhattan Distance
@@ -285,18 +299,24 @@ def main(_):
         '''
         '''
         ## Measure the Cosine Difference
-        D_Cosin = np.zeros([H_code.shape[0], H_code.shape[0]])
-        for x in range(H_code.shape[0]):
-            for y in range(H_code.shape[0]):
-                D_Cosin[x,y] = np.sum(H_code[x]*H_code[y])/(np.linalg.norm(H_code[x])*np.linalg.norm(H_code[y]))
+        D_Cosin = np.zeros([train_code.shape[0], test_code.shape[0]])
+        for x in range(train_code.shape[0]):
+            for y in range(test_code.shape[0]):
+                D_Cosin[x,y] = np.sum(train_code[x]*test_code[y])/(np.linalg.norm(train_code[x])*np.linalg.norm(test_code[y]))
         '''
         ## Measure vector corrcoeffience
         #D_coeff = np.corrcoef([H_code[id] for id in range(H_code.shape[0])])
         
         scipy.misc.imsave('f_map.jpg', D_Euclid * 255)
-        
+        #scipy.misc.imsave('f_map.jpg', D_Cosin * 255)
+
     else:
         ##========================= TRAIN MODELS ================================##
+
+        merged = tf.summary.merge_all()
+        logger = tf.summary.FileWriter('./logs', sess.graph)
+        tf.global_variables_initializer().run()
+
         iter_counter = 0
         for epoch in range(FLAGS.epoch):
             ## shuffle data
@@ -408,7 +428,7 @@ def main(_):
 
                     print("[*] Saving checkpoints SUCCESS!")
 
-    logger.close()
+        logger.close()
 
 if __name__ == '__main__':
     tf.app.run()
