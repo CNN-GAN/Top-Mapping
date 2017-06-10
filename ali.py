@@ -40,7 +40,7 @@ flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [50
 flags.DEFINE_string("dataset", "loam", "The name of dataset [celebA, mnist, loam, lsun]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
+flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_restore", True, "restore from pre trained")
 flags.DEFINE_boolean("is_crop", True, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
@@ -145,18 +145,6 @@ def main(_):
     tl.files.exists_or_mkdir(FLAGS.sample_dir)
     tl.files.exists_or_mkdir(save_dir)
 
-    if FLAGS.is_restore == True:
-        # load the latest checkpoints
-        load_g = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_g_%d00.npz' % FLAGS.c_epoch)
-        load_e = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_e_%d00.npz' % FLAGS.c_epoch)
-        load_d = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_d_%d00.npz' % FLAGS.c_epoch)
-        tl.files.assign_params(sess, load_g, net_g)
-        tl.files.assign_params(sess, load_e, net_e)
-        tl.files.assign_params(sess, load_d, net_d)
-
     data_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
     # sample_seed = np.random.uniform(low=-1, high=1, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
     sample_seed = np.random.normal(loc=0.0, scale=1.0, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
@@ -169,9 +157,9 @@ def main(_):
         ##========================= TEST  MODELS ================================##
 
         ## load parameters
-        load_g = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="net_g_1300.npz")
-        load_d = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="net_d_1300.npz")
-        load_e = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="net_e_1300.npz")
+        load_g = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="/net_g_1500.npz")
+        load_d = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="/net_d_1500.npz")
+        load_e = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali"), name="/net_e_1500.npz")
         tl.files.assign_params(sess, load_g, net_g)
         tl.files.assign_params(sess, load_d, net_d)
         tl.files.assign_params(sess, load_e, net_e)
@@ -179,8 +167,9 @@ def main(_):
 
         ## evaulate data
         sample_len = 1000
+        test_dir = "test_T10_R1"
         train_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
-        test_files = glob(os.path.join("./data", FLAGS.dataset, "test_T1_R0.1/*.jpg"))
+        test_files = glob(os.path.join("./data", FLAGS.dataset, test_dir,"*.jpg"))
         train_files.sort()
         test_files.sort()
 
@@ -243,9 +232,22 @@ def main(_):
         #D_coeff = np.corrcoef([H_code[id] for id in range(H_code.shape[0])])
         
         #scipy.misc.imsave('f_map.jpg', D_Cosin * 255)
-        scipy.misc.imsave('f_map.jpg', D_Euclid * 255)
+        result_path = os.path.join('results', 'ali_only', test_dir+'.jpg')
+        scipy.misc.imsave(result_path, D_Euclid * 255)
     else:
         ##========================= TRAIN MODELS ================================##
+        if FLAGS.is_restore == True:
+            # load the latest checkpoints
+            load_g = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                       name='/net_g_%d00.npz' % FLAGS.c_epoch)
+            load_e = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                       name='/net_e_%d00.npz' % FLAGS.c_epoch)
+            load_d = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                       name='/net_d_%d00.npz' % FLAGS.c_epoch)
+            tl.files.assign_params(sess, load_g, net_g)
+            tl.files.assign_params(sess, load_e, net_e)
+            tl.files.assign_params(sess, load_d, net_d)
+
         merged = tf.summary.merge_all()
         logger = tf.summary.FileWriter('./logs', sess.graph)
         tf.global_variables_initializer().run()

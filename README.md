@@ -12,6 +12,9 @@ tensorboard --logdir=./logs --port=8008
 * test the matching result on the the GT maps and noise-Maps. (done)
 
 ## Check other method
-* check ALI-GAN
-* check SeqSLAM
-* check FabMAP
+* check ALI-GAN (done)
+* check on different iteration
+* check on different translation and rotation error.
+
+## Enhance to the SeqSLAM approach
+* add SeqSLAM framework into the current 
