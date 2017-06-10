@@ -27,10 +27,18 @@ Usage : see README.md
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 35, "Epoch to train [25]")
 flags.DEFINE_integer("c_epoch", 16, "current Epoch")
+flags.DEFINE_integer("enhance", 5, "Enhancement for different matrix")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
 flags.DEFINE_float("side_dic", 1.0, "side discriminator for cycle updating")
 flags.DEFINE_float("lamda", 0.5, "lamda for cycle updating")
+
+flags.DEFINE_float("v_ds", 10, "seqslam distance")
+flags.DEFINE_float("vmin", 0.8, "min velocity of seqslam")
+flags.DEFINE_float("vskip", 0.1, "velocity gap")
+flags.DEFINE_float("vmax", 1.2, "max velocity of seqslam")
+flags.DEFINE_integer("Rwindow", 10, "rainbow")
+
 flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
 flags.DEFINE_integer("batch_size", 64, "The number of batch images [64]")
 flags.DEFINE_integer("image_size", 500, "The size of image to use (will be center cropped) [108]")
@@ -42,7 +50,7 @@ flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [50
 flags.DEFINE_string("dataset", "loam", "The name of dataset [celebA, mnist, loam, lsun]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("is_train", True, "True for training, False for testing [False]")
+flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_crop", True, "True for training, False for testing [False]")
 flags.DEFINE_boolean("is_restore", True, "restore from pre trained")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
@@ -62,6 +70,79 @@ def variable_summaries(var):
             tf.summary.scalar('max', tf.reduce_max(var))
             tf.summary.scalar('min', tf.reduce_min(var))
             tf.summary.histogram('histogram', var)
+
+def enhanceContrast(D):
+    # TODO parallelize
+    DD = np.zeros(D.shape)
+    
+    #parfor?
+    for i in range(D.shape[0]):
+        a=np.max((0, i-FLAGS.enhance/2))
+        b=np.min((D.shape[0], i+FLAGS.enhance/2+1))
+        
+        v = D[a:b, :]
+        DD[i,:] = (D[i,:] - np.mean(v, 0)) / np.std(v, 0, ddof=1)
+        
+    #return DD-np.min(np.min(DD))
+    return DD
+
+def getMatches(DD):
+    # TODO parallelize
+    matches = np.nan*np.ones((DD.shape[1],2))    
+    # parfor?
+    for N in range(FLAGS.v_ds/2, DD.shape[1]-FLAGS.v_ds/2):
+        # find a single match
+        
+        # We shall search for matches using velocities between
+        # params.matching.vmin and params.matching.vmax.
+        # However, not every vskip may be neccessary to check. So we first find
+        # out, which v leads to different trajectories:
+        
+        move_min = FLAGS.vmin * FLAGS.v_ds
+        move_max = FLAGS.vmax * FLAGS.v_ds    
+        
+        move = np.arange(int(move_min), int(move_max)+1)
+        v = move.astype(float) / FLAGS.v_ds
+        
+        idx_add = np.tile(np.arange(0, FLAGS.v_ds+1), (len(v),1))
+        idx_add = np.floor(idx_add * np.tile(v, (idx_add.shape[1], 1)).T)
+        
+        # this is where our trajectory starts
+        n_start = N + 1 - FLAGS.v_ds/2    
+        x= np.tile(np.arange(n_start , n_start+FLAGS.v_ds+1), (len(v), 1))    
+        
+        #TODO idx_add and x now equivalent to MATLAB, dh 1 indexing
+        score = np.zeros(DD.shape[0])    
+        
+        # add a line of inf costs so that we penalize running out of data
+        DD=np.vstack((DD, np.infty*np.ones((1,DD.shape[1]))))
+        
+        y_max = DD.shape[0]        
+        xx = (x-1) * y_max
+        
+        flatDD = DD.flatten(1)
+        for s in range(1, DD.shape[0]):   
+            y = np.copy(idx_add+s)
+            y[y>y_max]=y_max     
+            idx = (xx + y).astype(int)
+            ds = np.sum(flatDD[idx-1],1)
+            score[s-1] = np.min(ds)
+            
+            
+        # find min score and 2nd smallest score outside of a window
+        # around the minimum 
+            
+        min_idx = np.argmin(score)
+        min_value=score[min_idx]
+        window = np.arange(np.max((0, min_idx-FLAGS.Rwindow/2)), np.min((len(score), min_idx+FLAGS.Rwindow/2)))
+        not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
+        min_value_2nd = np.min(score[not_window])
+        
+        match = [min_idx + FLAGS.v_ds/2, min_value / min_value_2nd]
+        matches[N,:] = match
+        
+    return matches
+
 
 def main(_):
     pp.pprint(flags.FLAGS.__flags)
@@ -208,24 +289,6 @@ def main(_):
     tl.files.exists_or_mkdir(FLAGS.sample_dir)
     tl.files.exists_or_mkdir(save_dir)
 
-    if FLAGS.is_restore == True:
-        # load the latest checkpoints
-        load_de = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_de_%d00.npz' % FLAGS.c_epoch)
-        load_en = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_en_%d00.npz' % FLAGS.c_epoch)
-        load_dX = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_dX_%d00.npz' % FLAGS.c_epoch)
-        load_dZ = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_dZ_%d00.npz' % FLAGS.c_epoch)
-        load_dJ = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
-                                    name='/net_dJ_%d00.npz' % FLAGS.c_epoch)
-        tl.files.assign_params(sess, load_en, n_fake_Z)
-        tl.files.assign_params(sess, load_de, n_fake_X)
-        tl.files.assign_params(sess, load_dX, n_dic_X)
-        tl.files.assign_params(sess, load_dZ, n_dic_Z)
-        tl.files.assign_params(sess, load_dJ, n_dic_J)
-
     data_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
     # sample_seed = np.random.uniform(low=-1, high=1, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
     sample_seed = np.random.normal(loc=0.0, scale=1.0, size=(FLAGS.sample_size, z_dim)).astype(np.float32)
@@ -238,14 +301,15 @@ def main(_):
         ##========================= TEST  MODELS ================================##
 
         ## load parameters
-        load_en = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali_clc"), name="net_en_1600.npz")
+        load_en = tl.files.load_npz(path=os.path.join("./checkpoint", "loam_ali_clc"), name="/net_en_2200.npz")
         tl.files.assign_params(sess, load_en, n_fake_Z)
         print ("[*] Load NPZ successfully!")
 
         ## evaulate data
         sample_len = 1000
+        test_dir = "test_T15_R1.5"
         train_files = glob(os.path.join("./data", FLAGS.dataset, "train/*.jpg"))
-        test_files = glob(os.path.join("./data", FLAGS.dataset, "test_T5_R0.5/*.jpg"))
+        test_files = glob(os.path.join("./data", FLAGS.dataset, test_dir,"*.jpg"))
         train_files.sort()
         test_files.sort()
         
@@ -310,12 +374,41 @@ def main(_):
         '''
         ## Measure vector corrcoeffience
         #D_coeff = np.corrcoef([H_code[id] for id in range(H_code.shape[0])])
+        #DD = enhanceContrast(D_Euclid)
+        DD = D_Euclid
+        scipy.misc.imsave(test_dir+'matrix.jpg', DD * 255)
+        match = getMatches(DD)
+        print ("Extract matching done")
         
-        scipy.misc.imsave('f_map.jpg', D_Euclid * 255)
-        #scipy.misc.imsave('f_map.jpg', D_Cosin * 255)
-
+        ## show matching 
+        print (match)
+        m = match[:,0]
+        thresh = 10
+        m[match[:,1] > thresh] = np.nan
+        plt.plot(m,'.') 
+        plt.title('Matching '+ test_dir)
+        plt.show()
+        plt.savefig(test_dir+".jpg")
+        print ("Save matching done")
     else:
         ##========================= TRAIN MODELS ================================##
+        if FLAGS.is_restore == True:
+            # load the latest checkpoints
+            load_de = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                        name='/net_de_%d00.npz' % FLAGS.c_epoch)
+            load_en = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                        name='/net_en_%d00.npz' % FLAGS.c_epoch)
+            load_dX = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                        name='/net_dX_%d00.npz' % FLAGS.c_epoch)
+            load_dZ = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                        name='/net_dZ_%d00.npz' % FLAGS.c_epoch)
+            load_dJ = tl.files.load_npz(path=os.path.join(FLAGS.checkpoint_dir, model_dir), \
+                                        name='/net_dJ_%d00.npz' % FLAGS.c_epoch)
+            tl.files.assign_params(sess, load_en, n_fake_Z)
+            tl.files.assign_params(sess, load_de, n_fake_X)
+            tl.files.assign_params(sess, load_dX, n_dic_X)
+            tl.files.assign_params(sess, load_dZ, n_dic_Z)
+            tl.files.assign_params(sess, load_dJ, n_dic_J)
 
         merged = tf.summary.merge_all()
         logger = tf.summary.FileWriter('./logs', sess.graph)
