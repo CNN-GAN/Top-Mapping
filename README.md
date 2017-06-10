@@ -1,8 +1,6 @@
 # Top Mapping
 
 # Running
-
-
 ## ALI features
 ```bash
 python ali.py
@@ -33,3 +31,7 @@ tensorboard --logdir=./logs --port=8008
 ## Enhance to the SeqSLAM approach
 * add SeqSLAM framework into the current **(done)**
 * check SeqSLAM result **(done)**
+
+
+## Basic
+* update current framework

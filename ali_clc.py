@@ -12,52 +12,14 @@ from random import shuffle
 from model import *
 from utils import *
 
+pp = pprint.PrettyPrinter()
+
 # for 3d Drawing
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-pp = pprint.PrettyPrinter()
-
-"""
-TensorLayer implementation of DCGAN to generate face image.
-
-Usage : see README.md
-"""
-
-flags = tf.app.flags
-flags.DEFINE_integer("epoch", 35, "Epoch to train [25]")
-flags.DEFINE_integer("c_epoch", 16, "current Epoch")
-flags.DEFINE_integer("enhance", 5, "Enhancement for different matrix")
-flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
-flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_float("side_dic", 1.0, "side discriminator for cycle updating")
-flags.DEFINE_float("lamda", 0.5, "lamda for cycle updating")
-
-flags.DEFINE_float("v_ds", 10, "seqslam distance")
-flags.DEFINE_float("vmin", 0.8, "min velocity of seqslam")
-flags.DEFINE_float("vskip", 0.1, "velocity gap")
-flags.DEFINE_float("vmax", 1.2, "max velocity of seqslam")
-flags.DEFINE_integer("Rwindow", 10, "rainbow")
-
-flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
-flags.DEFINE_integer("batch_size", 64, "The number of batch images [64]")
-flags.DEFINE_integer("image_size", 500, "The size of image to use (will be center cropped) [108]")
-flags.DEFINE_integer("output_size", 64, "The size of the output images to produce [64]")
-flags.DEFINE_integer("sample_size", 64, "The number of sample images [64]")
-flags.DEFINE_integer("c_dim", 3, "Dimension of image color. [3]")
-flags.DEFINE_integer("sample_step", 2, "The interval of generating sample. [500]")
-flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [500]")
-flags.DEFINE_string("dataset", "loam", "The name of dataset [celebA, mnist, loam, lsun]")
-flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
-flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
-flags.DEFINE_boolean("is_crop", True, "True for training, False for testing [False]")
-flags.DEFINE_boolean("is_restore", True, "restore from pre trained")
-flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
-FLAGS = flags.FLAGS
-
-def log(x):
-    return tf.log(x + 1e-8)
+# get dault parameters
+FLAGS = defaultParam()
 
 def variable_summaries(var):
     """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
@@ -70,79 +32,6 @@ def variable_summaries(var):
             tf.summary.scalar('max', tf.reduce_max(var))
             tf.summary.scalar('min', tf.reduce_min(var))
             tf.summary.histogram('histogram', var)
-
-def enhanceContrast(D):
-    # TODO parallelize
-    DD = np.zeros(D.shape)
-    
-    #parfor?
-    for i in range(D.shape[0]):
-        a=np.max((0, i-FLAGS.enhance/2))
-        b=np.min((D.shape[0], i+FLAGS.enhance/2+1))
-        
-        v = D[a:b, :]
-        DD[i,:] = (D[i,:] - np.mean(v, 0)) / np.std(v, 0, ddof=1)
-        
-    #return DD-np.min(np.min(DD))
-    return DD
-
-def getMatches(DD):
-    # TODO parallelize
-    matches = np.nan*np.ones((DD.shape[1],2))    
-    # parfor?
-    for N in range(FLAGS.v_ds/2, DD.shape[1]-FLAGS.v_ds/2):
-        # find a single match
-        
-        # We shall search for matches using velocities between
-        # params.matching.vmin and params.matching.vmax.
-        # However, not every vskip may be neccessary to check. So we first find
-        # out, which v leads to different trajectories:
-        
-        move_min = FLAGS.vmin * FLAGS.v_ds
-        move_max = FLAGS.vmax * FLAGS.v_ds    
-        
-        move = np.arange(int(move_min), int(move_max)+1)
-        v = move.astype(float) / FLAGS.v_ds
-        
-        idx_add = np.tile(np.arange(0, FLAGS.v_ds+1), (len(v),1))
-        idx_add = np.floor(idx_add * np.tile(v, (idx_add.shape[1], 1)).T)
-        
-        # this is where our trajectory starts
-        n_start = N + 1 - FLAGS.v_ds/2    
-        x= np.tile(np.arange(n_start , n_start+FLAGS.v_ds+1), (len(v), 1))    
-        
-        #TODO idx_add and x now equivalent to MATLAB, dh 1 indexing
-        score = np.zeros(DD.shape[0])    
-        
-        # add a line of inf costs so that we penalize running out of data
-        DD=np.vstack((DD, np.infty*np.ones((1,DD.shape[1]))))
-        
-        y_max = DD.shape[0]        
-        xx = (x-1) * y_max
-        
-        flatDD = DD.flatten(1)
-        for s in range(1, DD.shape[0]):   
-            y = np.copy(idx_add+s)
-            y[y>y_max]=y_max     
-            idx = (xx + y).astype(int)
-            ds = np.sum(flatDD[idx-1],1)
-            score[s-1] = np.min(ds)
-            
-            
-        # find min score and 2nd smallest score outside of a window
-        # around the minimum 
-            
-        min_idx = np.argmin(score)
-        min_value=score[min_idx]
-        window = np.arange(np.max((0, min_idx-FLAGS.Rwindow/2)), np.min((len(score), min_idx+FLAGS.Rwindow/2)))
-        not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
-        min_value_2nd = np.min(score[not_window])
-        
-        match = [min_idx + FLAGS.v_ds/2, min_value / min_value_2nd]
-        matches[N,:] = match
-        
-    return matches
-
 
 def main(_):
     pp.pprint(flags.FLAGS.__flags)
