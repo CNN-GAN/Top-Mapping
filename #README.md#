@@ -18,3 +18,5 @@ tensorboard --logdir=./logs --port=8008
 
 ## Enhance to the SeqSLAM approach
 * add SeqSLAM framework into the current (done)
+
+
