@@ -18,7 +18,7 @@ def demo():
     # Nordland spring dataset
     ds = AttributeDict()
     ds.name = 'train'
-    ds.imagePath = '../datasets/loam/train'
+    ds.imagePath = '../data/loam/train'
     
     ds.prefix='left'
     ds.extension='.jpg'
@@ -43,7 +43,7 @@ def demo():
     ds2.imageIndices = range(10, 310, ds.imageSkip)    
 
     test_name = 'test_T15_R1.5'
-    ds2.imagePath = '../datasets/loam/'+test_name
+    ds2.imagePath = '../data/loam/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
     ds2.crop=[]
