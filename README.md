@@ -31,7 +31,7 @@ tensorboard --logdir=./logs --port=8008
 ## Enhance to the SeqSLAM approach
 * add SeqSLAM framework into the current **(done)**
 * check SeqSLAM result **(done)**
-
+* check dataset on originl SeqSLAM method **(done)**
 
 ## Basic
 * update current framework
