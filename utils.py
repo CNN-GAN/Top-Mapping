@@ -2,6 +2,37 @@ from random import shuffle
 import scipy.misc
 import numpy as np
 
+##=================================== function for Dictance ================================##
+##=================================== function for Dictance ================================##
+##=================================== function for Dictance ================================##
+def Euclidean(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            D[x,y] = np.linalg.norm(train[x]-test[y])
+    return D
+
+def Manhattan(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            D[x,y] = np.sum(np.abs(train[x]-test[y]))
+    return D
+
+def Chebyshev(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            D[x,y] = np.max(np.abs(train[x]-test[y]))
+    return D
+
+def Cosine(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            D[x,y] = np.sum(train[x]*test[y])/(np.linalg.norm(train[x])*np.linalg.norm(test[y]))
+    return D
+
 ##=================================== function for Image processing ======================##
 ##=================================== function for Image processing ======================##
 ##=================================== function for Image processing ======================##
@@ -34,25 +65,18 @@ def transform(image, npx=64, is_crop=True, resize_w=64):
 def inverse_transform(images):
     return (images+1.)/2.
 
-def imread(path, dataset, is_grayscale = False):
+def imread(path, is_grayscale = False):
     if (is_grayscale):
         return scipy.misc.imread(path, flatten = True).astype(np.float)
     else:
         img = scipy.misc.imread(path).astype(np.float)
-        if dataset:
-            out = np.zeros([img.shape[0], img.shape[0], 3])
-            out[:,:,0] = img
-            out[:,:,1] = img
-            out[:,:,2] = img
-            return out
-        else:
-            return img
+        return img
 
 def imsave(images, size, path):
     return scipy.misc.imsave(path, merge(images, size))
 
-def get_image(image_path, image_size, dataset, is_crop=True, resize_w=64, is_grayscale = False):
-    return transform(imread(image_path, dataset, is_grayscale), image_size, is_crop, resize_w)
+def get_image(image_path, image_size,  is_crop=True, resize_w=64, is_grayscale = False):
+    return transform(imread(image_path,  is_grayscale), image_size, is_crop, resize_w)
 
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)
@@ -136,33 +160,4 @@ def getMatches(DD, v_ds, vmax, vmin, Rwindow):
         matches[N,:] = match
         
     return matches
-
-##=================================== function for Dictance ================================##
-##=================================== function for Dictance ================================##
-##=================================== function for Dictance ================================##
-    def Euclidean(train, test):
-        D = np.zeros([train.shape[0], test.shape[0]])
-        for x in range(train.shape[0]):
-            for y in range(test.shape[0]):
-                D[x,y] = np.linalg.norm(train[x]-test[y])
-        return D
-
-    def Manhattan(train, test):
-        D = np.zeros([train.shape[0], test.shape[0]])
-        for x in range(train.shape[0]):
-            for y in range(test.shape[0]):
-                D[x,y] = np.sum(np.abs(train[x]-test[y]))
-        return D
-
-    def Chebyshev(train, test):
-        D = np.zeros([train.shape[0], test.shape[0]])
-        for x in range(train.shape[0]):
-            for y in range(test.shape[0]):
-                D[x,y] = np.max(np.abs(train[x]-test[y]))
-
-    def Cosine(train, test):
-        D = np.zeros([train.shape[0], test.shape[0]])
-        for x in range(train.shape[0]):
-            for y in range(test.shape[0]):
-                D[x,y] = np.sum(train[x]*test[y])/(np.linalg.norm(train[x])*np.linalg.norm(test[y]))
 
