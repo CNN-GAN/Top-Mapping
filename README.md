@@ -32,6 +32,7 @@ tensorboard --logdir=./logs --port=8008
 * add SeqSLAM framework into the current **(done)**
 * check SeqSLAM result **(done)**
 * check dataset on originl SeqSLAM method **(done)**
+* Add KNN search to accelerate the matching speed
 
 ## Basic
 * update current framework

@@ -250,7 +250,8 @@ class Net(object):
         result_dir = os.path.join(args.result_dir, args.model_dir)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)  
-        scipy.misc.imsave(os.path.join(result_dir, args.test_dir+'_'+str(args.c_epoch)+'matrix.jpg'), D * 255)
+        scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
+                                       args.test_dir+'_'+str(args.c_epoch)+'matrix.jpg'), D * 255)
         
         ## Save matching 
         m = match[:,0]

@@ -6,7 +6,7 @@ def Param():
     
     ## Param
     flags.DEFINE_integer("epoch",         35,           "Epoch to train [25]")
-    flags.DEFINE_integer("c_epoch",       24,           "current Epoch")
+    flags.DEFINE_integer("c_epoch",       20,           "current Epoch")
     flags.DEFINE_integer("enhance",       5,            "Enhancement for different matrix")
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
@@ -47,12 +47,12 @@ def Param():
     flags.DEFINE_float("vmax",            1.2,          "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,           "rainbow")
     flags.DEFINE_integer("test_len",      1000,          "test data length")
-    flags.DEFINE_string("test_dir",    "test_T1_R0.1",   "Directory name to extract image datas")
+    flags.DEFINE_string("test_dir",    "test_T15_R1.5",   "Directory name to extract image datas")
 
     ## Flag
-    flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_train",      False,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for training, False for testing [False]")
-    flags.DEFINE_boolean("restore",       False         "restore from pre trained")
+    flags.DEFINE_boolean("restore",       True,         "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
 
     return flags.FLAGS
