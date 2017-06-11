@@ -14,6 +14,7 @@ from random import shuffle
 from six.moves import xrange
 from collections import namedtuple
 from glob import glob
+from matplotlib import pyplot as plt
 from tensorlayer.layers import *
 from module import *
 from utils import *
@@ -146,13 +147,6 @@ class Net(object):
             shuffle(data_files)
             print("[*] Dataset shuffled!")
             
-            ## update sample files based on shuffled data
-            sample_files = data_files[0:args.sample_size]
-            sample = [get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                resize_w=args.output_size, is_grayscale = 0) for sample_file in sample_files]
-            sample_images = np.array(sample).astype(np.float32)
-            print("[*] Sample images updated!")
-            
             ## load image data
             batch_idxs = min(len(data_files), args.train_size) // args.batch_size
             
@@ -185,8 +179,8 @@ class Net(object):
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
                     for _ in range(4):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-                        ## update inverse mapping
-                        errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+                    ## update inverse mapping
+                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
                 elif self.model == 'ALI':
                     errJ, _ = self.sess.run([self.loss_dic_J,   self.optim_dicJ],    feed_dict=feed_dict)
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
@@ -200,7 +194,7 @@ class Net(object):
 
                 if np.mod(self.iter_counter, args.sample_step) == 0:
                     self.makeSample(feed_dict, args.sample_dir, epoch, idx)
-                    print("[*] Make new sample SUCCESS!")                    
+            
                 if np.mod(self.iter_counter, args.save_step) == 0:
                     self.saveParam(args)
                     print("[*] Saving checkpoints SUCCESS!")
@@ -220,24 +214,24 @@ class Net(object):
         test_files.sort()
         
         ## Extract Train data code
-        train_code  = np.zeros([args.sample_len, 512]).astype(np.float32)
+        train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
         for id in range(train_code.shape[0]):
             sample_file = train_files[id]
-            sample = get_image(sample_file, args.image_size, dataset, \
-                               is_crop=args.is_crop, resize_w=args.output_size, is_grayscale=0)
+            sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                               resize_w=args.output_size, is_grayscale=0)
             sample_image = np.array(sample).astype(np.float32)
             sample_image = sample_image.reshape([1,64,64,3])
             print ("Load data {}".format(sample_file))
             feed_dict={self.d_real_x: sample_image}
-            train_code[id]  = self.sess.run(self.d.fake.z, feed_dict=feed_dict)
+            train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
         print ("Train code extraction done!")
 
         ## Extract Test data code
-        test_code = np.zeros([sample_len, 512]).astype(np.float32)
+        test_code = np.zeros([args.test_len, 512]).astype(np.float32)
         for id in range(test_code.shape[0]):
             sample_file = test_files[id]
-            sample = get_image(sample_file, args.image_size, dataset, \
-                               is_crop=args.is_crop, resize_w=args.output_size, is_grayscale=0)
+            sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                               resize_w=args.output_size, is_grayscale=0)
             sample_image = np.array(sample).astype(np.float32)
             sample_image = sample_image.reshape([1,64,64,3])
             print ("Load data {}".format(sample_file))
@@ -246,8 +240,8 @@ class Net(object):
         print ("Test code extraction done!")
         
         ## Measure vector corrcoeffience
-        D     = self.vec_D(train_code, test_code)
-        match = self.getMatch(DD)
+        D          = self.vec_D(train_code, test_code)
+        match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
         result_dir = os.path.join(args.result_dir, args.model_dir)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)  
@@ -258,7 +252,7 @@ class Net(object):
         thresh = 3
         m[match[:,1] > thresh] = np.nan
         plt.plot(m,'.') 
-        plt.title('Matching '+ test_dir)
+        plt.title('Matching '+ args.test_dir)
         plt.savefig(os.path.join(result_dir, args.test_dir+'match.jpg'))
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):

@@ -6,7 +6,7 @@ def Param():
     
     ## Param
     flags.DEFINE_integer("epoch",         35,           "Epoch to train [25]")
-    flags.DEFINE_integer("c_epoch",       0,           "current Epoch")
+    flags.DEFINE_integer("c_epoch",       10,           "current Epoch")
     flags.DEFINE_integer("enhance",       5,            "Enhancement for different matrix")
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
@@ -25,11 +25,14 @@ def Param():
     flags.DEFINE_string("result_dir",     "results",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save logs [logs]")
     flags.DEFINE_string("model_dir",      "ALI_CYC",    "Model selected for both model saving and ")
+    flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
+    flags.DEFINE_string("test_dir",       "test_T15_R1.5",   "Directory name to extract image datas")
+    flags.DEFINE_integer("test_len",       300,         "test data length")
     
     ## Training
     flags.DEFINE_string("method",         "ALI_CYC",    "ALI or ALI_CYC")
-    flags.DEFINE_integer("sample_step",   10,            "The interval of generating sample. [500]")
-    flags.DEFINE_integer("save_step",     5,          "The interval of saveing checkpoints. [500]")
+    flags.DEFINE_integer("sample_step",   2,            "The interval of generating sample. [500]")
+    flags.DEFINE_integer("save_step",     100,          "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")
     flags.DEFINE_integer("dX_dim",        1024,         "The number of discriminator for image")
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
@@ -38,7 +41,6 @@ def Param():
     flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
-
 
     ## SeqSLAM
     flags.DEFINE_float("v_ds",            10,           "seqslam distance")
@@ -50,7 +52,7 @@ def Param():
     ## Flag
     flags.DEFINE_boolean("is_train",      True,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for training, False for testing [False]")
-    flags.DEFINE_boolean("restore",       False,         "restore from pre trained")
+    flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
 
     return flags.FLAGS
