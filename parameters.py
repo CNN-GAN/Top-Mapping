@@ -6,7 +6,7 @@ def Param():
     
     ## Param
     flags.DEFINE_integer("epoch",         35,           "Epoch to train [25]")
-    flags.DEFINE_integer("c_epoch",       10,           "current Epoch")
+    flags.DEFINE_integer("c_epoch",       24,           "current Epoch")
     flags.DEFINE_integer("enhance",       5,            "Enhancement for different matrix")
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
@@ -17,7 +17,7 @@ def Param():
     flags.DEFINE_string("dataset",        "loam",       "The name of dataset [celebA, mnist, loam, lsun]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
-    flags.DEFINE_integer("code_dim",      512,          "Dimension of image color. [3]")
+    flags.DEFINE_integer("code_dim",      512,          "code dimension")
     
     ## Dir
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
@@ -26,8 +26,6 @@ def Param():
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save logs [logs]")
     flags.DEFINE_string("model_dir",      "ALI_CYC",    "Model selected for both model saving and ")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
-    flags.DEFINE_string("test_dir",       "test_T15_R1.5",   "Directory name to extract image datas")
-    flags.DEFINE_integer("test_len",       300,         "test data length")
     
     ## Training
     flags.DEFINE_string("method",         "ALI_CYC",    "ALI or ALI_CYC")
@@ -48,11 +46,13 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,          "velocity gap")
     flags.DEFINE_float("vmax",            1.2,          "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,           "rainbow")
+    flags.DEFINE_integer("test_len",      1000,          "test data length")
+    flags.DEFINE_string("test_dir",    "test_T1_R0.1",   "Directory name to extract image datas")
 
     ## Flag
-    flags.DEFINE_boolean("is_train",      True,        "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for training, False for testing [False]")
-    flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
+    flags.DEFINE_boolean("restore",       False         "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
 
     return flags.FLAGS

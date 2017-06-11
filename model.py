@@ -51,8 +51,8 @@ class Net(object):
         self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name="real_code")
 
         self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
-        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=False)
-        self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=True)
+        self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=False)
+        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
         self.n_cycl_x, self.d_cycl_x = self.decoder(self.d_fake_z, is_train=True, reuse=True)
 
         with tf.name_scope('real'):
@@ -64,11 +64,10 @@ class Net(object):
             self.summ_image_fake = tf.summary.image('fake', fake_image[0:4], 4)
 
         self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
-        self.n_dic_z,  self.d_dic_z  = self.discZ(self.d_real_z, is_train=True, reuse=False)
-        self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
-
         self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)
+        self.n_dic_z,  self.d_dic_z  = self.discZ(self.d_real_z, is_train=True, reuse=False)
         self.n_dic_fz, self.d_dic_fz = self.discZ(self.d_fake_z, is_train=True, reuse=True)
+        self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
         self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
         # Apply Loss
@@ -104,10 +103,6 @@ class Net(object):
     def train(self, args):
         
         # Set optimal for nets
-        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
-        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
         if self.model == 'ALI_CYC':
             self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_encoder, var_list=self.var_encoder)
@@ -120,10 +115,10 @@ class Net(object):
             self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
 
-        # Initial global variables
-        init_op = tf.global_variables_initializer()
-        self.sess.run(init_op)
-        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
 
         # Initial layer's variables
         tl.layers.initialize_global_variables(self.sess)
@@ -132,7 +127,12 @@ class Net(object):
             print("[*] Load network done")
         else:
             print("[!] Initial network done")
-        
+
+        # Initial global variables
+        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)        
+
         # Load Data files
         data_files = glob(os.path.join("./data", args.dataset, "train/*.jpg"))
 
@@ -174,15 +174,20 @@ class Net(object):
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
                     errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
                     errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+
                     errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
-                    errD, _ = self.sess.run([self.loss_decoder, self.optim_encoder], feed_dict=feed_dict)
+                    errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
                     for _ in range(4):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+
                     ## update inverse mapping
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+
                 elif self.model == 'ALI':
                     errJ, _ = self.sess.run([self.loss_dic_J,   self.optim_dicJ],    feed_dict=feed_dict)
+
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
                     for _ in range(4):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
@@ -245,7 +250,7 @@ class Net(object):
         result_dir = os.path.join(args.result_dir, args.model_dir)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)  
-        scipy.misc.imsave(os.path.join(result_dir, args.test_dir+'matrix.jpg'), D * 255)
+        scipy.misc.imsave(os.path.join(result_dir, args.test_dir+'_'+str(args.c_epoch)+'matrix.jpg'), D * 255)
         
         ## Save matching 
         m = match[:,0]
@@ -253,7 +258,7 @@ class Net(object):
         m[match[:,1] > thresh] = np.nan
         plt.plot(m,'.') 
         plt.title('Matching '+ args.test_dir)
-        plt.savefig(os.path.join(result_dir, args.test_dir+'match.jpg'))
+        plt.savefig(os.path.join(result_dir, args.test_dir+'_'+str(args.c_epoch)+'match.jpg'))
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
