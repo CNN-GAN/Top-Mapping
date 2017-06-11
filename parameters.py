@@ -1,7 +1,7 @@
 import tensorflow as tf
+import numpy as np
 
-def defaultParam():
-
+def Param():
     flags = tf.app.flags
     flags.DEFINE_integer("epoch", 35, "Epoch to train [25]")
     flags.DEFINE_integer("c_epoch", 16, "current Epoch")
@@ -26,8 +26,15 @@ def defaultParam():
     flags.DEFINE_integer("sample_step", 2, "The interval of generating sample. [500]")
     flags.DEFINE_integer("save_step", 100, "The interval of saveing checkpoints. [500]")
     flags.DEFINE_string("dataset", "loam", "The name of dataset [celebA, mnist, loam, lsun]")
+    
+    ## Dir
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
-    flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
+    flags.DEFINE_string("sample_dir",     "samples",    "Directory name to save the image samples [samples]")
+    flags.DEFINE_string("result_dir",     "results",    "Directory name to save SeqSLAM results [results]")
+    flags.DEFINE_string("log_dir",        "logs",       "Directory name to save logs [logs]")
+    flags.DEFINE_string("model_dir",      "ALI_CYC",    "Model selected for both model saving and ")
+    
+    ## Flag
     flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop", True, "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_restore", True, "restore from pre trained")

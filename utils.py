@@ -2,20 +2,9 @@ from random import shuffle
 import scipy.misc
 import numpy as np
 
-'''
-Parameters for Conv1d
-net : TensorLayer layer.
-n_filter : number of filter.
-filter_size : an int.
-stride : an int.
-act : None or activation function.
-
-Note: basicly Conv1x1 is equal to Fully Connected Networks
-for conv1x1, with (Nx1x1) as input and (Mx1x1) as output, for each output fileter(1x1)
-the parameters is (Nx1x1), same as Fully Connected Networks
-'''
-
-
+##=================================== function for Image processing ======================##
+##=================================== function for Image processing ======================##
+##=================================== function for Image processing ======================##
 def center_crop(x, crop_h, crop_w=None, resize_w=64):
     if crop_w is None:
         crop_w = crop_h
@@ -71,7 +60,10 @@ def save_images(images, size, image_path):
 def log(x):
     return tf.log(x + 1e-8)
 
-## function in SeqSLAM
+
+##=================================== function in SeqSLAM ================================##
+##=================================== function in SeqSLAM ================================##
+##=================================== function in SeqSLAM ================================##
 def enhanceContrast(D, enhance):
     # TODO parallelize
     DD = np.zeros(D.shape)
@@ -144,3 +136,33 @@ def getMatches(DD, v_ds, vmax, vmin, Rwindow):
         matches[N,:] = match
         
     return matches
+
+##=================================== function for Dictance ================================##
+##=================================== function for Dictance ================================##
+##=================================== function for Dictance ================================##
+    def Euclidean(train, test):
+        D = np.zeros([train.shape[0], test.shape[0]])
+        for x in range(train.shape[0]):
+            for y in range(test.shape[0]):
+                D[x,y] = np.linalg.norm(train[x]-test[y])
+        return D
+
+    def Manhattan(train, test):
+        D = np.zeros([train.shape[0], test.shape[0]])
+        for x in range(train.shape[0]):
+            for y in range(test.shape[0]):
+                D[x,y] = np.sum(np.abs(train[x]-test[y]))
+        return D
+
+    def Chebyshev(train, test):
+        D = np.zeros([train.shape[0], test.shape[0]])
+        for x in range(train.shape[0]):
+            for y in range(test.shape[0]):
+                D[x,y] = np.max(np.abs(train[x]-test[y]))
+
+    def Cosine(train, test):
+        D = np.zeros([train.shape[0], test.shape[0]])
+        for x in range(train.shape[0]):
+            for y in range(test.shape[0]):
+                D[x,y] = np.sum(train[x]*test[y])/(np.linalg.norm(train[x])*np.linalg.norm(test[y]))
+
