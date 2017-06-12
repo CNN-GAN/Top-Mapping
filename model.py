@@ -43,6 +43,9 @@ class Net(object):
         self.vec_D    = Euclidean
         self.getMatch = getMatches
 
+        # Test
+        if args.is_train == False:
+            self.test_epoch = 0
         self._build_model(args)
 
     def _build_model(self, args):
@@ -208,58 +211,67 @@ class Net(object):
         self.writer.close()
 
     def test(self, args):
-        # Initial layer's variables
-        self.loadParam(args)
-        print("[*] Load network done")
+        for test_epoch in range(1, args.epoch):
+            self.test_epoch = test_epoch
 
-        ## Evaulate data
-        train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
-        test_files  = glob(os.path.join(args.data_dir, args.dataset, args.test_dir,"*.jpg"))
-        train_files.sort()
-        test_files.sort()
+            # Initial layer's variables
+            self.loadParam(args)
+            print("[*] Load network done")
         
-        ## Extract Train data code
-        train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
-        for id in range(train_code.shape[0]):
-            sample_file = train_files[id]
-            sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                               resize_w=args.output_size, is_grayscale=0)
-            sample_image = np.array(sample).astype(np.float32)
-            sample_image = sample_image.reshape([1,64,64,3])
-            print ("Load data {}".format(sample_file))
-            feed_dict={self.d_real_x: sample_image}
-            train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-        print ("Train code extraction done!")
+            ## Evaulate data
+            train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
+            test_files  = glob(os.path.join(args.data_dir, args.dataset, args.test_dir,"*.jpg"))
+            train_files.sort()
+            test_files.sort()
+            
+            ## Extract Train data code
+            train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
+            for id in range(train_code.shape[0]):
+                sample_file = train_files[id]
+                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                   resize_w=args.output_size, is_grayscale=0)
+                sample_image = np.array(sample).astype(np.float32)
+                sample_image = sample_image.reshape([1,64,64,3])
+                print ("Load data {}".format(sample_file))
+                feed_dict={self.d_real_x: sample_image}
+                train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            print ("Train code extraction done!")
 
-        ## Extract Test data code
-        test_code = np.zeros([args.test_len, 512]).astype(np.float32)
-        for id in range(test_code.shape[0]):
-            sample_file = test_files[id]
-            sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                               resize_w=args.output_size, is_grayscale=0)
-            sample_image = np.array(sample).astype(np.float32)
-            sample_image = sample_image.reshape([1,64,64,3])
-            print ("Load data {}".format(sample_file))
-            feed_dict={self.d_real_x: sample_image}
-            test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-        print ("Test code extraction done!")
+            ## Extract Test data code
+            test_code = np.zeros([args.test_len, 512]).astype(np.float32)
+            for id in range(test_code.shape[0]):
+                sample_file = test_files[id]
+                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                   resize_w=args.output_size, is_grayscale=0)
+                sample_image = np.array(sample).astype(np.float32)
+                sample_image = sample_image.reshape([1,64,64,3])
+                print ("Load data {}".format(sample_file))
+                feed_dict={self.d_real_x: sample_image}
+                test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            print ("Test code extraction done!")
         
-        ## Measure vector corrcoeffience
-        D          = self.vec_D(train_code, test_code)
-        match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
-        result_dir = os.path.join(args.result_dir, args.model_dir)
-        if not os.path.exists(result_dir):
-            os.makedirs(result_dir)  
-        scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                       args.test_dir+'_'+str(args.c_epoch)+'matrix.jpg'), D * 255)
+            ## Measure vector corrcoeffience
+            D          = self.vec_D(train_code, test_code)
+            match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
+            result_dir = os.path.join(args.result_dir, args.model_dir)
+            if not os.path.exists(result_dir):
+                os.makedirs(result_dir)
+            scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
+                                           args.test_dir+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
         
-        ## Save matching 
-        m = match[:,0]
-        thresh = 3
-        m[match[:,1] > thresh] = np.nan
-        plt.plot(m,'.') 
-        plt.title('Matching '+ args.test_dir)
-        plt.savefig(os.path.join(result_dir, args.test_dir+'_'+str(args.c_epoch)+'match.jpg'))
+            ## Save matching 
+            m = match[:,0]
+            thresh = 0.95
+            matched = match[match[:,1]<thresh, 1]
+            score = np.mean(matched)
+            m[match[:,1] > thresh] = np.nan
+            plt.figure()
+            plt.xlabel('Test data')
+            plt.ylabel('Stored data')
+            plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+            plt.plot(m,'.') 
+            plt.title('Epoch_'+str(test_epoch)+'_'+args.test_dir)
+            plt.savefig(os.path.join(result_dir, args.test_dir+'_'+str(test_epoch)+'_match.jpg'))
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
@@ -273,31 +285,59 @@ class Net(object):
     def loadParam(self, args):
         # load the latest checkpoints
         if self.model == 'ALI_CYC':
-            load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                        name='/net_de_%d00.npz' % args.c_epoch)
-            load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                        name='/net_en_%d00.npz' % args.c_epoch)
-            load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                        name='/net_dX_%d00.npz' % args.c_epoch)
-            load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                        name='/net_dZ_%d00.npz' % args.c_epoch)
-            load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                        name='/net_dJ_%d00.npz' % args.c_epoch)
-            tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-            tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-            tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
-            tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
-            tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+            if args.is_train == True:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % args.c_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % args.c_epoch)
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dX_%d00.npz' % args.c_epoch)
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dZ_%d00.npz' % args.c_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
+                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+            else:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % self.test_epoch)
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dX_%d00.npz' % self.test_epoch)
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dZ_%d00.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
+                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
         elif self.model == 'ALI':
-             load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                         name='/net_de_%d00.npz' % args.c_epoch)
-             load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                         name='/net_en_%d00.npz' % args.c_epoch)
-             load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
-                                         name='/net_dJ_%d00.npz' % args.c_epoch)
-             tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-             tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-             tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+            if args.is_train == True:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % args.c_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % args.c_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+            else:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")

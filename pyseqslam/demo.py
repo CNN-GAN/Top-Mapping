@@ -24,7 +24,7 @@ def demo():
     ds.extension='.jpg'
     ds.suffix=''
     ds.imageSkip = 1     # use every n-nth image
-    ds.imageIndices = range(10, 310, ds.imageSkip)    
+    ds.imageIndices = range(10, 1010, ds.imageSkip)    
     ds.savePath = 'results'
     ds.saveFile = '%s-%d-%d-%d' % (ds.name, ds.imageIndices[0], ds.imageSkip, ds.imageIndices[-1])
     
@@ -40,9 +40,9 @@ def demo():
     # Nordland winter dataset
     ds2.name = 'test'
     ds2.imageSkip = 1     # use every n-nth image
-    ds2.imageIndices = range(10, 310, ds.imageSkip)    
+    ds2.imageIndices = range(10, 1010, ds.imageSkip)    
 
-    test_name = 'test_T15_R1.5'
+    test_name = 'test_T1_R0.1'
     ds2.imagePath = '../data/loam/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
