@@ -1,471 +1,397 @@
+from __future__ import division
 
+import os
+import sys
+import scipy.misc
+import pprint
+import time
+
+import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
+
+from random import shuffle
+from six.moves import xrange
+from collections import namedtuple
+from glob import glob
+from matplotlib import pyplot as plt
 from tensorlayer.layers import *
+from module import *
+from utils import *
 
+class Net(object):
+    def __init__(self, sess, args):
+        self.sess = sess
+        self.summary = tf.summary
 
-flags = tf.app.flags
-FLAGS = flags.FLAGS
-
-
-def generator_simplified_api(inputs, is_train=True, reuse=False):
-    image_size = 64
-    s2, s4, s8, s16 = int(image_size/2), int(image_size/4), int(image_size/8), int(image_size/16)
-    gf_dim = 64 # Dimension of gen filters in first conv layer. [64]
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("generator", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='g/in')
-        net_h0 = DenseLayer(net_in, n_units=gf_dim*8*s16*s16, W_init=w_init,
-                            act = tf.identity, name='g/h0/lin')
-        net_h0 = ReshapeLayer(net_h0, shape=[-1, s16, s16, gf_dim*8], name='g/h0/reshape')
-        net_h0 = BatchNormLayer(net_h0, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='g/h0/batch_norm')
-
-        net_h1 = DeConv2d(net_h0, gf_dim*4, (5, 5), out_size=(s8, s8), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='g/h1/decon2d')
-        net_h1 = BatchNormLayer(net_h1, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='g/h1/batch_norm')
-
-        net_h2 = DeConv2d(net_h1, gf_dim*2, (5, 5), out_size=(s4, s4), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='g/h2/decon2d')
-        net_h2 = BatchNormLayer(net_h2, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='g/h2/batch_norm')
-
-        net_h3 = DeConv2d(net_h2, gf_dim, (5, 5), out_size=(s2, s2), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='g/h3/decon2d')
-        net_h3 = BatchNormLayer(net_h3, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='g/h3/batch_norm')
-
-        net_h4 = DeConv2d(net_h3, c_dim, (5, 5), out_size=(image_size, image_size), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='g/h4/decon2d')
-        logits = net_h4.outputs
-        net_h4.outputs = tf.nn.tanh(net_h4.outputs)
-        return net_h4, logits
-
-def discriminator_simplified_api(inputs, is_train=True, reuse=False, use_sigmoid=True):
-    df_dim = 64 # Dimension of discrim filters in first conv layer. [64]
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("discriminator", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='d/in')
-        net_h0 = Conv2d(net_in, df_dim, (5, 5), (2, 2), act=lambda x: tl.act.lrelu(x, 0.2),
-                        padding='SAME', W_init=w_init, name='d/h0/conv2d')
-
-        net_h1 = Conv2d(net_h0, df_dim*2, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='d/h1/conv2d')
-        net_h1 = BatchNormLayer(net_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='d/h1/batch_norm')
-
-        net_h2 = Conv2d(net_h1, df_dim*4, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='d/h2/conv2d')
-        net_h2 = BatchNormLayer(net_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='d/h2/batch_norm')
-
-        net_h3 = Conv2d(net_h2, df_dim*8, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='d/h3/conv2d')
-        net_h3 = BatchNormLayer(net_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='d/h3/batch_norm')
-
-        net_h4 = FlattenLayer(net_h3, name='d/h4/flatten')
-        net_h4 = DenseLayer(net_h4, n_units=1, act=tf.identity,
-                            W_init = w_init, name='d/h4/lin_sigmoid')
-        logits = net_h4.outputs
-        if use_sigmoid:
-            net_h4.outputs = tf.nn.sigmoid(net_h4.outputs)
-
-    return net_h4, logits
-
-
-def decoder_simplified_api(inputs, is_train=True, reuse=False):
-    image_size = 64
-    s2, s4, s8, s16 = int(image_size/2), int(image_size/4), int(image_size/8), int(image_size/16)
-    gf_dim = 64 # Dimension of gen filters in first conv layer. [64]
-    c_dim = 3 # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("DECODER", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='De/in')
-        net_h0 = DenseLayer(net_in, n_units=gf_dim*8*s16*s16, W_init=w_init,
-                            act = tf.identity, name='De/h0/lin')
-        net_h0 = ReshapeLayer(net_h0, shape=[-1, s16, s16, gf_dim*8], name='De/h0/reshape')
-        net_h0 = BatchNormLayer(net_h0, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h0/batch_norm')
-
-        net_h1 = DeConv2d(net_h0, gf_dim*4, (5, 5), out_size=(s8, s8), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h1/decon2d')
-        net_h1 = BatchNormLayer(net_h1, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h1/batch_norm')
-
-        net_h2 = DeConv2d(net_h1, gf_dim*2, (5, 5), out_size=(s4, s4), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h2/decon2d')
-        net_h2 = BatchNormLayer(net_h2, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h2/batch_norm')
-
-        net_h3 = DeConv2d(net_h2, gf_dim, (5, 5), out_size=(s2, s2), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h3/decon2d')
-        net_h3 = BatchNormLayer(net_h3, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h3/batch_norm')
-
-        net_h4 = DeConv2d(net_h3, c_dim, (5, 5), out_size=(image_size, image_size), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h4/decon2d')
-        logits = net_h4.outputs
-        net_h4.outputs = tf.nn.tanh(net_h4.outputs)
-
-    return net_h4, logits
-
-
-def encoder_simplified_api(inputs, is_train=True, reuse=False):
-    df_dim = 64 # Dimension of discrim filters in first conv layer. [64]
-    z_dim = 512
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("ENCODER", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='En/in')
-        net_h0 = Conv2d(net_in, df_dim, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h0/conv2d')
-        net_h0 = BatchNormLayer(net_h0, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h0/batch_norm')
-
-        net_h1 = Conv2d(net_h0, df_dim*2, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h1/conv2d')
-        net_h1 = BatchNormLayer(net_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h1/batch_norm')
-
-        net_h2 = Conv2d(net_h1, df_dim*4, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h2/conv2d')
-        net_h2 = BatchNormLayer(net_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h2/batch_norm')
-
-        net_h3 = Conv2d(net_h2, df_dim*8, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h3/conv2d')
-        net_h3 = BatchNormLayer(net_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h3/batch_norm')
-
-        net_h4 = FlattenLayer(net_h3, name='En/h4/flatten')
-        net_h4 = DenseLayer(net_h4, n_units=z_dim, act=tf.identity,
-                            W_init = w_init, name='En/h4/lin_sigmoid')
-        logits = net_h4.outputs
-
-    return net_h4, logits
-
-def discriminator_ali_api(input_X, input_Z, is_train=True, reuse=False):
-    
-    ## under CelebA Parameters
-    df_dim = 2048
-    dX_dim = 64
-    dX_out = 1024
-    dZ_out = 1024
-    dZ_dim = 512
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)    
-
-    with tf.variable_scope("DISCRIMINATOR", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        ## For Image
-        netX_in = InputLayer(input_X, name='DX/in')
-        netX_h0 = Conv2d(netX_in, dX_dim, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h0/conv2d')
-        netX_h0 = BatchNormLayer(netX_h0, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h0/batch_norm')
-
-        netX_h1 = Conv2d(netX_h0, dX_dim*2, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h1/conv2d')
-        netX_h1 = BatchNormLayer(netX_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h1/batch_norm')
-
-        netX_h2 = Conv2d(netX_h1, dX_dim*4, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h2/conv2d')
-        netX_h2 = BatchNormLayer(netX_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h2/batch_norm')
-
-        netX_h3 = Conv2d(netX_h2, dX_dim*8, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h3/conv2d')
-        netX_h3 = BatchNormLayer(netX_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h3/batch_norm')
-
-        netX_h4 = FlattenLayer(netX_h3, name='DX/h4/flatten')
-        netX_h4 = DenseLayer(netX_h4, n_units=dX_out, act=tf.identity,
-                             W_init = w_init, name='DX/h4/lin_sigmoid')
-        netX_h4 = BatchNormLayer(netX_h4, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h4/batch_norm')
-
-        ## For Code
-        netZ_in = InputLayer(input_Z, name='DZ/in')
-        netZ_h0 = DropoutLayer(netZ_in, keep=0.8, name='DZ/h0/drop')
-        netZ_h0 = DenseLayer(netZ_h0, n_units=dZ_dim, act=tf.identity,
-                             W_init = w_init, name='DZ/h0/fcn')
-        netZ_h1 = DropoutLayer(netZ_h0, keep=0.8, name='DZ/h1/drop')
-        netZ_h1 = DenseLayer(netZ_h1, n_units=dZ_out, act=tf.identity, 
-                             W_init = w_init, name='DZ/h1/fcn')
+        # ALI approach
+        self.model    = args.method
+        self.is_train = args.is_train 
         
-        ## For Joint (Image, Code)
-        net_in = ConcatLayer(layer=[netX_h4, netZ_h1], name='DIS/in')
-        net_h0 = DropoutLayer(net_in, keep=0.8, name='DIS/h0/drop')
-        net_h0 = DenseLayer(net_h0, n_units=df_dim, act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h0/fcn')
-        net_h1 = DropoutLayer(net_h0, keep=0.8, name='DIS/h1/drop')
-        net_h1 = DenseLayer(net_h1, n_units=df_dim, act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h1/fcn')
-        net_h2 = DropoutLayer(net_h1, keep=0.8, name='DIS/h2/drop')
-        net_h2 = DenseLayer(net_h2, n_units=1,  act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h2/fcn')
-        logits = net_h2.outputs
-
-    return net_h2, logits
-
-
-def decoder(inputs, is_train=True, reuse=False):
-    image_size = 64
-    s2, s4, s8, s16 = int(image_size/2), int(image_size/4), int(image_size/8), int(image_size/16)
-    gf_dim = 64 # Dimension of gen filters in first conv layer. [64]
-    c_dim = 3 # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("DECODER", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='De/in')
-        net_h0 = DenseLayer(net_in, n_units=gf_dim*8*s16*s16, W_init=w_init,
-                            act = tf.identity, name='De/h0/lin')
-        net_h0 = ReshapeLayer(net_h0, shape=[-1, s16, s16, gf_dim*8], name='De/h0/reshape')
-        net_h0 = BatchNormLayer(net_h0, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h0/batch_norm')
-
-        net_h1 = DeConv2d(net_h0, gf_dim*4, (5, 5), out_size=(s8, s8), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h1/decon2d')
-        net_h1 = BatchNormLayer(net_h1, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h1/batch_norm')
-
-        net_h2 = DeConv2d(net_h1, gf_dim*2, (5, 5), out_size=(s4, s4), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h2/decon2d')
-        net_h2 = BatchNormLayer(net_h2, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h2/batch_norm')
-
-        net_h3 = DeConv2d(net_h2, gf_dim, (5, 5), out_size=(s2, s2), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h3/decon2d')
-        net_h3 = BatchNormLayer(net_h3, act=tf.nn.relu, is_train=is_train,
-                                gamma_init=gamma_init, name='De/h3/batch_norm')
-
-        net_h4 = DeConv2d(net_h3, c_dim, (5, 5), out_size=(image_size, image_size), strides=(2, 2),
-                          padding='SAME', batch_size=batch_size, act=None, W_init=w_init, name='De/h4/decon2d')
-        net_h4.outputs = tf.nn.tanh(net_h4.outputs)
-        logits = net_h4.outputs
-
-    return net_h4, logits
-
-
-def encoder(inputs, is_train=True, reuse=False):
-    df_dim = 64 # Dimension of discrim filters in first conv layer. [64]
-    z_dim = 512
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)
-
-    with tf.variable_scope("ENCODER", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        net_in = InputLayer(inputs, name='En/in')
-        net_h0 = Conv2d(net_in, df_dim, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h0/conv2d')
-        net_h0 = BatchNormLayer(net_h0, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h0/batch_norm')
-
-        net_h1 = Conv2d(net_h0, df_dim*2, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h1/conv2d')
-        net_h1 = BatchNormLayer(net_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h1/batch_norm')
-
-        net_h2 = Conv2d(net_h1, df_dim*4, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h2/conv2d')
-        net_h2 = BatchNormLayer(net_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h2/batch_norm')
-
-        net_h3 = Conv2d(net_h2, df_dim*8, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='En/h3/conv2d')
-        net_h3 = BatchNormLayer(net_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='En/h3/batch_norm')
-
-        net_h4 = FlattenLayer(net_h3, name='En/h4/flatten')
-        net_h4 = DenseLayer(net_h4, n_units=z_dim, act=tf.identity,
-                            W_init = w_init, name='En/h4/lin_sigmoid')
-        logits = net_h4.outputs
-
-    return net_h4, logits
-
-def discriminator_J(input_X, input_Z, is_train=True, reuse=False):
-    
-    ## under CelebA Parameters
-    df_dim = 2048
-    dX_dim = 64
-    dX_out = 1024
-    dZ_out = 1024
-    dZ_dim = 512
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)    
-
-    with tf.variable_scope("DISC_J", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        ## For Image
-        netX_in = InputLayer(input_X, name='DX/in')
-        netX_h0 = Conv2d(netX_in, dX_dim, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='DX/h0/conv2d')
-        netX_h0 = BatchNormLayer(netX_h0, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='DX/h0/batch_norm')
-
-        netX_h1 = Conv2d(netX_h0, dX_dim*2, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='DX/h1/conv2d')
-        netX_h1 = BatchNormLayer(netX_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='DX/h1/batch_norm')
-
-        netX_h2 = Conv2d(netX_h1, dX_dim*4, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='DX/h2/conv2d')
-        netX_h2 = BatchNormLayer(netX_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='DX/h2/batch_norm')
-
-        netX_h3 = Conv2d(netX_h2, dX_dim*8, (5, 5), (2, 2), act=None,
-                        padding='SAME', W_init=w_init, name='DX/h3/conv2d')
-        netX_h3 = BatchNormLayer(netX_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                is_train=is_train, gamma_init=gamma_init, name='DX/h3/batch_norm')
-
-        netX_h4 = FlattenLayer(netX_h3, name='DX/h4/flatten')
-        netX_h4 = DenseLayer(netX_h4, n_units=dX_out, act=tf.identity,
-                            W_init = w_init, name='DX/h4/lin_sigmoid')
-        netX_h4 = BatchNormLayer(netX_h4, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h4/batch_norm')
-
-        ## For Code
-        netZ_in = InputLayer(input_Z, name='DZ/in')
-        netZ_h0 = DropoutLayer(netZ_in, keep=0.8, name='DZ/h0/drop')
-        netZ_h0 = DenseLayer(netZ_h0, n_units=dZ_dim, act=tf.identity,
-                             W_init = w_init, name='DZ/h0/fcn')
-        netZ_h1 = DropoutLayer(netZ_h0, keep=0.8, name='DZ/h1/drop')
-        netZ_h1 = DenseLayer(netZ_h1, n_units=dZ_out, act=tf.identity, 
-                             W_init = w_init, name='DZ/h1/fcn')
+        # Network module
+        self.encoder = encoder
+        self.decoder = decoder
+        self.discX   = discriminator_X
+        self.discZ   = discriminator_Z
+        self.discJ   = discriminator_J
         
-        ## For Joint (Image, Code)
-        net_in = ConcatLayer(layer=[netX_h4, netZ_h1], name='DIS/in')
-        net_h0 = DropoutLayer(net_in, keep=0.8, name='DIS/h0/drop')
-        net_h0 = DenseLayer(net_h0, n_units=df_dim, act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h0/fcn')
-        net_h1 = DropoutLayer(net_h0, keep=0.8, name='DIS/h1/drop')
-        net_h1 = DenseLayer(net_h1, n_units=df_dim, act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h1/fcn')
-        net_h2 = DropoutLayer(net_h1, keep=0.8, name='DIS/h2/drop')
-        net_h2 = DenseLayer(net_h2, n_units=1,  act=lambda x: tl.act.lrelu(x, 0.2),
-                            W_init = w_init, name='DIS/h2/fcn')
-        logits = net_h2.outputs
+        # Loss function
+        self.lossGAN = mae_criterion
+        self.lossCYC = abs_criterion
 
-    return net_h2, logits
+        # SeqSLAM
+        self.vec_D    = Euclidean
+        self.getMatch = getMatches
 
-def discriminator_X(input_X, is_train=True, reuse=False):
-    
-    ## under CelebA Parameters
-    df_dim = 2048
-    dX_dim = 64
-    dX_out = 1024
-    dZ_out = 1024
-    dZ_dim = 512
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
+        # Test
+        if args.is_train == False:
+            self.test_epoch = 0
+        self._build_model(args)
 
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)    
+    def _build_model(self, args):
+        self.d_real_x = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
+                                                      args.img_dim], name='real_image')
+        self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name="real_code")
 
-    with tf.variable_scope("DISC_X", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
+        self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
+        self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=False)
+        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
+        self.n_cycl_x, self.d_cycl_x = self.decoder(self.d_fake_z, is_train=True, reuse=True)
 
-        ## For Image
-        netX_in = InputLayer(input_X, name='DX/in')
-        netX_h0 = Conv2d(netX_in, dX_dim, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h0/conv2d')
-        netX_h0 = BatchNormLayer(netX_h0, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h0/batch_norm')
+        with tf.name_scope('real'):
+            true_image = tf.reshape(self.d_real_x, [-1, 64, 64, 3])
+            self.summ_image_real = tf.summary.image('real', true_image[0:4], 4)
 
-        netX_h1 = Conv2d(netX_h0, dX_dim*2, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h1/conv2d')
-        netX_h1 = BatchNormLayer(netX_h1, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h1/batch_norm')
+        with tf.name_scope('fake'):
+            fake_image = tf.reshape(self.d_cycl_x, [-1, 64, 64, 3])
+            self.summ_image_fake = tf.summary.image('fake', fake_image[0:4], 4)
 
-        netX_h2 = Conv2d(netX_h1, dX_dim*4, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h2/conv2d')
-        netX_h2 = BatchNormLayer(netX_h2, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h2/batch_norm')
+        self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
+        self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)
+        self.n_dic_z,  self.d_dic_z  = self.discZ(self.d_real_z, is_train=True, reuse=False)
+        self.n_dic_fz, self.d_dic_fz = self.discZ(self.d_fake_z, is_train=True, reuse=True)
+        self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
+        self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
-        netX_h3 = Conv2d(netX_h2, dX_dim*8, (5, 5), (2, 2), act=None,
-                         padding='SAME', W_init=w_init, name='DX/h3/conv2d')
-        netX_h3 = BatchNormLayer(netX_h3, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h3/batch_norm')
+        # Apply Loss
+        self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+        self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
+        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
+                                                self.lossCYC(self.d_real_z, self.d_cycl_z))
+        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
+                                                   self.lossGAN(self.d_dic_fx,0))
+        self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
+                                                   self.lossGAN(self.d_dic_fz,0))
+        # Make summary
+        self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
+        self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
+        self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
+        self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
+        self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
+        self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
+        self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+        self.summ_merge   = tf.summary.merge_all()
 
-        netX_h4 = FlattenLayer(netX_h3, name='DX/h4/flatten')
-        netX_h4 = DenseLayer(netX_h4, n_units=dX_out, act=tf.identity,
-                             W_init = w_init, name='DX/h4/lin_sigmoid')
-        netX_h4 = BatchNormLayer(netX_h4, act=lambda x: tl.act.lrelu(x, 0.2),
-                                 is_train=is_train, gamma_init=gamma_init, name='DX/h4/batch_norm')
+        # Extract variables
+        self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
+        self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
+        self.var_dicX     = tl.layers.get_variables_with_name('DISC_X',  True, True)
+        self.var_dicZ     = tl.layers.get_variables_with_name('DISC_Z',  True, True)
+        self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
+        self.var_gen    = self.var_encoder
+        self.var_gen.extend(self.var_decoder)
 
-        logits = netX_h4.outputs
-
-    return netX_h4, logits
-
-
-def discriminator_Z(input_Z, is_train=True, reuse=False):
-    
-    ## under CelebA Parameters
-    df_dim = 2048
-    dX_dim = 64
-    dX_out = 1024
-    dZ_out = 1024
-    dZ_dim = 512
-    c_dim = FLAGS.c_dim # n_color 3
-    batch_size = FLAGS.batch_size # 64
-
-    w_init = tf.random_normal_initializer(stddev=0.02)
-    gamma_init = tf.random_normal_initializer(1., 0.02)    
-
-    with tf.variable_scope("DISC_Z", reuse=reuse):
-        tl.layers.set_name_reuse(reuse)
-
-        ## For Code
-        netZ_in = InputLayer(input_Z, name='DZ/in')
-        netZ_h0 = DropoutLayer(netZ_in, keep=0.8, name='DZ/h0/drop')
-        netZ_h0 = DenseLayer(netZ_h0, n_units=dZ_dim, act=tf.identity,
-                             W_init = w_init, name='DZ/h0/fcn')
-        netZ_h1 = DropoutLayer(netZ_h0, keep=0.8, name='DZ/h1/drop')
-        netZ_h1 = DenseLayer(netZ_h1, n_units=dZ_out, act=tf.identity, 
-                             W_init = w_init, name='DZ/h1/fcn')
+    def train(self, args):
         
-        logits = netZ_h1.outputs
+        # Set optimal for nets
+        if self.model == 'ALI_CYC':
+            self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_encoder, var_list=self.var_encoder)
+            self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_decoder, var_list=self.var_decoder)
+            self.optim_cycle   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_cycle,   var_list=self.var_gen)
+            self.optim_dicX    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_dicX,    var_list=self.var_dicX)
+            self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
 
-    return netZ_h1, logits
+        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+
+        # Initial layer's variables
+        tl.layers.initialize_global_variables(self.sess)
+        if args.restore == True:
+            self.loadParam(args)
+            print("[*] Load network done")
+        else:
+            print("[!] Initial network done")
+
+        # Initial global variables
+        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)        
+
+        # Load Data files
+        data_files = glob(os.path.join("./data", args.dataset, "train/*.jpg"))
+
+        # Main loop for Training
+        self.iter_counter = 0
+        begin_epoch = 0
+        if args.restore == True:
+            begin_epoch = args.c_epoch+1
+
+        for epoch in range(begin_epoch, args.epoch):
+            ## shuffle data
+            shuffle(data_files)
+            print("[*] Dataset shuffled!")
+            
+            ## load image data
+            batch_idxs = min(len(data_files), args.train_size) // args.batch_size
+            
+            for idx in xrange(0, batch_idxs):
+                ### Get datas ###
+                batch_files  = data_files[idx*args.batch_size:(idx+1)*args.batch_size]
+                ## get real images
+                batch        = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
+                                          resize_w=args.output_size, is_grayscale = 0) \
+                                for batch_file in batch_files]
+                batch_images = np.array(batch).astype(np.float32)
+                ## get real code
+                batch_codes  = np.random.normal(loc=0.0, scale=1.0, \
+                                                size=(args.sample_size, args.code_dim)).astype(np.float32)
+                
+                ### Update Nets ###
+                start_time = time.time()
+                feed_dict={self.d_real_x: batch_images, self.d_real_z: batch_codes }
+                feed_dict.update(self.n_dic_J.all_drop)
+                feed_dict.update(self.n_dic_fJ.all_drop)
+
+                if self.model == 'ALI_CYC':
+                    feed_dict.update(self.n_dic_z.all_drop)
+                    feed_dict.update(self.n_dic_fz.all_drop)
+                    errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
+                    errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
+                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+
+                    errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
+                    errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+
+                    ## updates the Joint Generator multi times to avoid Discriminator converge early
+                    for _ in range(4):
+                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+
+                    ## update inverse mapping
+                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+
+                elif self.model == 'ALI':
+                    errJ, _ = self.sess.run([self.loss_dic_J,   self.optim_dicJ],    feed_dict=feed_dict)
+
+                    ## updates the Joint Generator multi times to avoid Discriminator converge early
+                    for _ in range(4):
+                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+
+                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f"  % \
+                      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time))
+                sys.stdout.flush()
+                self.iter_counter += 1
+
+                if np.mod(self.iter_counter, args.sample_step) == 0:
+                    self.makeSample(feed_dict, args.sample_dir, epoch, idx)
+            
+                if np.mod(self.iter_counter, args.save_step) == 0:
+                    self.saveParam(args)
+                    print("[*] Saving checkpoints SUCCESS!")
+
+        # Shutdown writer
+        self.writer.close()
+
+    def test(self, args):
+        for test_epoch in range(17, args.epoch):
+            self.test_epoch = test_epoch
+
+            # Initial layer's variables
+            self.loadParam(args)
+            print("[*] Load network done")
+        
+            ## Evaulate data
+            train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
+            test_files  = glob(os.path.join(args.data_dir, args.dataset, args.test_dir,"*.jpg"))
+            train_files.sort()
+            test_files.sort()
+            
+            ## Extract Train data code
+            train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
+            for id in range(train_code.shape[0]):
+                sample_file = train_files[id]
+                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                   resize_w=args.output_size, is_grayscale=0)
+                sample_image = np.array(sample).astype(np.float32)
+                sample_image = sample_image.reshape([1,64,64,3])
+                print ("Load data {}".format(sample_file))
+                feed_dict={self.d_real_x: sample_image}
+                train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            print ("Train code extraction done!")
+
+            ## Extract Test data code
+            test_code = np.zeros([args.test_len, 512]).astype(np.float32)
+            for id in range(test_code.shape[0]):
+                sample_file = test_files[id]
+                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                   resize_w=args.output_size, is_grayscale=0)
+                sample_image = np.array(sample).astype(np.float32)
+                sample_image = sample_image.reshape([1,64,64,3])
+                print ("Load data {}".format(sample_file))
+                feed_dict={self.d_real_x: sample_image}
+                test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            print ("Test code extraction done!")
+        
+            ## ANN search
+            start_time = time.time()
+            reslut, dists = getANN(train_code, test_code)
+            print("ANN search time: %4.4f"  % (time.time() - start_time))
+
+            ## Measure vector corrcoeffience
+            start_time = time.time()
+            D          = self.vec_D(train_code, test_code)
+            match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
+            print("SeqSLAM search time: %4.4f"  % (time.time() - start_time))
+            result_dir = os.path.join(args.result_dir, args.model_dir)
+            if not os.path.exists(result_dir):
+                os.makedirs(result_dir)
+            scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
+                                           args.test_dir+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
+
+            ## Save matching 
+            m = match[:,0]
+            thresh = 0.95
+            matched = match[match[:,1]<thresh, 1]
+            score = np.mean(matched)
+            m[match[:,1] > thresh] = np.nan
+            plt.figure()
+            plt.xlabel('Test data')
+            plt.ylabel('Stored data')
+            plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+            plt.plot(m,'.') 
+            plt.title('Epoch_'+str(test_epoch)+'_'+args.test_dir)
+            plt.savefig(os.path.join(result_dir, args.test_dir+'_'+str(test_epoch)+'_match.jpg'))
+
+    def makeSample(self, feed_dict, sample_dir, epoch, idx):
+        summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
+
+        # update summary
+        self.writer.add_summary(summary, self.iter_counter)
+        # save image
+        img = (np.array(img) + 1) / 2 * 255
+        save_images(img, [8, 8],'./{}/train_{:02d}_{:04d}.png'.format(sample_dir, epoch, idx))
+
+    def loadParam(self, args):
+        # load the latest checkpoints
+        if self.model == 'ALI_CYC':
+            if args.is_train == True:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % args.c_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % args.c_epoch)
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dX_%d00.npz' % args.c_epoch)
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dZ_%d00.npz' % args.c_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
+                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+            else:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % self.test_epoch)
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dX_%d00.npz' % self.test_epoch)
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dZ_%d00.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
+                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+        elif self.model == 'ALI':
+            if args.is_train == True:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % args.c_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % args.c_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+            else:
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_de_%d00.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_en_%d00.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+
+    def saveParam(self, args):
+        print("[*] Saving checkpoints...")
+        save_dir = os.path.join(args.checkpoint_dir, args.model_dir)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)        
+        print (save_dir)
+
+        if self.model == 'ALI_CYC':
+            # the latest version location
+            net_de_name = os.path.join(save_dir, 'net_de.npz')
+            net_en_name = os.path.join(save_dir, 'net_en.npz')
+            net_dX_name = os.path.join(save_dir, 'net_dX.npz')
+            net_dZ_name = os.path.join(save_dir, 'net_dZ.npz')
+            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
+            # this version is for future re-check and visualization analysis
+            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
+            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
+            net_dX_iter_name = os.path.join(save_dir, 'net_dX_%d.npz' % self.iter_counter)
+            net_dZ_iter_name = os.path.join(save_dir, 'net_dZ_%d.npz' % self.iter_counter)
+            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
+            
+            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
+            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
+
+            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
+        elif self.model == 'ALI':
+            # the latest version location
+            net_de_name = os.path.join(save_dir, 'net_de.npz')
+            net_en_name = os.path.join(save_dir, 'net_en.npz')
+            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
+            # this version is for future re-check and visualization analysis
+            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
+            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
+            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
+            
+            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
+            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
+
+            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
+            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
