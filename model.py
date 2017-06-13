@@ -5,6 +5,7 @@ import sys
 import scipy.misc
 import pprint
 import time
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -14,6 +15,7 @@ from random import shuffle
 from six.moves import xrange
 from collections import namedtuple
 from glob import glob
+from sklearn.metrics import precision_recall_curve
 from matplotlib import pyplot as plt
 from tensorlayer.layers import *
 from module import *
@@ -41,7 +43,8 @@ class Net(object):
 
         # SeqSLAM
         self.vec_D    = Euclidean
-        self.getMatch = getMatches
+        self.getMatch = getAnnMatches
+        #self.getMatch = getMatches
 
         # Test
         if args.is_train == False:
@@ -211,20 +214,22 @@ class Net(object):
         self.writer.close()
 
     def test(self, args):
-        for test_epoch in range(17, args.epoch):
-            self.test_epoch = test_epoch
+
+        test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
+
+        for test_epoch in range(6, 24):
 
             # Initial layer's variables
+            self.test_epoch = test_epoch
             self.loadParam(args)
             print("[*] Load network done")
-        
-            ## Evaulate data
+
+            ## Evaulate train data
             train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
-            test_files  = glob(os.path.join(args.data_dir, args.dataset, args.test_dir,"*.jpg"))
             train_files.sort()
-            test_files.sort()
-            
+
             ## Extract Train data code
+            start_time = time.time()
             train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
             for id in range(train_code.shape[0]):
                 sample_file = train_files[id]
@@ -235,50 +240,90 @@ class Net(object):
                 print ("Load data {}".format(sample_file))
                 feed_dict={self.d_real_x: sample_image}
                 train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-            print ("Train code extraction done!")
+                
+            print("Train code extraction time: %4.4f"  % (time.time() - start_time))
 
-            ## Extract Test data code
-            test_code = np.zeros([args.test_len, 512]).astype(np.float32)
-            for id in range(test_code.shape[0]):
-                sample_file = test_files[id]
-                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                   resize_w=args.output_size, is_grayscale=0)
-                sample_image = np.array(sample).astype(np.float32)
-                sample_image = sample_image.reshape([1,64,64,3])
-                print ("Load data {}".format(sample_file))
-                feed_dict={self.d_real_x: sample_image}
-                test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-            print ("Test code extraction done!")
+            for dir_id in range(len(test_dir)):
+                
+                ## Evaulate test data
+                test_files  = glob(os.path.join(args.data_dir, args.dataset, test_dir[dir_id],"*.jpg"))
+                test_files.sort()
+            
+                ## Extract Test data code
+                start_time = time.time()
+                test_code = np.zeros([args.test_len, 512]).astype(np.float32)
+                for id in range(test_code.shape[0]):
+                    sample_file = test_files[id]
+                    sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                       resize_w=args.output_size, is_grayscale=0)
+                    sample_image = np.array(sample).astype(np.float32)
+                    sample_image = sample_image.reshape([1,64,64,3])
+                    print ("Load data {}".format(sample_file))
+                    feed_dict={self.d_real_x: sample_image}
+                    test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    
+                print("test code extraction time: %4.4f"  % (time.time() - start_time))
         
-            ## ANN search
-            start_time = time.time()
-            reslut, dists = getANN(train_code, test_code)
-            print("ANN search time: %4.4f"  % (time.time() - start_time))
+                ## ANN search
+                start_time = time.time()
+                Ann, dists = getANN(train_code, test_code, args.Knn)
+                print("ANN search time: %4.4f"  % (time.time() - start_time))
+                
+                ## Measure vector corrcoeffience
+                start_time = time.time()
+                D          = self.vec_D(train_code, test_code)
+                print("Distance Matrix time: %4.4f"  % (time.time() - start_time))
+                
+                ## Estimate matches
+                start_time = time.time()
+                match      = self.getMatch(D, Ann, args)
+                print("Match search time: %4.4f"  % (time.time() - start_time))
+                
+                ## Save Matrix image
+                result_dir = os.path.join(args.result_dir, args.model_dir)
+                if not os.path.exists(result_dir):
+                    os.makedirs(result_dir)
+                scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
+                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
 
-            ## Measure vector corrcoeffience
-            start_time = time.time()
-            D          = self.vec_D(train_code, test_code)
-            match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
-            print("SeqSLAM search time: %4.4f"  % (time.time() - start_time))
-            result_dir = os.path.join(args.result_dir, args.model_dir)
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
-            scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                           args.test_dir+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
+                ## Save matching 
+                m = match[:,0]
+                thresh = 0.95
+                matched = match[match[:,1]<thresh, 1]
+                score = np.mean(matched)
+                m[match[:,1] > thresh] = np.nan
+                plt.figure()
+                plt.xlabel('Test data')
+                plt.ylabel('Stored data')
+                plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+                plt.plot(m,'.') 
+                plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
+                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_match.jpg'))
 
-            ## Save matching 
-            m = match[:,0]
-            thresh = 0.95
-            matched = match[match[:,1]<thresh, 1]
-            score = np.mean(matched)
-            m[match[:,1] > thresh] = np.nan
-            plt.figure()
-            plt.xlabel('Test data')
-            plt.ylabel('Stored data')
-            plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-            plt.plot(m,'.') 
-            plt.title('Epoch_'+str(test_epoch)+'_'+args.test_dir)
-            plt.savefig(os.path.join(result_dir, args.test_dir+'_'+str(test_epoch)+'_match.jpg'))
+                ## Caculate Precision and Recall Curve
+                np.set_printoptions(threshold='nan')
+                match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
+                match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
+                match_EE = np.abs(match_PR[:,0] - match_BS)
+                match_PR[match_EE<=args.match_thres, 0] = 1
+                match_PR[match_EE> args.match_thres, 0] = 0
+                match_PR[np.isnan(match_PR)]=0
+                precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
+                PR_data = zip(precision, recall)
+                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.json')
+                with open(PR_path, 'w') as data_out:
+                    json.dump(PR_data, data_out)
+                
+                '''
+                plt.figure()
+                plt.xlim(0.0, 1.0)
+                plt.ylim(0.0, 1.0)
+                plt.xlabel('Recall')
+                plt.ylabel('Precision')
+                plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
+                plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
+                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
+                '''
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
