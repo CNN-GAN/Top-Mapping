@@ -1,4 +1,5 @@
 from random import shuffle
+from pyflann import *
 import scipy.misc
 import numpy as np
 
@@ -161,3 +162,8 @@ def getMatches(DD, v_ds, vmax, vmin, Rwindow):
         
     return matches
 
+def getANN(data, test, k=10):
+
+    flann = FLANN()
+    result, dists = flann.nn(data, test, k, algorithm="kmeans", branching=32, iterations=10, checks=16)
+    return result, dists

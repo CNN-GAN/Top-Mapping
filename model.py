@@ -211,7 +211,7 @@ class Net(object):
         self.writer.close()
 
     def test(self, args):
-        for test_epoch in range(1, args.epoch):
+        for test_epoch in range(17, args.epoch):
             self.test_epoch = test_epoch
 
             # Initial layer's variables
@@ -250,15 +250,22 @@ class Net(object):
                 test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
             print ("Test code extraction done!")
         
+            ## ANN search
+            start_time = time.time()
+            reslut, dists = getANN(train_code, test_code)
+            print("ANN search time: %4.4f"  % (time.time() - start_time))
+
             ## Measure vector corrcoeffience
+            start_time = time.time()
             D          = self.vec_D(train_code, test_code)
             match      = self.getMatch(D, args.v_ds, args.vmax, args.vmin, args.Rwindow)
+            print("SeqSLAM search time: %4.4f"  % (time.time() - start_time))
             result_dir = os.path.join(args.result_dir, args.model_dir)
             if not os.path.exists(result_dir):
                 os.makedirs(result_dir)
             scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
                                            args.test_dir+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
-        
+
             ## Save matching 
             m = match[:,0]
             thresh = 0.95

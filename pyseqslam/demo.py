@@ -70,7 +70,7 @@ def demo():
     ## show some results
     if len(results.matches) > 0:
         m = results.matches[:,0] # The LARGER the score, the WEAKER the match.
-        thresh=2  # you can calculate a precision-recall plot by varying this threshold
+        thresh=0.95  # you can calculate a precision-recall plot by varying this threshold
         m[results.matches[:,1]>thresh] = np.nan # remove the weakest matches
         plt.plot(m,'.')      # ideally, this would only be the diagonal
         plt.title('Matchings')   

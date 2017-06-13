@@ -47,7 +47,7 @@ def Param():
     flags.DEFINE_float("vmax",            1.2,          "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,           "rainbow")
     flags.DEFINE_integer("test_len",      1000,          "test data length")
-    flags.DEFINE_string("test_dir",    "test_T10_R2.5",   "Directory name to extract image datas")
+    flags.DEFINE_string("test_dir",    "test_T10_R1",   "Directory name to extract image datas")
 
     ## Flag
     flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
