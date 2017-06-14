@@ -6,9 +6,6 @@ from tensorlayer.layers import *
 flags = tf.app.flags
 args = flags.FLAGS
 
-###############################################################################################
-##                                2D conv based module                                       ##
-###############################################################################################
 def decoder(inputs, is_train=True, reuse=False):
 
     s0, s2, s4, s8, s16 = int(args.output_size), int(args.output_size/2), \
@@ -215,7 +212,3 @@ def mae_criterion(in_, target):
 
 def sce_criterion(logits, labels):
     return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels))
-
-###############################################################################################
-##                                3D conv based module                                       ##
-###############################################################################################

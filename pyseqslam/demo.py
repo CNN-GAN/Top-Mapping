@@ -6,6 +6,9 @@ from copy import deepcopy
 import time
 import os
 
+from sklearn.metrics import precision_recall_curve
+import json
+
 from seqslam import *
 
 def demo():
@@ -42,7 +45,7 @@ def demo():
     ds2.imageSkip = 1     # use every n-nth image
     ds2.imageIndices = range(10, 1010, ds.imageSkip)    
 
-    test_name = 'test_T1_R0.1'
+    test_name = 'test_T20_R2.5'
     ds2.imagePath = '../data/loam/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
@@ -76,6 +79,31 @@ def demo():
         plt.title('Matchings')   
         plt.title('Matching '+ test_name)
         plt.savefig(test_name+'.jpg')
+
+        match_PR = results.matches[int(params.matching.ds/2):int(results.matches.shape[0]-params.matching.ds/2), :]
+        match_BS = np.array(range(match_PR.shape[0]))+int(int(params.matching.ds/2))
+        match_EE = np.abs(match_PR[:,0] - match_BS)
+        match_PR[match_EE<=80, 0] = 1
+        match_PR[match_EE> 80, 0] = 0
+        match_PR[np.isnan(match_PR)]=0
+        precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
+        PR_data = zip(precision, recall)
+        result_dir = '../results/Seq'
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        json_path = os.path.join(result_dir, test_name+'_PR.json')
+        with open(json_path, 'w') as data_out:
+            json.dump(PR_data, data_out)
+     
+        plt.figure()
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
+        plt.title('PR Curve for Epoch_'+test_name)
+        fig_path = os.path.join(result_dir, test_name+'_PR.jpg')
+        plt.savefig(fig_path)
     else:
         print "Zero matches"          
 

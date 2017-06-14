@@ -3,18 +3,16 @@
 # Running
 ## ALI features
 ```bash
-python ali.py
-```
-
-## CLC ALI features
-```bash
-python ali_clc.py
+python main.py
 ```
 
 ## Tensorboard
 ```bash
 tensorboard --logdir=./logs --port=8008
 ```
+
+## Param
+In the file parameters.py
 
 # TODO
 

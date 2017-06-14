@@ -18,3 +18,8 @@ class AttributeDict(dict):
             setattr(result, k, deepcopy(v, memo))
         return result
     
+def getANN(data, test, k=10):
+
+    flann = FLANN()
+    result, dists = flann.nn(data, test, k, algorithm="kmeans", branching=32, iterations=10, checks=16)
+    return result, dists

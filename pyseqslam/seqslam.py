@@ -286,11 +286,24 @@ class SeqSLAM():
             
             min_idx = np.argmin(score)
             min_value=score[min_idx]
-            window = np.arange(np.max((0, min_idx-self.params.matching.Rwindow/2)), np.min((len(score), min_idx+self.params.matching.Rwindow/2)))
-            not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
-            min_value_2nd = np.min(score[not_window])
+            #window = np.arange(np.max((0, min_idx-self.params.matching.Rwindow/2)), np.min((len(score), min_idx+self.params.matching.Rwindow/2)))
+            #not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
+            #min_value_2nd = np.min(score[not_window])
             
-            match = [min_idx + self.params.matching.ds/2, min_value / min_value_2nd]
+            #match = [min_idx + self.params.matching.ds/2, min_value / min_value_2nd]
+            #matches[N,:] = match
+
+            match = [min_idx + self.params.matching.ds/2, 1.0 / min_value]
+            if match[1] > 1:
+                match = 1.0
+                
+            '''
+            if len(score[a1+a2]) > 0:
+            min_value_2nd = np.min(score[a1+a2])
+            match = [min_idx + v_ds/2, min_value_2nd / min_value]
+            else:
+            match = [min_idx + v_ds/2, 0.2]
+            '''
             matches[N,:] = match
                 
         return matches

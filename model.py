@@ -95,8 +95,11 @@ class Net(object):
         self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
         self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
         self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
-        self.summ_merge   = tf.summary.merge_all()
-
+        if self.model == 'ALI_CLC':
+            self.summ_merge = tf.summary.merge_all()
+        elif self.model == 'ALI':
+            self.summ_merge = tf.summary.merge([self.summ_image_real, self.summ_image_fake, \
+                                                self.summ_dicJ, self.summ_dicfJ])  
         # Extract variables
         self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
         self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
@@ -109,7 +112,7 @@ class Net(object):
     def train(self, args):
         
         # Set optimal for nets
-        if self.model == 'ALI_CYC':
+        if self.model == 'ALI_CLC':
             self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_encoder, var_list=self.var_encoder)
             self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
@@ -174,7 +177,7 @@ class Net(object):
                 feed_dict.update(self.n_dic_J.all_drop)
                 feed_dict.update(self.n_dic_fJ.all_drop)
 
-                if self.model == 'ALI_CYC':
+                if self.model == 'ALI_CLC':
                     feed_dict.update(self.n_dic_z.all_drop)
                     feed_dict.update(self.n_dic_fz.all_drop)
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
@@ -192,7 +195,7 @@ class Net(object):
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
                 elif self.model == 'ALI':
-                    errJ, _ = self.sess.run([self.loss_dic_J,   self.optim_dicJ],    feed_dict=feed_dict)
+                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
 
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
                     for _ in range(4):
@@ -215,9 +218,11 @@ class Net(object):
 
     def test(self, args):
 
-        test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
+        #test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
 
-        for test_epoch in range(6, 24):
+        #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
+        test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
+        for test_epoch in range(14, 24):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -280,9 +285,11 @@ class Net(object):
                 print("Match search time: %4.4f"  % (time.time() - start_time))
                 
                 ## Save Matrix image
-                result_dir = os.path.join(args.result_dir, args.model_dir)
+                result_dir = os.path.join(args.result_dir, args.method)
                 if not os.path.exists(result_dir):
                     os.makedirs(result_dir)
+                if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
+                    os.makedirs(os.path.join(result_dir, 'MATRIX'))
                 scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
                                                test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
 
@@ -314,7 +321,6 @@ class Net(object):
                 with open(PR_path, 'w') as data_out:
                     json.dump(PR_data, data_out)
                 
-                '''
                 plt.figure()
                 plt.xlim(0.0, 1.0)
                 plt.ylim(0.0, 1.0)
@@ -323,7 +329,7 @@ class Net(object):
                 plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
                 plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
                 plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
-                '''
+
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
@@ -336,17 +342,17 @@ class Net(object):
 
     def loadParam(self, args):
         # load the latest checkpoints
-        if self.model == 'ALI_CYC':
+        if self.model == 'ALI_CLC':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dZ_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -354,15 +360,15 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dX_%d00.npz' % self.test_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dZ_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -371,34 +377,34 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
         elif self.model == 'ALI':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.model_dir), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dicJ)
+                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.model_dir)
+        save_dir = os.path.join(args.checkpoint_dir, args.method)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)        
         print (save_dir)
 
-        if self.model == 'ALI_CYC':
+        if self.model == 'ALI_CLC':
             # the latest version location
             net_de_name = os.path.join(save_dir, 'net_de.npz')
             net_en_name = os.path.join(save_dir, 'net_en.npz')
