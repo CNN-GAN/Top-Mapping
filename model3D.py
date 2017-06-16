@@ -18,7 +18,7 @@ from glob import glob
 from sklearn.metrics import precision_recall_curve
 from matplotlib import pyplot as plt
 from tensorlayer.layers import *
-from module import *
+from module3D import *
 from utils import *
 
 class Net3D(object):
@@ -43,17 +43,20 @@ class Net3D(object):
 
         # SeqSLAM
         self.vec_D    = Euclidean
-        self.getMatch = getAnnMatches
-        #self.getMatch = getMatches
+        if args.match_method == 'ANN':
+            self.getMatch = getAnnMatches
+        else:
+            self.getMatch = getMatches
 
         # Test
         if args.is_train == False:
             self.test_epoch = 0
-            self._build_model(args)
+
+        self._build_model(args)
 
     def _build_model(self, args):
         self.d_real_x = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
-                                                    args.img_dim], name='real_image')
+                                                    args.img_dim], name='real_pcd')
         self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name="real_code")
 
         self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
@@ -61,13 +64,15 @@ class Net3D(object):
         self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
         self.n_cycl_x, self.d_cycl_x = self.decoder(self.d_fake_z, is_train=True, reuse=True)
 
+        '''
         with tf.name_scope('real'):
-            true_image = tf.reshape(self.d_real_x, [-1, 64, 64, 3])
+            true_pcd = tf.reshape(self.d_real_x, [-1, 64, 64, 3])
             self.summ_image_real = tf.summary.image('real', true_image[0:4], 4)
 
         with tf.name_scope('fake'):
-            fake_image = tf.reshape(self.d_cycl_x, [-1, 64, 64, 3])
+            fake_pcd = tf.reshape(self.d_cycl_x, [-1, 64, 64, 3])
             self.summ_image_fake = tf.summary.image('fake', fake_image[0:4], 4)
+        '''
 
         self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
         self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)

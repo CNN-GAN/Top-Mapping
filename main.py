@@ -24,9 +24,9 @@ def main(_):
         args.batch_size = 1
 
     if args.is_3D == True:
-        Net_model = Net
-    else:
         Net_model = Net3D
+    else:
+        Net_model = Net
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
     config = tf.ConfigProto(gpu_options=gpu_options)
