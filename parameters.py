@@ -28,8 +28,9 @@ def Param():
     
     ## Training
     flags.DEFINE_string("method",         "ALI",        "ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("Loss",           "WGAN",       "WGAN, LSGAN")
     flags.DEFINE_integer("sample_step",   2,            "The interval of generating sample. [500]")
-    flags.DEFINE_integer("save_step",     500,          "The interval of saveing checkpoints. [500]")
+    flags.DEFINE_integer("save_step",     50,           "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")
     flags.DEFINE_integer("dX_dim",        1024,         "The number of discriminator for image")
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
@@ -41,7 +42,7 @@ def Param():
 
     ## 3D conv
     flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")
-    flags.DEFINE_integer("voxel_size",    128,          "Set map scale [128, 128, 16]")
+    flags.DEFINE_integer("voxel_size",    64,           "Set map scale [128, 128, 16]")
     flags.DEFINE_integer("voxel_dim",     1,            "voxel map dim")
     flags.DEFINE_integer("voxel_code",    512,          "voxel code dimension")
 
@@ -59,7 +60,7 @@ def Param():
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         True,         "True for train the 3D module")
-    flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")

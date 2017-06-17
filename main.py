@@ -20,15 +20,16 @@ def main(_):
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 
-    if args.is_train == False:
-        args.batch_size = 1
 
     if args.is_3D == True:
         Net_model = Net3D
         args.dataset = 'new_loam/00'
-        args.batch_size = 4
+        args.batch_size = 64
     else:
         Net_model = Net
+
+    if args.is_train == False:
+        args.batch_size = 1
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
     config = tf.ConfigProto(gpu_options=gpu_options)

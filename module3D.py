@@ -235,6 +235,9 @@ def discriminator_J(input_X, input_Z, is_train=True, reuse=False):
 def abs_criterion(in_, target):
     return tf.reduce_mean(tf.abs(in_ - target))
 
+def wasserstein_criterion(in_, target):
+    return tf.reduce_mean(in_ - target)
+
 def mae_criterion(in_, target):
     return tf.reduce_mean((in_-target)**2)
 

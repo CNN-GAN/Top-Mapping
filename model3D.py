@@ -38,7 +38,11 @@ class Net3D(object):
         self.discJ   = discriminator_J
         
         # Loss function
-        self.lossGAN = mae_criterion
+        if args.Loss == 'WGAN':
+            self.lossGAN = wasserstein_criterion
+        elif args.loss == 'LSGAN':
+            self.lossGAN = mae_criterion
+
         self.lossCYC = abs_criterion
 
         # SeqSLAM
@@ -86,8 +90,10 @@ class Net3D(object):
         self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
                                           self.lossCYC(self.d_real_z, self.d_cycl_z))
-        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        #self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        #self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
+        self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
         self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
                                              self.lossGAN(self.d_dic_fx,0))
         self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
@@ -167,7 +173,7 @@ class Net3D(object):
                 ### Get datas ###
                 batch_files  = data_files[idx*args.batch_size:(idx+1)*args.batch_size]
                 ## get real pcds
-                batch        = [get_pcd(batch_file) for batch_file in batch_files]
+                batch        = [get_pcd(batch_file, args) for batch_file in batch_files]
                 batch_images = np.array(batch).astype(np.float32)
                 ## get real code
                 batch_codes  = np.random.normal(loc=0.0, scale=1.0, \
@@ -235,8 +241,10 @@ class Net3D(object):
         #test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
 
         #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
-        test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
-        for test_epoch in range(14, 24):
+        #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
+        test_dir = ['new_loam/00']
+        test_pcd = ['00']
+        for test_epoch in range(4, 5):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -244,7 +252,7 @@ class Net3D(object):
             print("[*] Load network done")
 
             ## Evaulate train data
-            train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
+            train_files = glob(os.path.join("./data", args.dataset, "pcd/*.pcd"))
             train_files.sort()
 
             ## Extract Train data code
@@ -252,9 +260,10 @@ class Net3D(object):
             train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
             for id in range(train_code.shape[0]):
                 sample_file = train_files[id]
-                sample = get_pcd(sample_file)
+                sample = get_pcd(sample_file, args)
                 sample_image = np.array(sample).astype(np.float32)
-                sample_image = sample_image.reshape([1,64,64,3])
+                sample_image = sample_image.reshape([1, args.voxel_size, args.voxel_size, \
+                                                     int(args.voxel_size/8), 1])
                 print ("Load data {}".format(sample_file))
                 feed_dict={self.d_real_x: sample_image}
                 train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
@@ -264,7 +273,7 @@ class Net3D(object):
             for dir_id in range(len(test_dir)):
                 
                 ## Evaulate test data
-                test_files  = glob(os.path.join(args.data_dir, args.dataset, test_dir[dir_id],"*.jpg"))
+                test_files = glob(os.path.join("./data", args.dataset, "pcd/*.pcd"))
                 test_files.sort()
                 
                 ## Extract Test data code
@@ -272,9 +281,10 @@ class Net3D(object):
                 test_code = np.zeros([args.test_len, 512]).astype(np.float32)
                 for id in range(test_code.shape[0]):
                     sample_file = test_files[id]
-                    sample = get_pcd(sample_file)
+                    sample = get_pcd(sample_file, args)
                     sample_image = np.array(sample).astype(np.float32)
-                    sample_image = sample_image.reshape([1,64,64,3])
+                    sample_image = sample_image.reshape([1, args.voxel_size, args.voxel_size, \
+                                                         int(args.voxel_size/8), 1])
                     print ("Load data {}".format(sample_file))
                     feed_dict={self.d_real_x: sample_image}
                     test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
@@ -297,13 +307,17 @@ class Net3D(object):
                 print("Match search time: %4.4f"  % (time.time() - start_time))
                 
                 ## Save Matrix image
-                result_dir = os.path.join(args.result_dir, args.method)
+                if args.is_3D:
+                    save_path = args.method+'_3D'
+                else:
+                    save_path = args.method
+                result_dir = os.path.join(args.result_dir, save_path)
                 if not os.path.exists(result_dir):
                     os.makedirs(result_dir)
                 if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
                     os.makedirs(os.path.join(result_dir, 'MATRIX'))
                 scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
+                                               test_pcd[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
 
                 ## Save matching 
                 m = match[:,0]
@@ -317,7 +331,7 @@ class Net3D(object):
                 plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
                 plt.plot(m,'.') 
                 plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_match.jpg'))
+                plt.savefig(os.path.join(result_dir, test_pcd[dir_id]+'_'+str(test_epoch)+'_match.jpg'))
 
                 ## Caculate Precision and Recall Curve
                 np.set_printoptions(threshold='nan')
@@ -329,7 +343,7 @@ class Net3D(object):
                 match_PR[np.isnan(match_PR)]=0
                 precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
                 PR_data = zip(precision, recall)
-                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.json')
+                PR_path = os.path.join(result_dir, test_pcd[dir_id]+'_'+str(test_epoch)+'_PR.json')
                 with open(PR_path, 'w') as data_out:
                     json.dump(PR_data, data_out)
                     
@@ -340,7 +354,7 @@ class Net3D(object):
                 plt.ylabel('Precision')
                 plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
                 plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
+                plt.savefig(os.path.join(result_dir, test_pcd[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
 
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
@@ -355,16 +369,21 @@ class Net3D(object):
     def loadParam(self, args):
         # load the latest checkpoints
         if self.model == 'ALI_CLC':
+            if args.is_3D == True:
+                check_path = self.model + '_3D'
+            else:
+                check_path = self.model
+
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_dZ_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -388,22 +407,27 @@ class Net3D(object):
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
         elif self.model == 'ALI':
+            if args.is_3D == True:
+                check_path = self.model + '_3D'
+            else:
+                check_path = self.model
+
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
