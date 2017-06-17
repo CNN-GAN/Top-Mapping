@@ -31,7 +31,6 @@ def Param():
     flags.DEFINE_integer("sample_step",   2,            "The interval of generating sample. [500]")
     flags.DEFINE_integer("save_step",     100,          "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")
-    flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")
     flags.DEFINE_integer("dX_dim",        1024,         "The number of discriminator for image")
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
     flags.DEFINE_integer("dJ_dim",        2048,         "The number of discriminator for Joint")
@@ -39,6 +38,12 @@ def Param():
     flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
+
+    ## 3D conv
+    flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")
+    flags.DEFINE_integer("voxel_size",    128,          "Set map scale [128, 128, 16]")
+    flags.DEFINE_integer("voxel_dim",     1,            "voxel map dim")
+    flags.DEFINE_integer("voxel_code",    512,          "voxel code dimension")
 
     ## SeqSLAM
     flags.DEFINE_float("v_ds",            10,           "seqslam distance")

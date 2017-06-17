@@ -55,9 +55,9 @@ class Net3D(object):
         self._build_model(args)
 
     def _build_model(self, args):
-        self.d_real_x = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
-                                                    args.img_dim], name='real_pcd')
-        self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name="real_code")
+        self.d_real_x = tf.placeholder(tf.float32, [args.batch_size, args.voxel_size, args.voxel_size, \
+                                                    args.voxel_size/8, args.voxel_dim], name='real_pcd')
+        self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.voxel_code], name="real_code")
 
         self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
         self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=False)
@@ -105,14 +105,14 @@ class Net3D(object):
         elif self.model == 'ALI':
             self.summ_merge = tf.summary.merge([self.summ_image_real, self.summ_image_fake, \
                                                 self.summ_dicJ, self.summ_dicfJ])  
-            # Extract variables
-            self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
-            self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
-            self.var_dicX     = tl.layers.get_variables_with_name('DISC_X',  True, True)
-            self.var_dicZ     = tl.layers.get_variables_with_name('DISC_Z',  True, True)
-            self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
-            self.var_gen    = self.var_encoder
-            self.var_gen.extend(self.var_decoder)
+        # Extract variables
+        self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
+        self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
+        self.var_dicX     = tl.layers.get_variables_with_name('DISC_X',  True, True)
+        self.var_dicZ     = tl.layers.get_variables_with_name('DISC_Z',  True, True)
+        self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
+        self.var_gen      = self.var_encoder
+        self.var_gen.extend(self.var_decoder)
 
     def train(self, args):
         
@@ -148,7 +148,7 @@ class Net3D(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_files = glob(os.path.join("./data", args.dataset, "train/*.jpg"))
+        data_files = glob(os.path.join("./data", args.dataset, "pcd/*.pcd"))
 
         # Main loop for Training
         self.iter_counter = 0
@@ -167,14 +167,12 @@ class Net3D(object):
             for idx in xrange(0, batch_idxs):
                 ### Get datas ###
                 batch_files  = data_files[idx*args.batch_size:(idx+1)*args.batch_size]
-                ## get real images
-                batch        = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
-                                          resize_w=args.output_size, is_grayscale = 0) \
-                                for batch_file in batch_files]
+                ## get real pcds
+                batch        = [get_pcd(batch_file) for batch_file in batch_files]
                 batch_images = np.array(batch).astype(np.float32)
                 ## get real code
                 batch_codes  = np.random.normal(loc=0.0, scale=1.0, \
-                                                size=(args.sample_size, args.code_dim)).astype(np.float32)
+                                                size=(args.batch_size, args.code_dim)).astype(np.float32)
                 
                 ### Update Nets ###
                 start_time = time.time()
@@ -193,11 +191,20 @@ class Net3D(object):
                     errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
 
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
+                    errfJ = 0
                     for _ in range(4):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
                     ## update inverse mapping
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+
+                    #print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, encoder_loss: %.8f, decoder_loss: %.8f, J_loss: %.8f, fJ_loss: %.8f, X_loss: %.8f, Z_loss: %.8f, clc_loss: %.8f"  % \
+                    #      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, errE, errD, errJ, errfJ, errX, errZ, errClc))
+
+                    print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss: %.8f,  clc_loss: %.8f"  % \
+                              (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, errJ, errfJ, errClc))
+
+                    sys.stdout.flush()
 
                 elif self.model == 'ALI':
                     errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
@@ -206,9 +213,11 @@ class Net3D(object):
                     for _ in range(4):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
-                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f"  % \
-                      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time))
-                sys.stdout.flush()
+                    print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss: %.8f"  % \
+                          (epoch, args.epoch, idx, batch_idxs, time.time() - start_time), errJ, errfJ)
+                    sys.stdout.flush()
+
+
                 self.iter_counter += 1
 
                 if np.mod(self.iter_counter, args.sample_step) == 0:
@@ -243,8 +252,7 @@ class Net3D(object):
             train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
             for id in range(train_code.shape[0]):
                 sample_file = train_files[id]
-                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                   resize_w=args.output_size, is_grayscale=0)
+                sample = get_pcd(sample_file)
                 sample_image = np.array(sample).astype(np.float32)
                 sample_image = sample_image.reshape([1,64,64,3])
                 print ("Load data {}".format(sample_file))
@@ -264,8 +272,7 @@ class Net3D(object):
                 test_code = np.zeros([args.test_len, 512]).astype(np.float32)
                 for id in range(test_code.shape[0]):
                     sample_file = test_files[id]
-                    sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                       resize_w=args.output_size, is_grayscale=0)
+                    sample = get_pcd(sample_file)
                     sample_image = np.array(sample).astype(np.float32)
                     sample_image = sample_image.reshape([1,64,64,3])
                     print ("Load data {}".format(sample_file))
@@ -293,10 +300,10 @@ class Net3D(object):
                 result_dir = os.path.join(args.result_dir, args.method)
                 if not os.path.exists(result_dir):
                     os.makedirs(result_dir)
-                    if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
-                        os.makedirs(os.path.join(result_dir, 'MATRIX'))
-                        scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                                       test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
+                if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
+                    os.makedirs(os.path.join(result_dir, 'MATRIX'))
+                scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
+                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
 
                 ## Save matching 
                 m = match[:,0]
@@ -342,8 +349,8 @@ class Net3D(object):
         # update summary
         self.writer.add_summary(summary, self.iter_counter)
         # save image
-        img = (np.array(img) + 1) / 2 * 255
-        save_images(img, [8, 8],'./{}/train_{:02d}_{:04d}.png'.format(sample_dir, epoch, idx))
+        #img = (np.array(img) + 1) / 2 * 255
+        #save_images(img, [8, 8],'./{}/train_{:02d}_{:04d}.png'.format(sample_dir, epoch, idx))
 
     def loadParam(self, args):
         # load the latest checkpoints
@@ -404,9 +411,11 @@ class Net3D(object):
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.method)
+        if self.is_3D == True:
+            save_dir = os.path.join(args.checkpoint_dir, args.method+"_3D")
+
         if not os.path.exists(save_dir):
-            os.makedirs(save_dir)        
+            os.makedirs(save_dir)
             print (save_dir)
 
         if self.model == 'ALI_CLC':

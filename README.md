@@ -43,10 +43,12 @@ In the file parameters.py
 * Update the dynamic mapping framework **(done)**
 * Update save module, able to save pointcloud, image and pose **(done)**
 
-# TODO
 ## 3D CNN framework
-* Add 3D module **(doing)**
+* Add 3D module **(done)**
 
-
+# TODO
 ## Loss Update
 * use Wessentian GAN to update the Loss **(doing)**
+
+## Data loading
+* Add PCD data loader **(doing)**

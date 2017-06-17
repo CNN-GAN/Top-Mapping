@@ -1,4 +1,5 @@
 from random import shuffle
+import pypcd
 from pyflann import *
 import scipy.misc
 import numpy as np
@@ -26,8 +27,6 @@ def Conv3d(net, n_filter=32, filter_size=(3, 3, 3), strides=(1, 1, 1), act = Non
                       W_init_args = W_init_args,
                       b_init = b_init,
                       b_init_args = b_init_args,
-                      use_cudnn_on_gpu = use_cudnn_on_gpu,
-                      data_format = data_format,
                       name = name)
     return net
 
@@ -45,8 +44,8 @@ def DeConv3d(net, n_out_channel = 32, filter_size=(3, 3, 3),
     net = DeConv3dLayer(layer = net,
                         act = act,
                         shape = [filter_size[0], filter_size[1], filter_size[2], n_out_channel, int(net.outputs.get_shape()[-1])],
-                        output_shape = [batch_size, int(out_size[0]), int(out_size[1]), int(out_size[1]), n_out_channel],
-                        strides = [1, strides[0], strides[1], strides[1], 1],
+                        output_shape = [batch_size, int(out_size[0]), int(out_size[1]), int(out_size[2]), n_out_channel],
+                        strides = [1, strides[0], strides[1], strides[2], 1],
                         padding = padding,
                         W_init = W_init,
                         b_init = b_init,
@@ -84,6 +83,27 @@ def Cosine(train, test):
         for y in range(test.shape[0]):
             D[x,y] = np.sum(train[x]*test[y])/(np.linalg.norm(train[x])*np.linalg.norm(test[y]))
     return D
+
+##=================================== function for PCD processing   ======================##
+##=================================== function for PCD processing   ======================##
+##=================================== function for PCD processing   ======================##
+def get_pcd(data_file):
+
+    pc = pypcd.PointCloud.from_path(data_file)
+    data = pc.pc_data
+
+    dx = (data['x']/0.4).astype(int)
+    dy = (data['y']/0.4).astype(int)
+    dz = (data['z']/0.4).astype(int)
+    
+    pcd = np.array([dx, dy, dz]).transpose()
+    keep = abs(pcd[:,0] < 64) * abs(pcd[:,1] < 64) * abs(pcd[:,2] < 8)
+    
+    pcd_out = pcd[keep]
+    octree_map = np.zeros([128, 128, 16])
+    octree_map[pcd_out[:,0],pcd_out[:,1], pcd_out[:,2]] = 1
+    octree_map = octree_map.reshape([128,128,16,1])
+    return octree_map
 
 ##=================================== function for Image processing ======================##
 ##=================================== function for Image processing ======================##

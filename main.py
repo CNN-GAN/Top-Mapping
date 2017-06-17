@@ -25,14 +25,16 @@ def main(_):
 
     if args.is_3D == True:
         Net_model = Net3D
+        args.dataset = 'new_loam/00'
+        args.batch_size = 1
     else:
         Net_model = Net
 
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.90)
     config = tf.ConfigProto(gpu_options=gpu_options)
     config.gpu_options.allow_growth=True
 
-    with tf.Session(config=config) as sess:
+    with tf.Session() as sess:
         model = Net_model(sess, args)
         model.train(args) if args.is_train == True else model.test(args)
 
