@@ -103,8 +103,7 @@ class Net3D(object):
         if self.model == 'ALI_CLC':
             self.summ_merge = tf.summary.merge_all()
         elif self.model == 'ALI':
-            self.summ_merge = tf.summary.merge([self.summ_image_real, self.summ_image_fake, \
-                                                self.summ_dicJ, self.summ_dicfJ])  
+            self.summ_merge = tf.summary.merge([self.summ_dicJ, self.summ_dicfJ])  
         # Extract variables
         self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
         self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
@@ -209,12 +208,13 @@ class Net3D(object):
                 elif self.model == 'ALI':
                     errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
 
+                    errfJ = 0
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(4):
+                    for _ in range(8):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
                     print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss: %.8f"  % \
-                          (epoch, args.epoch, idx, batch_idxs, time.time() - start_time), errJ, errfJ)
+                          (epoch, args.epoch, idx, batch_idxs, time.time() - start_time,  errJ, errfJ))
                     sys.stdout.flush()
 
 
@@ -411,7 +411,7 @@ class Net3D(object):
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        if self.is_3D == True:
+        if args.is_3D == True:
             save_dir = os.path.join(args.checkpoint_dir, args.method+"_3D")
 
         if not os.path.exists(save_dir):

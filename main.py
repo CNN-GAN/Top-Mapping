@@ -30,7 +30,7 @@ def main(_):
     else:
         Net_model = Net
 
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.90)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
     config = tf.ConfigProto(gpu_options=gpu_options)
     config.gpu_options.allow_growth=True
 
@@ -38,7 +38,7 @@ def main(_):
     #gpuNow = '/gpu:'+str(GPUID)
     #with tf.device(gpuNow):
 
-    with tf.Session(config) as sess:
+    with tf.Session(config=config) as sess:
         model = Net_model(sess, args)
         model.train(args) if args.is_train == True else model.test(args)
 
