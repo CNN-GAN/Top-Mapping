@@ -26,7 +26,7 @@ def main(_):
     if args.is_3D == True:
         Net_model = Net3D
         args.dataset = 'new_loam/00'
-        args.batch_size = 1
+        args.batch_size = 4
     else:
         Net_model = Net
 
@@ -34,7 +34,11 @@ def main(_):
     config = tf.ConfigProto(gpu_options=gpu_options)
     config.gpu_options.allow_growth=True
 
-    with tf.Session() as sess:
+    #GPUID = 0
+    #gpuNow = '/gpu:'+str(GPUID)
+    #with tf.device(gpuNow):
+
+    with tf.Session(config) as sess:
         model = Net_model(sess, args)
         model.train(args) if args.is_train == True else model.test(args)
 
