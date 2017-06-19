@@ -10,7 +10,7 @@ from tensorlayer.layers import *
 ##=================================== function for 3D Layers ================================##
 ##=================================== function for 3D Layers ================================##
 ##=================================== function for 3D Layers ================================##
-def Conv3d(net, n_filter=32, filter_size=(3, 3, 3), strides=(1, 1, 1), act = None,
+def Conv3d(net, n_filter=32, filter_size=(5, 5, 5), strides=(1, 1, 1), act = None,
            padding='SAME', W_init = tf.truncated_normal_initializer(stddev=0.02), b_init = tf.constant_initializer(value=0.0),
            W_init_args = {}, b_init_args = {}, use_cudnn_on_gpu = None, data_format = None,name ='conv3d',):
 
@@ -31,7 +31,7 @@ def Conv3d(net, n_filter=32, filter_size=(3, 3, 3), strides=(1, 1, 1), act = Non
     return net
 
 
-def DeConv3d(net, n_out_channel = 32, filter_size=(3, 3, 3),
+def DeConv3d(net, n_out_channel = 32, filter_size=(5, 5, 5),
                    out_size = (30, 30, 30), strides = (2, 2, 2), padding = 'SAME', batch_size = None, act = None,
                    W_init = tf.truncated_normal_initializer(stddev=0.02), b_init = tf.constant_initializer(value=0.0),
                    W_init_args = {}, b_init_args = {}, name ='decnn3d'):
@@ -103,9 +103,9 @@ def get_pcd(data_file, args):
     dz = (dz/1.0).astype(int)
     
     pcd = np.array([dx, dy, dz]).transpose()
-    keep = abs(pcd[:,0] < args.voxel_size) * \
-           abs(pcd[:,1] < args.voxel_size) * \
-           abs(pcd[:,2] < 4)
+    keep = (abs(pcd[:,0]) < args.voxel_size) * \
+           (abs(pcd[:,1]) < args.voxel_size) * \
+           (abs(pcd[:,2]) < 4)
     
     pcd_out = pcd[keep]
     # make up the miss distance, in this case is 4 meters

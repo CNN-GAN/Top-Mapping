@@ -23,7 +23,7 @@ def main(_):
 
     if args.is_3D == True:
         Net_model = Net3D
-        args.dataset = 'new_loam/00'
+        args.dataset = 'new_loam'
         args.batch_size = 64
     else:
         Net_model = Net
