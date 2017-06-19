@@ -20,7 +20,7 @@ def encoder(inputs, is_train=True, reuse=False):
         tl.layers.set_name_reuse(reuse)
 
         net_in = InputLayer(inputs, name='En/in')
-        net_h0 = Conv3d(net_in, args.voxel_filter, (3, 3, 3), (2, 2, 1), act=None,
+        net_h0 = Conv3d(net_in, args.voxel_filter, (5, 5, 3), (2, 2, 1), act=None,
                         padding='SAME', W_init=w_init, name='En/h0/conv3d')
         net_h0 = BatchNormLayer(net_h0, act=lambda x: tl.act.lrelu(x, 0.2),
                                 is_train=is_train, gamma_init=gamma_init, name='En/h0/batch_norm')

@@ -38,12 +38,11 @@ class Net3D(object):
         self.discJ   = discriminator_J
         
         # Loss function
-        #if args.Loss == 'WGAN':
-        #    self.lossGAN = wasserstein_criterion
-        #elif args.loss == 'LSGAN':
-        #    self.lossGAN = mae_criterion
+        if args.Loss == 'WGAN':
+            self.lossGAN = wasserstein_criterion
+        elif args.Loss == 'LSGAN':
+            self.lossGAN = mae_criterion
 
-        self.lossGAN = mae_criterion
         self.lossCYC = abs_criterion
 
         # SeqSLAM
@@ -87,34 +86,44 @@ class Net3D(object):
         self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
         # Apply Loss
-        self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
-        self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-        #self.loss_encoder = args.side_D * tf.reduce_mean(self.d_dic_fz)
-        #self.loss_decoder = args.side_D * tf.reduce_mean(self.d_dic_fx)
+        #self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+        #self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
+        self.loss_encoder = args.side_D * tf.reduce_mean(self.d_dic_fz)
+        self.loss_decoder = args.side_D * tf.reduce_mean(self.d_dic_fx)
 
-        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-                                          self.lossCYC(self.d_real_z, self.d_cycl_z))
-        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
-        #self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
-        #self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+        #self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
+        #                                  self.lossCYC(self.d_real_z, self.d_cycl_z))
+        self.loss_cycle   = args.cycle * (tf.reduce_mean(tf.abs(self.d_real_x - self.d_cycl_x)) + \
+                                          tf.reduce_mean(tf.abs(self.d_real_z - self.d_cycl_z)))
+        #self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        #self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
+        self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
 
-        self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
-                                             self.lossGAN(self.d_dic_fx,0))
-        self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-                                             self.lossGAN(self.d_dic_fz,0))
-        #self.loss_dicX    = args.side_D*0.5*(tf.reduce_mean(self.d_dic_x - self.d_dic_fx))
-        #self.loss_dicZ    = args.side_D*0.5*(tf.reduce_mean(self.d_dic_z - self.d_dic_fz))
+        #self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
+        #                                     self.lossGAN(self.d_dic_fx,0))
+        #self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
+        #                                     self.lossGAN(self.d_dic_fz,0))
+        self.loss_dicX    = args.side_D * tf.reduce_mean(self.d_dic_x - self.d_dic_fx)
+        self.loss_dicZ    = args.side_D * tf.reduce_mean(self.d_dic_z - self.d_dic_fz)
 
 
         # Make summary
-        self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
-        self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
+        with tf.name_scope('Joint'):
+            self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
+            self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
+
+        with tf.name_scope('DicX'):
+            self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
+            self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
+
+        with tf.name_scope('DicZ'):        
+            self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+            self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
+
+
         self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
-        self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
-        self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
-        self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
-        self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+
         if self.model == 'ALI_CLC':
             self.summ_merge = tf.summary.merge_all()
         elif self.model == 'ALI':
@@ -208,20 +217,16 @@ class Net3D(object):
                     errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
                     errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
 
-                    errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
-                    errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+                    errE, _   = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
+                    errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
 
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    errfJ = 0
-                    for _ in range(4):
+                    for e_id in range(8):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
                     ## update inverse mapping
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
-                    #print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, encoder_loss: %.8f, decoder_loss: %.8f, J_loss: %.8f, fJ_loss: %.8f, X_loss: %.8f, Z_loss: %.8f, clc_loss: %.8f"  % \
-                    #      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, errE, errD, errJ, errfJ, errX, errZ, errClc))
-
+                    #errClc = 0
                     print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss: %.8f,  clc_loss: %.8f"  % \
                               (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, errJ, errfJ, errClc))
 
@@ -230,7 +235,6 @@ class Net3D(object):
                 elif self.model == 'ALI':
                     errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
 
-                    errfJ = 0
                     ## updates the Joint Generator multi times to avoid Discriminator converge early
                     for _ in range(8):
                         errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
@@ -259,8 +263,8 @@ class Net3D(object):
         #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
         #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
         #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
-        test_dir = ['00', '00_T1_R1', '00_T1_R1.5', '00_T1_R2', '00_T5_R1']
-        for test_epoch in range(4, 10):
+        test_dir = ['00_T1_R0.1', '00_T1_R0.5', '00_T1_R1.5', '00_T1_R2', '00_T5_R1', '00_T10_R1']
+        for test_epoch in range(2, 6):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
