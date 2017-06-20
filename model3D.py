@@ -86,26 +86,26 @@ class Net3D(object):
         self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
         # Apply Loss
-        #self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
-        #self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-        self.loss_encoder = args.side_D * tf.reduce_mean(self.d_dic_fz)
-        self.loss_decoder = args.side_D * tf.reduce_mean(self.d_dic_fx)
+        self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+        self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
+        #self.loss_encoder = args.side_D * tf.reduce_mean(self.d_dic_fz)
+        #self.loss_decoder = args.side_D * tf.reduce_mean(self.d_dic_fx)
 
-        #self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-        #                                  self.lossCYC(self.d_real_z, self.d_cycl_z))
-        self.loss_cycle   = args.cycle * (tf.reduce_mean(tf.abs(self.d_real_x - self.d_cycl_x)) + \
-                                          tf.reduce_mean(tf.abs(self.d_real_z - self.d_cycl_z)))
-        #self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        #self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
-        self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
-        self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
+                                          self.lossCYC(self.d_real_z, self.d_cycl_z))
+        #self.loss_cycle   = args.cycle * (tf.reduce_mean(tf.abs(self.d_real_x - self.d_cycl_x)) + \
+        #                                  tf.reduce_mean(tf.abs(self.d_real_z - self.d_cycl_z)))
+        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        #self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
+        #self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
 
-        #self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
-        #                                     self.lossGAN(self.d_dic_fx,0))
-        #self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-        #                                     self.lossGAN(self.d_dic_fz,0))
-        self.loss_dicX    = args.side_D * tf.reduce_mean(self.d_dic_x - self.d_dic_fx)
-        self.loss_dicZ    = args.side_D * tf.reduce_mean(self.d_dic_z - self.d_dic_fz)
+        self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
+                                             self.lossGAN(self.d_dic_fx,0))
+        self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
+                                             self.lossGAN(self.d_dic_fz,0))
+        #self.loss_dicX    = args.side_D * tf.reduce_mean(self.d_dic_x - self.d_dic_fx)
+        #self.loss_dicZ    = args.side_D * tf.reduce_mean(self.d_dic_z - self.d_dic_fz)
 
 
         # Make summary
@@ -264,7 +264,7 @@ class Net3D(object):
         #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
         #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
         test_dir = ['00_T1_R0.1', '00_T1_R0.5', '00_T1_R1.5', '00_T1_R2', '00_T5_R1', '00_T10_R1']
-        for test_epoch in range(2, 6):
+        for test_epoch in range(1, 7):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
