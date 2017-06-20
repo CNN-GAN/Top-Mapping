@@ -124,8 +124,8 @@ def get_pcd(data_file, args):
     # make up the miss distance, in this case is 4 meters
     pcd_out[:,2] = pcd_out[:,2] + 4
 
-    octree_map = np.ones([args.voxel_size, args.voxel_size, int(args.voxel_size/8)]).astype(float)*(-0.5)
-    octree_map[pcd_out[:,0],pcd_out[:,1], pcd_out[:,2]] = 0.5
+    octree_map = np.ones([args.voxel_size, args.voxel_size, int(args.voxel_size/8)]).astype(float)*(0.0)
+    octree_map[pcd_out[:,0],pcd_out[:,1], pcd_out[:,2]] = pcd_out[:,2]
     octree_map = octree_map.reshape([args.voxel_size, args.voxel_size, int(args.voxel_size/8), 1])
 
     return octree_map

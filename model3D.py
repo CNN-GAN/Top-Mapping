@@ -95,10 +95,10 @@ class Net3D(object):
                                           self.lossCYC(self.d_real_z, self.d_cycl_z))
         #self.loss_cycle   = args.cycle * (tf.reduce_mean(tf.abs(self.d_real_x - self.d_cycl_x)) + \
         #                                  tf.reduce_mean(tf.abs(self.d_real_z - self.d_cycl_z)))
-        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
-        #self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
-        #self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+        #self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        #self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+        self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
+        self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
 
         self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
                                              self.lossGAN(self.d_dic_fx,0))
@@ -185,6 +185,7 @@ class Net3D(object):
         begin_epoch = 0
         if args.restore == True:
             begin_epoch = args.c_epoch+1
+            self.iter_counter = 250
 
         for epoch in range(begin_epoch, args.epoch):
             ## shuffle data
@@ -264,9 +265,10 @@ class Net3D(object):
         #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
         #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
         test_dir = ['00_T1_R0.1', '00_T1_R0.5', '00_T1_R1.5', '00_T1_R2', '00_T5_R1', '00_T10_R1']
-        for test_epoch in range(1, 7):
+        for test_id in range(6, 15):
 
             # Initial layer's variables
+            test_epoch = test_id * 50
             self.test_epoch = test_epoch
             self.loadParam(args)
             print("[*] Load network done")
@@ -396,15 +398,15 @@ class Net3D(object):
 
             if args.is_train == True:
                 load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d00.npz' % args.c_epoch)
+                                            name='/net_de.npz')
                 load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d00.npz' % args.c_epoch)
+                                            name='/net_en.npz')
                 load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dX_%d00.npz' % args.c_epoch)
+                                            name='/net_dX.npz')
                 load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dZ_%d00.npz' % args.c_epoch)
+                                            name='/net_dZ.npz')
                 load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                                            name='/net_dJ.npz')
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
@@ -412,15 +414,15 @@ class Net3D(object):
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
                 load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d00.npz' % self.test_epoch)
+                                            name='/net_de_%d.npz' % self.test_epoch)
                 load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d00.npz' % self.test_epoch)
+                                            name='/net_en_%d.npz' % self.test_epoch)
                 load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dX_%d00.npz' % self.test_epoch)
+                                            name='/net_dX_%d.npz' % self.test_epoch)
                 load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dZ_%d00.npz' % self.test_epoch)
+                                            name='/net_dZ_%d.npz' % self.test_epoch)
                 load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                                            name='/net_dJ_%d.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
@@ -444,11 +446,11 @@ class Net3D(object):
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
                 load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d00.npz' % self.test_epoch)
+                                            name='/net_de_%d.npz' % self.test_epoch)
                 load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d00.npz' % self.test_epoch)
+                                            name='/net_en_%d.npz' % self.test_epoch)
                 load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d00.npz' % self.test_epoch)
+                                            name='/net_dJ_%d.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
