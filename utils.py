@@ -257,7 +257,10 @@ def getMatches(DD, Ann, args):
         not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
         min_value_2nd = np.min(score[not_window])
         
-        match = [min_idx + v_ds/2, min_value / min_value_2nd]
+        #match = [min_idx + v_ds/2, min_value / min_value_2nd]
+        match = [min_idx + v_ds/2, 1. / min_value]
+        if match[1] > 1:
+            match = 1.0
         matches[N,:] = match
         
     return matches

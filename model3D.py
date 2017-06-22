@@ -265,7 +265,7 @@ class Net3D(object):
         #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
         #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
         test_dir = ['00_T1_R0.1', '00_T1_R0.5', '00_T1_R1.5', '00_T1_R2', '00_T5_R1', '00_T10_R1']
-        for test_id in range(6, 15):
+        for test_id in range(5, 6):
 
             # Initial layer's variables
             test_epoch = test_id * 50
@@ -321,6 +321,7 @@ class Net3D(object):
                 ## Measure vector corrcoeffience
                 start_time = time.time()
                 D          = self.vec_D(train_code, test_code)
+                #D          = enhanceContrast(D, args.enhance)
                 print("Distance Matrix time: %4.4f"  % (time.time() - start_time))
                 
                 ## Estimate matches
