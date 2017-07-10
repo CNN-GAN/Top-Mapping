@@ -7,24 +7,32 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 
-#model = ['ALI_CLC', 'ALI', 'Seq']
-model = ['ALI', 'ALI']
-#test_data = ['test_T1_R0.1', 'test_T1_R1', 'test_T1_R1.5', 'test_T1_R2', \
-#             'test_T10_R1', 'test_T10_R2', 'test_T10_R2', 'test_T20_R2', 'test_T20_R2.5']
-#json_file = ['_17_PR.json', '_16_PR.json', '_PR.json']
+model = ['ALI_CLC', 'ALI', 'Seq']
+#model = ['ALI_CLC', 'ALI_CLC', 'ALI', 'ALI', 'Seq']
+test_data = ['test_T1_R0.1', 'test_T1_R1', 'test_T1_R1.5', 'test_T1_R2', \
+             'test_T10_R1', 'test_T10_R2', 'test_T10_R2', 'test_T20_R2']
+json_file = ['_17_N_PR.json', '_17_A_PR.json', '_16_N_PR.json', '_16_PR.json', '_PR.json']
 #json_file = ['_16_N_PR.json', '_16_N_PR.json', '_16_N_PR.json', '_16_N_PR.json', '_16_N_PR.json',]
-test_data = ["test_T1_R0.1","test_T1_R1", "test_T1_R2", "test_T5_R0.5",\
-            "test_T10_R1", "test_T10_R2", "test_T15_R1.5", "test_T20_R2"]
+#test_data = ["test_T1_R0.1","test_T1_R1", "test_T1_R2", "test_T5_R0.5",\
+#            "test_T10_R1", "test_T10_R2", "test_T15_R1.5", "test_T20_R2"]
 
 for test_id in range(len(test_data)):
 
     plt.figure()
     legend = []
 
-    for id in range(3, 20):
+    '''
+    for id in range(len(model)):
+        with open(os.path.join('results', model[id], test_data[test_id]+json_file[id]), 'r') as data_file:
+            data = json.load(data_file)
+        results = np.array(data) # precision, recall
+        plt.plot(results[:,1], results[:,0], lw=2, label='Precision-Recall curve')
+    '''
+
+    for id in range(6, 20):
         if id%3 != 0:
             continue
-        #with open(os.path.join('results', model[id], test_data[test_id]+json_file[id]), 'r') as data_file:
+        #with open(os.path.join('results', model[0], test_data[test_id]+json_file[id]), 'r') as data_file:
         #    data = json.load(data_file)
         with open(os.path.join('results', model[0], test_data[test_id]+'_'+str(id)+'_N_PR.json'), 'r') as data_file:
             data = json.load(data_file)
@@ -32,7 +40,8 @@ for test_id in range(len(test_data)):
         results = np.array(data) # precision, recall
         plt.plot(results[:,1], results[:,0], lw=2, label='Precision-Recall curve')
 
-    #plt.legend(['A-OP', 'A', 'Seq'], loc='lower left')
+
+    #plt.legend(['Cycle SeqSLAM', 'Cycle SeqSLAM(ANN)', 'Enhanced SeqSLAM', 'Enhanced SeqSLAM(ANN)','SeqSLAM'], loc='lower left')
     #plt.gca().set_color_cycle(['red', 'green', 'blue'])
     #plt.legend(['Enhanced SeqSLAM', 'Enhanced SeqSLAM (ANN)', 'SeqSLAM'], loc='lower left')
     #plt.gca().set_color_cycle(['red', 'green', 'blue'])
@@ -45,3 +54,5 @@ for test_id in range(len(test_data)):
     plt.ylabel('Precision')
     plt.title('PR Curve')
     plt.savefig(test_data[test_id]+'_PR.jpg')
+
+    print ('plot done')

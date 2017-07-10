@@ -27,7 +27,7 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI",        "ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI_CLC",    "ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")

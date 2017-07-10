@@ -225,7 +225,7 @@ class Net(object):
         #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
         test_dir = ["test_T1_R0.1", "test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2", "test_T5_R0.5",\
                     "test_T10_R1", "test_T10_R2", "test_T15_R1.5", "test_T20_R2"]
-        for test_epoch in range(3, 4):
+        for test_epoch in range(6, 16):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -308,7 +308,7 @@ class Net(object):
                 plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
                 plt.plot(m,'.') 
                 plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+args.Search+'_match.jpg'))
+                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_match.jpg'))
 
                 ## Caculate Precision and Recall Curve
                 np.set_printoptions(threshold='nan')
@@ -320,7 +320,7 @@ class Net(object):
                 match_PR[np.isnan(match_PR)]=0
                 precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
                 PR_data = zip(precision, recall)
-                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+args.Search+'_PR.json')
+                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.json')
                 with open(PR_path, 'w') as data_out:
                     json.dump(PR_data, data_out)
                 
@@ -331,7 +331,7 @@ class Net(object):
                 plt.ylabel('Precision')
                 plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
                 plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+args.Search+'_PR.jpg'))
+                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.jpg'))
 
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
