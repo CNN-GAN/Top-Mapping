@@ -264,8 +264,9 @@ class Net3D(object):
         #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
         #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
         #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
-        test_dir = ['00_T1_R0.1', '00_T1_R0.5', '00_T1_R1.5', '00_T1_R2', '00_T5_R1', '00_T10_R1']
-        for test_id in range(5, 6):
+
+        test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
+        for test_id in range(1, 20):
 
             # Initial layer's variables
             test_epoch = test_id * 50
@@ -280,7 +281,11 @@ class Net3D(object):
             ## Extract Train data code
             start_time = time.time()
             train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
-            for id in range(train_code.shape[0]):
+            count = 0
+            for id in range(len(train_files)):
+                if id%args.frame_skip != 0:
+                    continue
+
                 sample_file = train_files[id]
                 sample = get_pcd(sample_file, args)
                 sample_image = np.array(sample).astype(np.float32)
@@ -288,19 +293,29 @@ class Net3D(object):
                                                      int(args.voxel_size/8), 1])
                 print ("Load data {}".format(sample_file))
                 feed_dict={self.d_real_x: sample_image}
-                train_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                if count >= args.test_len:
+                    break
+                train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                count = count+1
                 
             print("Train code extraction time: %4.4f"  % (time.time() - start_time))
+
+            result_dir = os.path.join(args.result_dir, args.method)
+            if not os.path.exists(result_dir):
+                os.makedirs(result_dir)
+            GTvector_path = os.path.join(result_dir, str(test_epoch)+'_gt_vt.npy')
+            np.save(GTvector_path, train_code)
 
             for dir_id in range(len(test_dir)):
                 
                 ## Evaulate test data
-                test_files = glob(os.path.join("./data", "new_loam", test_dir[dir_id], "pcd/*.pcd"))
+                test_files  = glob(os.path.join(args.data_dir, args.dataset,'00', test_dir[dir_id],"pcd/*.pcd"))
                 test_files.sort()
                 
                 ## Extract Test data code
                 start_time = time.time()
                 test_code = np.zeros([args.test_len, 512]).astype(np.float32)
+                count = 0
                 for id in range(test_code.shape[0]):
                     sample_file = test_files[id]
                     sample = get_pcd(sample_file, args)
@@ -309,10 +324,17 @@ class Net3D(object):
                                                          int(args.voxel_size/8), 1])
                     print ("Load data {}".format(sample_file))
                     feed_dict={self.d_real_x: sample_image}
-                    test_code[id]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    if count >= args.test_len:
+                        break
+                    test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    count = count+1
                     
                 print("test code extraction time: %4.4f"  % (time.time() - start_time))
+                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+str(dir_id)+'_vt.npy')
+                np.save(Testvector_path, test_code)
+
                 
+                '''
                 ## ANN search
                 start_time = time.time()
                 Ann, dists = getANN(train_code, test_code, args.Knn)
@@ -378,7 +400,7 @@ class Net3D(object):
                 plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
                 plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
                 plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
-
+                '''
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)

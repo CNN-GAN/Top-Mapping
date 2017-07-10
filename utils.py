@@ -167,7 +167,11 @@ def imread(path, is_grayscale = False):
         return scipy.misc.imread(path, flatten = True).astype(np.float)
     else:
         img = scipy.misc.imread(path).astype(np.float)
-        return img
+        ret = np.zeros([img.shape[0], img.shape[1], 3])
+        ret[:,:,0] = img
+        ret[:,:,1] = img
+        ret[:,:,2] = img
+        return ret
 
 def imsave(images, size, path):
     return scipy.misc.imsave(path, merge(images, size))

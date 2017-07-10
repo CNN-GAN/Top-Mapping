@@ -14,7 +14,7 @@ def Param():
     flags.DEFINE_float("cycle",           0.5,          "threshold for cycle updating")
         
     ## Data
-    flags.DEFINE_string("dataset",        "loam",       "The name of dataset [celebA, mnist, loam, lsun]")
+    flags.DEFINE_string("dataset",        "new_loam",       "The name of dataset [new_loam, loam]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
     flags.DEFINE_integer("code_dim",      512,          "code dimension")
@@ -27,7 +27,7 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",    "ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI",        "ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")
@@ -54,14 +54,15 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,          "velocity gap")
     flags.DEFINE_float("vmax",            1.2,          "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,           "rainbow")
+    flags.DEFINE_integer("frame_skip",    3,            "frame skip")    
     flags.DEFINE_integer("Knn",           5,            "K nearest point")
-    flags.DEFINE_integer("test_len",      1000,         "test data length")
+    flags.DEFINE_integer("test_len",      300,         "test data length")
     flags.DEFINE_string("test_dir",    "test_T10_R2",   "Directory name to extract image datas")
     flags.DEFINE_string("match_method",  "ANN",         "ANN or Force")
     flags.DEFINE_integer("match_thres",   80,           "match threshold for PR curve")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         False,         "True for train the 3D module")
+    flags.DEFINE_boolean("is_3D",         True,         "True for train the 3D module")
     flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")

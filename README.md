@@ -44,11 +44,16 @@ In the file parameters.py
 * Update save module, able to save pointcloud, image and pose **(done)**
 
 ## 3D CNN framework
+* Add PCD data loader **(done)**
 * Add 3D module **(done)**
 
-# TODO
 ## Loss Update
-* use Wessentian GAN to update the Loss **(doing)**
+* use Wessentian GAN to update the Loss **(done)**
 
-## Data loading
-* Add PCD data loader **(doing)**
+
+
+# Update Notes:
+## 2017/07/10 10:53:42 CST
+Update model.py, to save difference matrix for latter use.
+
+
