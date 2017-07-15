@@ -38,7 +38,7 @@ def Param():
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
     flags.DEFINE_integer("dJ_dim",        2048,         "The number of discriminator for Joint")
     flags.DEFINE_integer("image_size",    500,          "The size of image to use (will be center cropped) [108]")
-    flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
+    flags.DEFINE_integer("output_size",   64,          "The size of the output images to produce [64]")
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
 

@@ -117,8 +117,10 @@ class Net_Feature(object):
         self.loss_codeB2A = self.lossCode(self.d_c_B, self.d_c_h_A)
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_A, self.d_r_A) + \
                                           self.lossCYC(self.d_real_B, self.d_r_B))
-        self.loss_a2b = self.lossGAN(self.d_dis_h_B, 1) + self.loss_cycle + self.loss_codeA2B
-        self.loss_b2a = self.lossGAN(self.d_dis_h_A, 1) + self.loss_cycle + self.loss_codeB2A
+        self.loss_gen_b = self.lossGAN(self.d_dis_h_B, 1)
+        self.loss_gen_a = self.lossGAN(self.d_dis_h_A, 1)
+        self.loss_a2b = self.loss_gen_b + self.loss_cycle + self.loss_codeA2B
+        self.loss_b2a = self.loss_gen_a + self.loss_cycle + self.loss_codeB2A
 
         ## loss for discriminator
         self.loss_da     = (self.lossGAN(self.d_dis_real_A, 1) + self.lossGAN(self.d_dis_fake_A, 0)) / 2.0
@@ -126,29 +128,36 @@ class Net_Feature(object):
 
 
         # Make summary
-        self.summ_a2b = tf.summary.scalar('a2b_loss', self.loss_a2b)
-        self.summ_b2a = tf.summary.scalar('b2a_loss', self.loss_b2a)
-        self.summ_da  = tf.summary.scalar('dA_loss', self.loss_da)
-        self.summ_db  = tf.summary.scalar('dB_loss', self.loss_db)
-        self.summ_loss_realA  = tf.summary.scalar('class_A', self.loss_classA)
-        self.summ_loss_realB  = tf.summary.scalar('class_B', self.loss_classB)
-        self.summ_loss_codeA  = tf.summary.scalar('code_A',  self.loss_codeA2B)
-        self.summ_loss_codeB  = tf.summary.scalar('code_B',  self.loss_codeB2A)
+        with tf.name_scope('generator-discriminator'):
+            self.summ_da  = tf.summary.scalar('dA_loss', self.loss_da)
+            self.summ_db  = tf.summary.scalar('dB_loss', self.loss_db)
+            self.summ_ga  = tf.summary.scalar('gA_loss', self.loss_gen_a)
+            self.summ_gb  = tf.summary.scalar('gB_loss', self.loss_gen_b)
+
+        with tf.name_scope('class'):
+            self.summ_loss_realA  = tf.summary.scalar('class_A', self.loss_classA)
+            self.summ_loss_realB  = tf.summary.scalar('class_B', self.loss_classB)
+
+        with tf.name_scope('cycle'):        
+            self.summ_loss_codeA  = tf.summary.scalar('code_A',  self.loss_codeA2B)
+            self.summ_loss_codeB  = tf.summary.scalar('code_B',  self.loss_codeB2A)
+            self.summ_a2b = tf.summary.scalar('a2b_loss', self.loss_a2b)
+            self.summ_b2a = tf.summary.scalar('b2a_loss', self.loss_b2a)
 
         with tf.name_scope('realA'):
-            true_image = tf.reshape(self.d_real_A, [-1, 64, 64, 3])
+            true_image = tf.reshape(self.d_real_A, [-1, args.output_size, args.output_size, 3])
             self.summ_image_real = tf.summary.image('realA', true_image[0:4], 4)
 
         with tf.name_scope('fakeA'):
-            fake_image = tf.reshape(self.d_h_A, [-1, 64, 64, 3])
+            fake_image = tf.reshape(self.d_h_A, [-1, args.output_size, args.output_size, 3])
             self.summ_image_fake = tf.summary.image('fakeA', fake_image[0:4], 4)
 
         with tf.name_scope('realB'):
-            true_image = tf.reshape(self.d_real_B, [-1, 64, 64, 3])
+            true_image = tf.reshape(self.d_real_B, [-1, args.output_size, args.output_size, 3])
             self.summ_image_real = tf.summary.image('realB', true_image[0:4], 4)
 
         with tf.name_scope('fakeB'):
-            fake_image = tf.reshape(self.d_h_B, [-1, 64, 64, 3])
+            fake_image = tf.reshape(self.d_h_B, [-1, args.output_size, args.output_size, 3])
             self.summ_image_fake = tf.summary.image('fakeB', fake_image[0:4], 4)
 
         self.summ_merge = tf.summary.merge_all()
@@ -327,7 +336,7 @@ class Net_Feature(object):
                 sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                    resize_w=args.output_size, is_grayscale=0)
                 sample_image = np.array(sample).astype(np.float32)
-                sample_image = sample_image.reshape([1,64,64,3])
+                sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
                 print ("Load data {}".format(sample_file))
                 feed_dict={self.d_real_x: sample_image}
                 if count >= args.test_len:
@@ -364,7 +373,7 @@ class Net_Feature(object):
                     sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                        resize_w=args.output_size, is_grayscale=0)
                     sample_image = np.array(sample).astype(np.float32)
-                    sample_image = sample_image.reshape([1,64,64,3])
+                    sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
                     print ("Load data {}".format(sample_file))
                     feed_dict={self.d_real_x: sample_image}
                     if count >= args.test_len:
