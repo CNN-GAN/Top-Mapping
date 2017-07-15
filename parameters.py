@@ -18,6 +18,7 @@ def Param():
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
     flags.DEFINE_integer("code_dim",      512,          "code dimension")
+    flags.DEFINE_integer("condition_dim", 64,          "code dimension")
     
     ## Dir
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
