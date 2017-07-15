@@ -21,7 +21,7 @@ from tensorlayer.layers import *
 from module import *
 from utils import *
 
-class Net(object):
+class Net_Feature(object):
     def __init__(self, sess, args):
         self.sess = sess
         self.summary = tf.summary
@@ -31,15 +31,15 @@ class Net(object):
         self.is_train = args.is_train 
         
         # Network module
-        self.encoder = encoder
-        self.decoder = decoder
-        self.discX   = discriminator_X
-        self.discZ   = discriminator_Z
-        self.discJ   = discriminator_J
+        self.encoder  = encoder
+        self.decoder  = decoder_condition
+        self.classify = classify
         
         # Loss function
         self.lossGAN = mae_criterion
         self.lossCYC = abs_criterion
+        self.lossCross = cross_loss
+        self.lossCode  = abs_criterion
 
         # SeqSLAM
         self.vec_D    = Euclidean
@@ -51,85 +51,114 @@ class Net(object):
         # Test
         if args.is_train == False:
             self.test_epoch = 0
+
         self._build_model(args)
 
     def _build_model(self, args):
-        self.d_real_x = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
-                                                      args.img_dim], name='real_image')
-        self.d_real_z  = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name="real_code")
+        self.d_real_A = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
+                                                    args.img_dim], name='real_A')
+        self.d_real_B = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
+                                                    args.img_dim], name='real_B')
+        self.d_id_A = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_A')
+        self.d_id_B = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_B')
 
-        self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
-        self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=False)
-        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
-        self.n_cycl_x, self.d_cycl_x = self.decoder(self.d_fake_z, is_train=True, reuse=True)
+        # construct the net module
+        # A->(Encoder)->c_A->(Decoder)->h_B->(Encoder)->c_h_B->(Decoder)->r_A
+        # B->(Encoder)->c_B->(Decoder)->h_A->(Encoder)->c_h_A->(Decoder)->r_B
+        self.n_c_A,   self.d_c_A     = self.encoder(self.d_real_A, is_train=True, reuse=False)
+        self.n_f_A,   self.d_f_A     = self.classify(self.d_real_A, is_train=True, reuse=False)
+        self.n_c_B,   self.d_c_B     = self.encoder(self.d_real_B, is_train=True, reuse=True)
+        self.n_f_B,   self.d_f_B     = self.classify(self.d_real_B, is_train=True, reuse=True)
 
-        with tf.name_scope('real'):
-            true_image = tf.reshape(self.d_real_x, [-1, 64, 64, 3])
-            self.summ_image_real = tf.summary.image('real', true_image[0:4], 4)
+        self.n_h_B,   self.d_h_B     = self.decoder(self.d_f_B, self.d_c_A, is_train=True, reuse=False)
+        self.n_h_A,   self.d_h_A     = self.decoder(self.d_f_A, self.d_c_B, is_train=True, reuse=True)
 
-        with tf.name_scope('fake'):
-            fake_image = tf.reshape(self.d_cycl_x, [-1, 64, 64, 3])
-            self.summ_image_fake = tf.summary.image('fake', fake_image[0:4], 4)
+        self.n_c_h_B, self.d_c_h_B   = self.encoder(self.d_h_B, is_train=True, reuse=True)
+        self.n_c_h_A, self.d_c_h_A   = self.encoder(self.d_h_A, is_train=True, reuse=True)
 
-        self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
-        self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)
-        self.n_dic_z,  self.d_dic_z  = self.discZ(self.d_real_z, is_train=True, reuse=False)
-        self.n_dic_fz, self.d_dic_fz = self.discZ(self.d_fake_z, is_train=True, reuse=True)
-        self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
-        self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
+        self.n_r_B,   self.d_r_B     = self.decoder(self.d_f_B, self.d_c_h_A, is_train=True, reuse=True)
+        self.n_r_A,   self.d_r_A     = self.decoder(self.d_f_A, self.d_c_h_B, is_train=True, reuse=True)
 
-        # Apply Loss
-        self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
-        self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-                                                self.lossCYC(self.d_real_z, self.d_cycl_z))
-        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
-        self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
-                                                   self.lossGAN(self.d_dic_fx,0))
-        self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-                                                   self.lossGAN(self.d_dic_fz,0))
+
+        with tf.name_scope('realA'):
+            true_image = tf.reshape(self.d_real_A, [-1, 64, 64, 3])
+            self.summ_image_real = tf.summary.image('realA', true_image[0:4], 4)
+
+        with tf.name_scope('fakeA'):
+            fake_image = tf.reshape(self.d_h_A, [-1, 64, 64, 3])
+            self.summ_image_fake = tf.summary.image('fakeA', fake_image[0:4], 4)
+
+        with tf.name_scope('realB'):
+            true_image = tf.reshape(self.d_real_B, [-1, 64, 64, 3])
+            self.summ_image_real = tf.summary.image('realB', true_image[0:4], 4)
+
+        with tf.name_scope('fakeB'):
+            fake_image = tf.reshape(self.d_h_B, [-1, 64, 64, 3])
+            self.summ_image_fake = tf.summary.image('fakeB', fake_image[0:4], 4)
+
+        # Classification
+        self.loss_classA = self.lossCross(self.d_f_A, self.d_id_A)
+        self.loss_classB = self.lossCross(self.d_f_B, self.d_id_B)
+
+        self.loss_codeA = self.lossCode(self.d_c_A, self.d_c_h_B)
+        self.loss_codeB = self.lossCode(self.d_c_B, self.d_c_h_A)
+        
+        
+        # Update the Generator Model
+        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_A, self.d_r_A) + \
+                                          self.lossCYC(self.d_real_B, self.d_r_B))
+        self.loss_a2b = self.lossGAN(self.d_h_B, 1) + self.loss_cycle
+        self.loss_b2a = self.lossGAN(self.d_h_A, 1) + self.loss_cycle
+
+        # Update Discriminator Model
+        self.fake_A_code = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
+                                                       args.img_dim], name='fake_A_code')
+        self.fake_B_code = tf.placeholder(tf.float32, [args.batch_size, args.output_size, args.output_size, \
+                                                       args.img_dim], name='fake_B_code')
+        self.loss_da     = args.side_D * (self.lossGAN(self.d_A, 1) + self.lossGAN(self.fake_A_code,0)) / 2.0
+        self.loss_db     = args.side_D * (self.lossGAN(self.d_B, 1) + self.lossGAN(self.fake_B_code,0)) / 2.0
+
         # Make summary
-        self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
-        self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
-        self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
-        self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
-        self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
-        self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
-        self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
-        if self.model == 'ALI_CLC':
-            self.summ_merge = tf.summary.merge_all()
-        elif self.model == 'ALI':
-            self.summ_merge = tf.summary.merge([self.summ_image_real, self.summ_image_fake, \
-                                                self.summ_dicJ, self.summ_dicfJ])  
+        self.summ_a2b = tf.summary.scalar('a2b_loss', self.loss_a2b)
+        self.summ_b2a = tf.summary.scalar('b2a_loss', self.loss_b2a)
+        self.summ_da  = tf.summary.scalar('dA_loss', self.loss_da)
+        self.summ_db  = tf.summary.scalar('dB_loss', self.loss_db)
+        self.summ_loss_realA  = tf.summary.scalar('class_A', self.loss_classA)
+        self.summ_loss_realB  = tf.summary.scalar('class_B', self.loss_classB)
+        self.summ_loss_codeA  = tf.summary.scalar('code_A',  self.loss_codeA)
+        self.summ_loss_codeB  = tf.summary.scalar('code_B',  self.loss_codeB)
+
+        self.summ_merge = tf.summary.merge_all()
+
         # Extract variables
         self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
         self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
-        self.var_dicX     = tl.layers.get_variables_with_name('DISC_X',  True, True)
-        self.var_dicZ     = tl.layers.get_variables_with_name('DISC_Z',  True, True)
-        self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
-        self.var_gen    = self.var_encoder
-        self.var_gen.extend(self.var_decoder)
+
+        self.var_classify = tl.layers.get_variables_with_name('CLASSIFY',True, True)
+
+        self.var_en_de = self.var_encoder
+        self.var_en_de.extend(self.var_decoder)
 
     def train(self, args):
         
         # Set optimal for nets
-        if self.model == 'ALI_CLC':
-            self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_encoder, var_list=self.var_encoder)
-            self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_decoder, var_list=self.var_decoder)
-            self.optim_cycle   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_cycle,   var_list=self.var_gen)
-            self.optim_dicX    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_dicX,    var_list=self.var_dicX)
-            self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
+        self.da_optim = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                .minimize(self.loss_da, var_list=self.var_en_de)
+        self.db_optim = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                .minimize(self.loss_db, var_list=self.var_en_de)
+        self.a2b_optim = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                .minimize(self.loss_a2b, var_list=self.var_en_de)
+        self.b2a_optim = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                .minimize(self.loss_b2a, var_list=self.var_en_de)
 
-        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
-        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+        self.classA_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_classA, var_list=self.var_classify)
+        self.classB_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                    .minimize(self.loss_classB, var_list=self.var_classify)
+        self.codeA_optim  = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                    .minimize(self.loss_codeA, var_list=self.var_en_de)
+        self.codeB_optim  = tf.train.AdamOptimizer(args.lr*0.5, beta1=args.beta1) \
+                                    .minimize(self.loss_codeB, var_list=self.var_en_de)
 
         # Initial layer's variables
         tl.layers.initialize_global_variables(self.sess)
@@ -145,7 +174,20 @@ class Net(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_files = glob(os.path.join("./data", args.dataset, "train/*.jpg"))
+        data_bags = [[],[],[]]
+        min_len = 20000
+        for data_id in range(0, 3):
+            read_path = os.path.join("./data/GTAV", 'data'+str(data_id), "*.jpg")
+            data_file = glob(read_path)
+            #data_file = data_file[10:2010]
+            data_code = np.ones(len(data_file)) * data_id
+            if len(data_file) < min_len:
+                min_len = len(data_file)
+
+            datas = zip(data_file, data_code)
+            data_bags[data_id] = datas
+
+        print ("Minimum length is {}".format(min_len))
 
         # Main loop for Training
         self.iter_counter = 0
@@ -155,74 +197,89 @@ class Net(object):
 
         for epoch in range(begin_epoch, args.epoch):
             ## shuffle data
-            shuffle(data_files)
+            for data_id in range(0, 3):
+                shuffle(data_bags[data_id])
+
             print("[*] Dataset shuffled!")
             
             ## load image data
-            batch_idxs = min(len(data_files), args.train_size) // args.batch_size
+            batch_idxs = min(min_len, args.train_size) // args.batch_size
             
             for idx in xrange(0, batch_idxs):
                 ### Get datas ###
-                batch_files  = data_files[idx*args.batch_size:(idx+1)*args.batch_size]
+                data_ids     = np.random.randint(3, size=args.batch_size)
+                data_A = []
+                data_B = []
+                id_A = []
+                id_B = []
+                start_id = idx*args.batch_size
+                for index, valA in enumerate(data_ids):
+                    
+                    data_A += [data_bags[valA][index+start_id][0]]
+                    id_A += [data_bags[valA][index+start_id][1]]
+
+                    valB = (valA+1)%3            
+                    data_B += [data_bags[valB][index+start_id][0]]
+                    id_B += [data_bags[valB][index+start_id][1]]                  
+
+
+                id_A = np.array(id_A).astype(int32)
+                id_B = np.array(id_B).astype(int32)
+
+
                 ## get real images
-                batch        = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
-                                          resize_w=args.output_size, is_grayscale = 0) \
-                                for batch_file in batch_files]
-                batch_images = np.array(batch).astype(np.float32)
-                ## get real code
-                batch_codes  = np.random.normal(loc=0.0, scale=1.0, \
-                                                size=(args.sample_size, args.code_dim)).astype(np.float32)
-                
+                batch_A       = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
+                                           resize_w=args.output_size, is_grayscale = 0) \
+                                 for batch_file in data_A]
+                batch_A_images = np.array(batch_A).astype(np.float32)
+                batch_B       = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
+                                           resize_w=args.output_size, is_grayscale = 0) \
+                                 for batch_file in data_B]
+                batch_B_images = np.array(batch_B).astype(np.float32)
+
+
                 ### Update Nets ###
                 start_time = time.time()
-                feed_dict={self.d_real_x: batch_images, self.d_real_z: batch_codes }
-                feed_dict.update(self.n_dic_J.all_drop)
-                feed_dict.update(self.n_dic_fJ.all_drop)
+                
+                # Forward G network
+                feed_dict={self.d_real_A: batch_A_images, self.d_real_B: batch_A_images}
+                fake_A_code, fake_B_code = self.sess.run([self.d_h_A, self.d_h_B], feed_dict=feed_dict)
+                
+                feed_dict={self.d_real_A: batch_A_images, self.d_real_B: batch_B_images,\
+                           self.d_id_A: id_A, self.d_id_B: id_B, \
+                           self.fake_A_code: fake_A_code, self.fake_B_code: fake_B_code}
 
-                if self.model == 'ALI_CLC':
-                    feed_dict.update(self.n_dic_z.all_drop)
-                    feed_dict.update(self.n_dic_fz.all_drop)
-                    errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
-                    errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
-                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+                # Update G and D in A2B
+                err_classA, _ = self.sess.run([self.loss_classA, self.classA_optim], feed_dict=feed_dict)
+                err_a2b, _ = self.sess.run([self.loss_a2b, self.a2b_optim], feed_dict=feed_dict)
+                err_codeA, _ = self.sess.run([self.loss_codeA, self.codeA_optim], feed_dict=feed_dict)
+                err_db,  _ = self.sess.run([self.loss_db,  self.db_optim],  feed_dict=feed_dict)
 
-                    errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
-                    errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+                # Update G and D in B2A
+                err_b2a, _ = self.sess.run([self.loss_b2a, self.b2a_optim], feed_dict=feed_dict)
+                err_classB, _ = self.sess.run([self.loss_classB, self.classB_optim], feed_dict=feed_dict)
+                err_codeB, _ = self.sess.run([self.loss_codeB, self.codeB_optim], feed_dict=feed_dict)
+                err_da,  _ = self.sess.run([self.loss_da,  self.da_optim],  feed_dict=feed_dict)                
 
-                    ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(4):
-                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-
-                    ## update inverse mapping
-                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
-                elif self.model == 'ALI':
-                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-
-                    ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(4):
-                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-
-                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f"  % \
-                      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time))
+                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, E_a2b: %4.4f, E_b2a: %4.4f, E_da: %4.4f, E_db: %4.4f"  % \
+                      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, \
+                       err_a2b, err_b2a, err_da, err_db))
                 sys.stdout.flush()
                 self.iter_counter += 1
 
                 if np.mod(self.iter_counter, args.sample_step) == 0:
                     self.makeSample(feed_dict, args.sample_dir, epoch, idx)
-            
+
+                '''
                 if np.mod(self.iter_counter, args.save_step) == 0:
                     self.saveParam(args)
                     print("[*] Saving checkpoints SUCCESS!")
-
+                '''
         # Shutdown writer
         self.writer.close()
 
     def test(self, args):
 
-        #test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
-
-        #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
         test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
         for test_epoch in range(6, 22):
 
@@ -243,6 +300,7 @@ class Net(object):
             for id in range(len(train_files)):
                 if id%args.frame_skip != 0:
                     continue
+
                 sample_file = train_files[id]
                 sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                    resize_w=args.output_size, is_grayscale=0)
@@ -252,6 +310,7 @@ class Net(object):
                 feed_dict={self.d_real_x: sample_image}
                 if count >= args.test_len:
                     break
+
                 train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                 count = count+1
 
@@ -270,7 +329,7 @@ class Net(object):
                 ## Evaulate test data
                 test_files  = glob(os.path.join(args.data_dir, args.dataset,'00', test_dir[dir_id],"img/*.jpg"))
                 test_files.sort()
-            
+                
                 ## Extract Test data code
                 start_time = time.time()
                 test_code = np.zeros([args.test_len, 512]).astype(np.float32)
@@ -288,78 +347,16 @@ class Net(object):
                     feed_dict={self.d_real_x: sample_image}
                     if count >= args.test_len:
                         break
+
                     test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                     count = count+1
-                    
+    
                 print("Test code extraction time: %4.4f"  % (time.time() - start_time))
                 Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+str(dir_id)+'_vt.npy')
                 np.save(Testvector_path, test_code)
-        
-                '''
-                ## ANN search
-                start_time = time.time()
-                Ann, dists = getANN(train_code, test_code, args.Knn)
-                print("ANN search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Measure vector corrcoeffience
-                start_time = time.time()
-                D          = self.vec_D(train_code, test_code)
-                print("Distance Matrix time: %4.4f"  % (time.time() - start_time))
-                
-                ## Estimate matches
-                start_time = time.time()
-                match      = self.getMatch(D, Ann, args)
-                print("Match search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Save Matrix image
-                result_dir = os.path.join(args.result_dir, args.method)
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
-                if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
-                    os.makedirs(os.path.join(result_dir, 'MATRIX'))
-                scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
-
-                ## Save matching 
-                m = match[:,0]
-                thresh = 0.95
-                matched = match[match[:,1]<thresh, 1]
-                score = np.mean(matched)
-                m[match[:,1] > thresh] = np.nan
-                plt.figure()
-                plt.xlabel('Test data')
-                plt.ylabel('Stored data')
-                plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-                plt.plot(m,'.') 
-                plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_match.jpg'))
-
-                ## Caculate Precision and Recall Curve
-                np.set_printoptions(threshold='nan')
-                match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
-                match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
-                match_EE = np.abs(match_PR[:,0] - match_BS)
-                match_PR[match_EE<=args.match_thres, 0] = 1
-                match_PR[match_EE> args.match_thres, 0] = 0
-                match_PR[np.isnan(match_PR)]=0
-                precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
-                PR_data = zip(precision, recall)
-                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.json')
-                with open(PR_path, 'w') as data_out:
-                    json.dump(PR_data, data_out)
-                
-                plt.figure()
-                plt.xlim(0.0, 1.0)
-                plt.ylim(0.0, 1.0)
-                plt.xlabel('Recall')
-                plt.ylabel('Precision')
-                plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-                plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.jpg'))
-                '''
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
-        summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
+        summary, img = self.sess.run([self.summ_merge, self.n_h_A.outputs], feed_dict=feed_dict)
 
         # update summary
         self.writer.add_summary(summary, self.iter_counter)
@@ -402,6 +399,7 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+
         elif self.model == 'ALI':
             if args.is_train == True:
                 load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
@@ -428,7 +426,8 @@ class Net(object):
         print("[*] Saving checkpoints...")
         save_dir = os.path.join(args.checkpoint_dir, args.method)
         if not os.path.exists(save_dir):
-            os.makedirs(save_dir)        
+            os.makedirs(save_dir)
+   
         print (save_dir)
 
         if self.model == 'ALI_CLC':

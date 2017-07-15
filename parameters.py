@@ -63,6 +63,7 @@ def Param():
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         True,         "True for train the 3D module")
+    flags.DEFINE_boolean("is_condition",  True,         "True for train Conditional features")    
     flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")

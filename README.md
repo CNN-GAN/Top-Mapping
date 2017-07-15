@@ -56,4 +56,5 @@ In the file parameters.py
 ## 2017/07/10 10:53:42 CST
 Update model.py, to save difference matrix for latter use.
 
-
+## 2017/07/12 19:02:12 CST
+Add gtav_cls for gtav scene classification

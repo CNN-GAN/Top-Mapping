@@ -6,6 +6,51 @@ from tensorlayer.layers import *
 flags = tf.app.flags
 args = flags.FLAGS
 
+def decoder_condition(condition, inputs, is_train=True, reuse=False):
+
+    s0, s2, s4, s8, s16 = int(args.output_size), int(args.output_size/2), \
+                          int(args.output_size/4), int(args.output_size/8), int(args.output_size/16)
+    w_init = tf.random_normal_initializer(stddev=0.02)
+    gamma_init = tf.random_normal_initializer(1., 0.02)
+
+    with tf.variable_scope("DECODER", reuse=reuse):
+        tl.layers.set_name_reuse(reuse)
+
+        net_c_in = InputLayer(condition, name='condition')
+        net_c_h0 = DenseLayer(net_c_in, n_units=1024, act=tf.identity, W_init = w_init, name='Condition/fc1')
+        net_c_h1 = DenseLayer(net_c_h0, n_units=args.code_dim, act=tf.identity, W_init = w_init, \
+                              name='Condition/fc2')
+
+        net_in = InputLayer(inputs, name='De/in')
+        net_h0 = ConcatLayer(layer=[net_in, net_c_h1], name='concat')
+        net_h0 = DenseLayer(net_h0, n_units=args.img_filter*8*s16*s16, W_init=w_init,
+                            act = tf.identity, name='De/h0/lin')
+        net_h0 = ReshapeLayer(net_h0, shape=[-1, s16, s16, args.img_filter*8], name='De/h0/reshape')
+        net_h0 = BatchNormLayer(net_h0, act=tf.nn.relu, is_train=is_train,
+                                gamma_init=gamma_init, name='De/h0/batch_norm')
+
+        net_h1 = DeConv2d(net_h0, args.img_filter*4, (5, 5), out_size=(s8, s8), strides=(2, 2),
+                          padding='SAME', batch_size=args.batch_size, act=None, W_init=w_init, name='De/h1/decon2d')
+        net_h1 = BatchNormLayer(net_h1, act=tf.nn.relu, is_train=is_train,
+                                gamma_init=gamma_init, name='De/h1/batch_norm')
+
+        net_h2 = DeConv2d(net_h1, args.img_filter*2, (5, 5), out_size=(s4, s4), strides=(2, 2),
+                          padding='SAME', batch_size=args.batch_size, act=None, W_init=w_init, name='De/h2/decon2d')
+        net_h2 = BatchNormLayer(net_h2, act=tf.nn.relu, is_train=is_train,
+                                gamma_init=gamma_init, name='De/h2/batch_norm')
+
+        net_h3 = DeConv2d(net_h2, args.img_filter, (5, 5), out_size=(s2, s2), strides=(2, 2),
+                          padding='SAME', batch_size=args.batch_size, act=None, W_init=w_init, name='De/h3/decon2d')
+        net_h3 = BatchNormLayer(net_h3, act=tf.nn.relu, is_train=is_train,
+                                gamma_init=gamma_init, name='De/h3/batch_norm')
+
+        net_h4 = DeConv2d(net_h3, args.img_dim, (5, 5), out_size=(s0, s0), strides=(2, 2),
+                          padding='SAME', batch_size=args.batch_size, act=None, W_init=w_init, name='De/h4/decon2d')
+        net_h4.outputs = tf.nn.tanh(net_h4.outputs)
+        logits = net_h4.outputs
+
+    return net_h4, logits
+
 def decoder(inputs, is_train=True, reuse=False):
 
     s0, s2, s4, s8, s16 = int(args.output_size), int(args.output_size/2), \
@@ -81,6 +126,48 @@ def encoder(inputs, is_train=True, reuse=False):
         logits = net_h4.outputs
 
     return net_h4, logits
+
+def classify(inputs, is_train=True, reuse=False):
+
+    w_init = tf.random_normal_initializer(stddev=0.02)
+    gamma_init = tf.random_normal_initializer(1., 0.02)    
+
+    with tf.variable_scope("CLASSIFY", reuse=reuse):
+        tl.layers.set_name_reuse(reuse)
+        
+        '''
+        net_in = InputLayer(inputs, name='in')
+        mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
+        net_in.outputs = net_in.outputs - (mean/127.5 - 1.0)
+        network = Conv2d(net_in, 64, (5, 5), (2, 2), act=None,
+                         padding='SAME', W_init=w_init, name='h0/conv2d')
+        network = BatchNormLayer(network, act=lambda x: tl.act.lrelu(x, 0.2),
+                                 is_train=is_train, gamma_init=gamma_init, name='h0/batch_norm')
+
+        network = Conv2d(network, 128, (5, 5), (2, 2), act=None,
+                         padding='SAME', W_init=w_init, name='h1/conv2d')
+        network = BatchNormLayer(network, act=lambda x: tl.act.lrelu(x, 0.2),
+                                 is_train=is_train, gamma_init=gamma_init, name='h1/batch_norm')
+
+        network = Conv2d(network, 256, (5, 5), (2, 2), act=None,
+                         padding='SAME', W_init=w_init, name='h2/conv2d')
+        network = BatchNormLayer(network, act=lambda x: tl.act.lrelu(x, 0.2),
+                                 is_train=is_train, gamma_init=gamma_init, name='h2/batch_norm')
+
+        network = Conv2d(network, 512, (5, 5), (2, 2), act=None,
+                         padding='SAME', W_init=w_init, name='h3/conv2d')
+        network = BatchNormLayer(network, act=lambda x: tl.act.lrelu(x, 0.2),
+                                 is_train=is_train, gamma_init=gamma_init, name='h3/batch_norm')
+
+        '''
+
+        network = FlattenLayer(network, name='flatten')
+        network = DenseLayer(network, n_units=3, act=tf.identity, name='fc')
+        
+        logits = network.outputs
+
+    return network, logits
+
 
 def discriminator_X(input_X, is_train=True, reuse=False):
 
@@ -212,3 +299,6 @@ def mae_criterion(in_, target):
 
 def sce_criterion(logits, labels):
     return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels))
+
+def cross_loss(logits, labels):
+    return tl.cost.cross_entropy(logits, labels, name='cross_entropy')

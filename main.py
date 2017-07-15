@@ -4,6 +4,7 @@ import tensorflow as tf
 from parameters import *
 from model import Net
 from model3D import Net3D
+from model_feature import Net_Feature
 
 # Obtain parameters
 args = Param()
@@ -27,6 +28,12 @@ def main(_):
         args.batch_size = 64
     else:
         Net_model = Net
+    
+    if args.is_condition == True:
+        Net_model = Net_Feature
+        args.dataset = 'GTAV'
+        #args.batch_size = 4
+
 
     if args.is_train == False:
         args.batch_size = 1
