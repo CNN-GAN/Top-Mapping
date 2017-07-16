@@ -15,11 +15,11 @@ def Param():
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
-    flags.DEFINE_string("dataset",        "new_loam",       "The name of dataset [new_loam, loam]")
+    flags.DEFINE_string("dataset",        "GTAV",       "The name of dataset [new_loam, GTAV, loam]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
     flags.DEFINE_integer("code_dim",      512,          "code dimension")
-    flags.DEFINE_integer("condition_dim", 64,          "code dimension")
+    flags.DEFINE_integer("condition_dim", 64,           "condition code dimension")
     
     ## Dir
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
@@ -29,7 +29,7 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI",        "ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "simpleCYC",  "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")
@@ -64,8 +64,7 @@ def Param():
     flags.DEFINE_integer("match_thres",   80,           "match threshold for PR curve")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         True,         "True for train the 3D module")
-    flags.DEFINE_boolean("is_condition",  True,         "True for train Conditional features")    
+    flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
     flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")

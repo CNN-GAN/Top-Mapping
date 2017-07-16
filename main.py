@@ -5,6 +5,7 @@ from parameters import *
 from model import Net
 from model3D import Net3D
 from model_feature import Net_Feature
+from model_simpleCYC import Net_simpleCYC
 
 # Obtain parameters
 args = Param()
@@ -29,11 +30,13 @@ def main(_):
     else:
         Net_model = Net
     
-    if args.is_condition == True:
+    if args.method == 'conditionCYC':
         Net_model = Net_Feature
         args.dataset = 'GTAV'
-        #args.batch_size = 4
 
+    if args.method == 'simpleCYC':
+        Net_model = Net_simpleCYC
+        args.dataset = 'GTAV'
 
     if args.is_train == False:
         args.batch_size = 1
