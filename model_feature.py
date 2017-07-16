@@ -88,10 +88,9 @@ class Net_Feature(object):
         self.n_h_B,   self.d_h_B     = self.decoder(self.d_f_B, self.d_c_A, is_train=True, reuse=False)
         self.n_h_A,   self.d_h_A     = self.decoder(self.d_f_A, self.d_c_B, is_train=True, reuse=True)
 
-
         ## (Decoder1_1)
-        self.n_cyc_B, self.d_cyc_B   = self.decoder(self.d_f_B, self.d_c_B, is_train=True, reuse=True)
         self.n_cyc_A, self.d_cyc_A   = self.decoder(self.d_f_A, self.d_c_A, is_train=True, reuse=True)
+        self.n_cyc_B, self.d_cyc_B   = self.decoder(self.d_f_B, self.d_c_B, is_train=True, reuse=True)
 
         ## (Encoder2)
         self.n_c_h_B, self.d_c_h_B   = self.encoder(self.d_h_B, is_train=True, reuse=True)
@@ -254,6 +253,7 @@ class Net_Feature(object):
             for idx in xrange(0, batch_idxs):
                 ### Get datas ###
                 data_ids     = np.random.randint(3, size=args.batch_size)
+                data_add_ids = np.random.randint(2, size=args.batch_size)
                 data_A = []
                 data_B = []
                 id_A = []
@@ -264,7 +264,7 @@ class Net_Feature(object):
                     data_A += [data_bags[valA][index+start_id][0]]
                     id_A += [data_bags[valA][index+start_id][1]]
 
-                    valB = (valA+1)%3            
+                    valB = (valA+data_add_ids[index]+1)%3            
                     data_B += [data_bags[valB][index+start_id][0]]
                     id_B += [data_bags[valB][index+start_id][1]]                  
 
@@ -320,11 +320,11 @@ class Net_Feature(object):
                 if np.mod(self.iter_counter, args.sample_step) == 0:
                     self.makeSample(feed_dict, args.sample_dir, epoch, idx)
 
-                '''
+
                 if np.mod(self.iter_counter, args.save_step) == 0:
                     self.saveParam(args)
                     print("[*] Saving checkpoints SUCCESS!")
-                '''
+
         # Shutdown writer
         self.writer.close()
 
@@ -474,51 +474,30 @@ class Net_Feature(object):
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.method)
+        save_dir = os.path.join(args.checkpoint_dir, 'conditionCYC')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
    
         print (save_dir)
 
-        if self.model == 'ALI_CLC':
-            # the latest version location
-            net_de_name = os.path.join(save_dir, 'net_de.npz')
-            net_en_name = os.path.join(save_dir, 'net_en.npz')
-            net_dX_name = os.path.join(save_dir, 'net_dX.npz')
-            net_dZ_name = os.path.join(save_dir, 'net_dZ.npz')
-            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
-            # this version is for future re-check and visualization analysis
-            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
-            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
-            net_dX_iter_name = os.path.join(save_dir, 'net_dX_%d.npz' % self.iter_counter)
-            net_dZ_iter_name = os.path.join(save_dir, 'net_dZ_%d.npz' % self.iter_counter)
-            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
-            
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
+        # the latest version location
+        net_en_name  = os.path.join(save_dir, 'net_en.npz')
+        net_de_name  = os.path.join(save_dir, 'net_de.npz')
+        net_cls_name = os.path.join(save_dir, 'net_cls.npz')
+        net_dis_name = os.path.join(save_dir, 'net_dis.npz')
 
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
-        elif self.model == 'ALI':
-            # the latest version location
-            net_de_name = os.path.join(save_dir, 'net_de.npz')
-            net_en_name = os.path.join(save_dir, 'net_en.npz')
-            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
-            # this version is for future re-check and visualization analysis
-            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
-            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
-            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
-            
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
-
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
+        # this version is for future re-check and visualization analysis
+        net_de_iter_name  = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
+        net_en_iter_name  = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
+        net_cls_iter_name = os.path.join(save_dir, 'net_cls_%d.npz' % self.iter_counter)
+        net_dis_iter_name = os.path.join(save_dir, 'net_dis_%d.npz' % self.iter_counter)
+        
+        tl.files.save_npz(self.n_c_A.all_params,      name=net_de_name, sess=self.sess)
+        tl.files.save_npz(self.n_f_A.all_params,      name=net_en_name, sess=self.sess)
+        tl.files.save_npz(self.n_h_B.all_params,      name=net_cls_name, sess=self.sess)
+        tl.files.save_npz(self.n_dis_h_A.all_params,  name=net_dis_name, sess=self.sess)
+        
+        tl.files.save_npz(self.n_c_A.all_params,      name=net_de_iter_name, sess=self.sess)
+        tl.files.save_npz(self.n_f_A.all_params,      name=net_en_iter_name, sess=self.sess)
+        tl.files.save_npz(self.n_h_B.all_params,      name=net_cls_iter_name, sess=self.sess)
+        tl.files.save_npz(self.n_dis_h_A.all_params,  name=net_dis_iter_name, sess=self.sess)
