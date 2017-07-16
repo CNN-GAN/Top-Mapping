@@ -12,6 +12,7 @@ def Param():
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
     flags.DEFINE_float("side_D",          1.0,          "side discriminator for cycle updating")
     flags.DEFINE_float("cycle",           0.5,          "threshold for cycle updating")
+    flags.DEFINE_float("in_cycle",        0.1,          "threshold for inner cycle updating")
         
     ## Data
     flags.DEFINE_string("dataset",        "new_loam",       "The name of dataset [new_loam, loam]")

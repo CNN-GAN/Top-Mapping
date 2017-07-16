@@ -37,7 +37,7 @@ class Net_Feature(object):
         self.discriminator = discriminator_condition
         
         # Loss function
-        self.lossGAN = mae_criterion
+        self.lossGAN = abs_criterion
         self.lossCYC = abs_criterion
         self.lossCross = cross_loss
         self.lossCode  = abs_criterion
@@ -70,24 +70,34 @@ class Net_Feature(object):
         self.d_id_B = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_B')
 
         # construct the net module
-        # A->(Encoder)->c_A->(Decoder)->h_B->(Encoder)->c_h_B->(Decoder)->r_A
-        # B->(Encoder)->c_B->(Decoder)->h_A->(Encoder)->c_h_A->(Decoder)->r_B
+        # A->(Classify)->f_A
+        # B->(Classify)->f_B    
+        # A->(Encoder)->(c_A+f_B)->(Decoder)->h_B->(Encoder)->(c_h_B+f_A)->(Decoder)->r_A
+        #               (c_A+f_A)->(Decoder)->cyc_A
+        # B->(Encoder)->(c_B+f_A)->(Decoder)->h_A->(Encoder)->(c_h_A+f_B)->(Decoder)->r_B
+        #               (c_B+f_B)->(Decoder)->cyc_B
 
-        ## Encoder and Classifer
+        ## Encoder1 and Classifer
         self.n_c_A,   self.d_c_A     = self.encoder(self.d_real_A, is_train=True, reuse=False)
-        self.n_f_A,   self.d_f_A     = self.classify(self.d_real_A, is_train=True, reuse=False)
         self.n_c_B,   self.d_c_B     = self.encoder(self.d_real_B, is_train=True, reuse=True)
+
+        self.n_f_A,   self.d_f_A     = self.classify(self.d_real_A, is_train=True, reuse=False)
         self.n_f_B,   self.d_f_B     = self.classify(self.d_real_B, is_train=True, reuse=True)
 
-        ## c_A->(Decoder)->h_B
+        ## (Decoder1)
         self.n_h_B,   self.d_h_B     = self.decoder(self.d_f_B, self.d_c_A, is_train=True, reuse=False)
         self.n_h_A,   self.d_h_A     = self.decoder(self.d_f_A, self.d_c_B, is_train=True, reuse=True)
 
-        ## h_B->(Encoder)->c_h_B        
+
+        ## (Decoder1_1)
+        self.n_cyc_B, self.d_cyc_B   = self.decoder(self.d_f_B, self.d_c_B, is_train=True, reuse=True)
+        self.n_cyc_A, self.d_cyc_A   = self.decoder(self.d_f_A, self.d_c_A, is_train=True, reuse=True)
+
+        ## (Encoder2)
         self.n_c_h_B, self.d_c_h_B   = self.encoder(self.d_h_B, is_train=True, reuse=True)
         self.n_c_h_A, self.d_c_h_A   = self.encoder(self.d_h_A, is_train=True, reuse=True)
 
-        ## c_h_B->(Decoder)->r_A
+        ## (Decoder2)
         self.n_r_B,   self.d_r_B     = self.decoder(self.d_f_B, self.d_c_h_A, is_train=True, reuse=True)
         self.n_r_A,   self.d_r_A     = self.decoder(self.d_f_A, self.d_c_h_B, is_train=True, reuse=True)
 
@@ -105,7 +115,6 @@ class Net_Feature(object):
         self.n_dis_fake_B, self.d_dis_fake_B = self.discriminator(self.d_fake_B, self.d_f_B, \
                                                                   is_train=True, reuse=True)
        
-
         # Loss funciton
 
         ## loss for classification
@@ -116,16 +125,21 @@ class Net_Feature(object):
         self.loss_codeA2B = self.lossCode(self.d_c_A, self.d_c_h_B)
         self.loss_codeB2A = self.lossCode(self.d_c_B, self.d_c_h_A)
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_A, self.d_r_A) + \
-                                          self.lossCYC(self.d_real_B, self.d_r_B))
+                                          self.lossCYC(self.d_real_B, self.d_r_B)) + \
+                            args.in_cycle * (self.lossCYC(self.d_real_A, self.d_cyc_A) + \
+                                             self.lossCYC(self.d_real_B, self.d_cyc_B))
+            
+
         self.loss_gen_b = self.lossGAN(self.d_dis_h_B, 1)
         self.loss_gen_a = self.lossGAN(self.d_dis_h_A, 1)
         self.loss_a2b = self.loss_gen_b + self.loss_cycle + self.loss_codeA2B
         self.loss_b2a = self.loss_gen_a + self.loss_cycle + self.loss_codeB2A
 
         ## loss for discriminator
-        self.loss_da     = (self.lossGAN(self.d_dis_real_A, 1) + self.lossGAN(self.d_dis_fake_A, 0)) / 2.0
-        self.loss_db     = (self.lossGAN(self.d_dis_real_B, 1) + self.lossGAN(self.d_dis_fake_B, 0)) / 2.0
-
+        #self.loss_da     = (self.lossGAN(self.d_dis_real_A, 1) + self.lossGAN(self.d_dis_fake_A, 0)) / 2.0
+        #self.loss_db     = (self.lossGAN(self.d_dis_real_B, 1) + self.lossGAN(self.d_dis_fake_B, 0)) / 2.0
+        self.loss_da     = (self.lossGAN(self.d_dis_real_A, 1) + self.lossGAN(self.d_dis_h_A, 0)) / 2.0
+        self.loss_db     = (self.lossGAN(self.d_dis_real_B, 1) + self.lossGAN(self.d_dis_h_B, 0)) / 2.0
 
         # Make summary
         with tf.name_scope('generator-discriminator'):
@@ -143,18 +157,19 @@ class Net_Feature(object):
             self.summ_loss_codeB  = tf.summary.scalar('code_B',  self.loss_codeB2A)
             self.summ_a2b = tf.summary.scalar('a2b_loss', self.loss_a2b)
             self.summ_b2a = tf.summary.scalar('b2a_loss', self.loss_b2a)
+            self.summ_cyc = tf.summary.scalar('cyc_loss', self.loss_cycle)
 
         with tf.name_scope('realA'):
             true_image = tf.reshape(self.d_real_A, [-1, args.output_size, args.output_size, 3])
             self.summ_image_real = tf.summary.image('realA', true_image[0:4], 4)
 
-        with tf.name_scope('fakeA'):
-            fake_image = tf.reshape(self.d_h_A, [-1, args.output_size, args.output_size, 3])
-            self.summ_image_fake = tf.summary.image('fakeA', fake_image[0:4], 4)
-
         with tf.name_scope('realB'):
             true_image = tf.reshape(self.d_real_B, [-1, args.output_size, args.output_size, 3])
             self.summ_image_real = tf.summary.image('realB', true_image[0:4], 4)
+
+        with tf.name_scope('cyclA'):
+            fake_image = tf.reshape(self.d_cyc_A, [-1, args.output_size, args.output_size, 3])
+            self.summ_image_fake = tf.summary.image('cyclA', fake_image[0:4], 4)
 
         with tf.name_scope('fakeB'):
             fake_image = tf.reshape(self.d_h_B, [-1, args.output_size, args.output_size, 3])
@@ -282,19 +297,23 @@ class Net_Feature(object):
 
                 # Update G and D in A2B
                 err_classA, _ = self.sess.run([self.loss_classA, self.classA_optim], feed_dict=feed_dict)
-                err_a2b, _ = self.sess.run([self.loss_a2b, self.a2b_optim], feed_dict=feed_dict)
                 #err_codeA, _ = self.sess.run([self.loss_codeA, self.codeA_optim], feed_dict=feed_dict)
                 err_db,  _ = self.sess.run([self.loss_db,  self.db_optim],  feed_dict=feed_dict)
+                for gen_loop in range(3):
+                    err_a2b, err_gen_b, _ = self.sess.run([self.loss_a2b, self.loss_gen_b, self.a2b_optim], \
+                                                          feed_dict=feed_dict)
 
                 # Update G and D in B2A
                 err_classB, _ = self.sess.run([self.loss_classB, self.classB_optim], feed_dict=feed_dict)
-                err_b2a, _ = self.sess.run([self.loss_b2a, self.b2a_optim], feed_dict=feed_dict)
                 #err_codeB, _ = self.sess.run([self.loss_codeB, self.codeB_optim], feed_dict=feed_dict)
-                err_da,  _ = self.sess.run([self.loss_da,  self.da_optim],  feed_dict=feed_dict)                
+                err_da,  _ = self.sess.run([self.loss_da,  self.da_optim],  feed_dict=feed_dict)
+                for gen_loop in range(3):
+                    err_b2a, err_gen_a, _ = self.sess.run([self.loss_b2a, self.loss_gen_b, self.b2a_optim], \
+                                                          feed_dict=feed_dict)       
 
-                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, E_a2b: %4.4f, E_b2a: %4.4f, E_da: %4.4f, E_db: %4.4f"  % \
+                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, gen_a: %4.4f, gen_b: %4.4f, E_da: %4.4f, E_db: %4.4f"  % \
                       (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, \
-                       err_a2b, err_b2a, err_da, err_db))
+                       err_gen_a, err_gen_b, err_da, err_db))
                 sys.stdout.flush()
                 self.iter_counter += 1
 
