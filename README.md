@@ -58,3 +58,8 @@ Update model.py, to save difference matrix for latter use.
 
 ## 2017/07/12 19:02:12 CST
 Add gtav_cls for gtav scene classification
+
+## 2017/07/17 9:07:12 CST
+Add simpleCYC model, this work is based on the alpha-GAN and conditional GAN.
+We extract the weather condition invariant code from different style images, and use the latent code 
+to do the LCD job.
