@@ -2,6 +2,7 @@ from utils import AttributeDict
 import os
 import numpy as np
 from scipy.io import loadmat, savemat
+from scipy.misc import imsave
 import matplotlib.image as mpimg
 from PIL import Image 
 from copy import deepcopy
@@ -83,7 +84,7 @@ class SeqSLAM():
         
         # for every image ....
         for i in (params.dataset.imageIndices):
-            filename = '%s/%s%04d%s%s' % (params.dataset.imagePath, \
+            filename = '%s/%s%05d%s%s' % (params.dataset.imagePath, \
                 params.dataset.prefix, \
                 i, \
                 params.dataset.suffix, \
@@ -173,7 +174,8 @@ class SeqSLAM():
             print('Calculating image difference matrix ...')
     
             results.D=self.getDifferenceMatrix(results.dataset[0].preprocessing, results.dataset[1].preprocessing)
-            
+            imsave('D_matrix.jpg', results.D * 255)
+
             # save it
             if self.params.differenceMatrix.save:                   
                 savemat(filename, {'D':results.D})
@@ -211,7 +213,8 @@ class SeqSLAM():
             if self.params.contrastEnhanced.save:                        
                 DD = results.DD
                 savemat(filename, {'DD':DD})
-                
+         
+        imsave('DD_enhance.jpg', results.DD * 255)       
         return results
     
     def doFindMatches(self, results):

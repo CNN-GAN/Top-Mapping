@@ -7,6 +7,7 @@ import json
 from utils import *
 import numpy as np
 from matplotlib import pyplot as plt
+from parameters import *
 
 method = 'simpleCYC'
 test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
@@ -19,8 +20,9 @@ if not os.path.exists(result_dir):
 if not os.path.exists(matrix_dir):
     os.makedirs(matrix_dir)       
 
+args = Param()
 
-for epoch_id in range(20, 30):
+for epoch_id in range(10, 30):
 
     Testvector_path = os.path.join(result_dir, str(epoch_id)+'_SUNNY1_vt.npy')
     train_code = np.load(Testvector_path)
@@ -33,6 +35,22 @@ for epoch_id in range(20, 30):
         D = Euclidean(train_code, test_code)
         #D = enhanceContrast(D, 10)
         scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_matrix.jpg'), D * 255)
+
+        ## Save matching 
+        match = getMatches(D, 0, args)
+        m = match[:,0]
+        thresh = 0.95
+        matched = match[match[:,1]<thresh, 1]
+        score = np.mean(matched)
+        m[match[:,1] > thresh] = np.nan
+        plt.figure()
+        plt.xlabel('Test data')
+        plt.ylabel('Stored data')
+        plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+        plt.plot(m,'.') 
+        plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
+        plt.savefig(os.path.join(result_dir, str(epoch_id)+'_'+file_name+'_match.jpg'))
+                
 
         '''
     plt.figure()
