@@ -6,10 +6,12 @@ from scipy.misc import imsave
 import matplotlib.image as mpimg
 from PIL import Image 
 from copy import deepcopy
+from glob import glob
 
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+
 
 class SeqSLAM():
     params = None
@@ -72,24 +74,34 @@ class SeqSLAM():
     def preprocessing(params):
         print('Preprocessing dataset %s, indices %d - %d ...' % (params.dataset.name, params.dataset.imageIndices[0], params.dataset.imageIndices[-1]))
         # allocate memory for all the processed images
-        n = len(params.dataset.imageIndices)
+        data_files  = glob(os.path.join(params.dataset.imagePath, "*.jpg"))
+        data_files.sort()
+
+        #n = len(data_files)
+        n = 700
         m = params.downsample.size[0]*params.downsample.size[1] 
-        
+
         if len(params.dataset.crop) > 0:
             c = params.dataset.crop
             m = (c[2]-c[0]+1) * (c[3]-c[1]+1)
         
         images = np.zeros((m,n), 'uint8')
         j=0
-        
+
         # for every image ....
-        for i in (params.dataset.imageIndices):
+        for img_index, filename in enumerate(data_files):
+
+            if img_index >= n:
+                break
+
+            '''
             filename = '%s/%s%05d%s%s' % (params.dataset.imagePath, \
                 params.dataset.prefix, \
                 i, \
                 params.dataset.suffix, \
                 params.dataset.extension)
-            
+            '''
+
             img = Image.open(filename)
 
             # resize the image
@@ -186,6 +198,7 @@ class SeqSLAM():
         # TODO parallelize
         DD = np.zeros(D.shape)
     
+        print (D.shape)
         #parfor?
         for i in range(D.shape[0]):
             a=np.max((0, i-self.params.contrastEnhancement.R/2))
@@ -232,7 +245,7 @@ class SeqSLAM():
             # make sure ds is dividable by two
             self.params.matching.ds = self.params.matching.ds + np.mod(self.params.matching.ds,2)
         
-            matches = self.getMatches(results.DD)
+            matches = self.getMatches_new(results.DD)
                    
             # save it
             if self.params.matching.save:
@@ -241,6 +254,86 @@ class SeqSLAM():
             results.matches = matches
             
         return results
+
+    def getMatches_new(self, DD):
+        # Load parameters
+        v_ds = 40
+        vmax = 1.2
+        vmin = 0.8
+        Rwindow = 10
+        matches = np.nan*np.ones((DD.shape[1],2))    
+        # parfor?
+        for N in range(v_ds/2, DD.shape[1]-v_ds/2):
+            # find a single match
+            
+            # We shall search for matches using velocities between
+            # params.matching.vmin and params.matching.vmax.
+            # However, not every vskip may be neccessary to check. So we first find
+            # out, which v leads to different trajectories:
+            
+            move_min = vmin * v_ds
+            move_max = vmax * v_ds    
+            
+            move = np.arange(int(move_min), int(move_max)+1)
+            v = move.astype(float) / v_ds
+            
+            idx_add = np.tile(np.arange(0, v_ds+1), (len(v),1))
+            idx_add = np.floor(idx_add * np.tile(v, (idx_add.shape[1], 1)).T)
+            
+            # this is where our trajectory starts
+            n_start = N + 1 - v_ds/2    
+            x= np.tile(np.arange(n_start , n_start+v_ds+1), (len(v), 1))    
+            
+            #TODO idx_add and x now equivalent to MATLAB, dh 1 indexing
+            score = np.zeros(DD.shape[0])    
+            
+            # add a line of inf costs so that we penalize running out of data
+            DD=np.vstack((DD, np.infty*np.ones((1,DD.shape[1]))))
+            
+            y_max = DD.shape[0]        
+            xx = (x-1) * y_max
+            
+            flatDD = DD.flatten(1)
+            for s in range(1, DD.shape[0]):   
+                y = np.copy(idx_add+s)
+                y[y>y_max]=y_max     
+                idx = (xx + y).astype(int)
+                ds = np.sum(flatDD[idx-1],1)
+                score[s-1] = np.min(ds)
+            
+            
+            # find min score and 2nd smallest score outside of a window
+            # around the minimum 
+        
+            min_idx = np.argmin(score)
+            min_value=score[min_idx]
+            window = np.arange(np.max((0, min_idx-Rwindow/2)), np.min((len(score), min_idx+Rwindow/2)))
+            not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
+            min_value_2nd = np.min(score[not_window])
+            
+            #match = [min_idx + v_ds/2, min_value / min_value_2nd]
+            match = [min_idx + v_ds/2, 1. / min_value]
+            if match[1] > 1:
+                match = 1.0
+
+            matches[N,:] = match
+        
+
+    
+        m = matches[:,0]
+        thresh = 0.95
+        matched = matches[matches[:,1]<thresh, 1]
+        score = np.mean(matched)
+        m[matches[:,1] > thresh] = np.nan
+        plt.figure()
+        plt.xlabel('Test data')
+        plt.ylabel('Stored data')
+        plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+        plt.plot(m,'.') 
+        plt.title('PR-curve')
+        plt.savefig('match.jpg')
+
+        return matches
     
     def getMatches(self, DD):
         # TODO parallelize

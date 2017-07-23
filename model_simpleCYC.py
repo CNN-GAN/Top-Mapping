@@ -312,12 +312,13 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+        #test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+        test_dir = ['JOINT']
         result_dir = os.path.join(args.result_dir, args.method)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(1, 30):
+        for test_epoch in range(18, 23):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
@@ -330,7 +331,7 @@ class Net_simpleCYC(object):
                 ## Evaulate test data
                 test_files  = glob(os.path.join(args.data_dir, args.dataset, file_name, "*.jpg"))
                 test_files.sort()
-                test_files = test_files[:800]
+                #test_files = test_files[:800]
                 
                 ## Extract Test data code
                 start_time = time.time()

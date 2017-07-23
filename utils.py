@@ -265,6 +265,7 @@ def getMatches(DD, Ann, args):
         match = [min_idx + v_ds/2, 1. / min_value]
         if match[1] > 1:
             match = 1.0
+
         matches[N,:] = match
         
     return matches

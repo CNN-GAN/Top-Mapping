@@ -45,7 +45,7 @@ def demo():
     ds2.imageSkip = 1     # use every n-nth image
     ds2.imageIndices = range(20, 700, ds.imageSkip)    
 
-    test_name = 'SUNNY2'
+    test_name = 'RAIN2'
     ds2.imagePath = '../data/GTAV/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
@@ -80,6 +80,7 @@ def demo():
         plt.title('Matching '+ test_name)
         plt.savefig(test_name+'.jpg')
 
+
         match_PR = results.matches[int(params.matching.ds/2):int(results.matches.shape[0]-params.matching.ds/2), :]
         match_BS = np.array(range(match_PR.shape[0]))+int(int(params.matching.ds/2))
         match_EE = np.abs(match_PR[:,0] - match_BS)
@@ -88,6 +89,8 @@ def demo():
         match_PR[np.isnan(match_PR)]=0
         precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
         PR_data = zip(precision, recall)
+        
+
         result_dir = '../results/SeqGTAV'
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
@@ -105,6 +108,7 @@ def demo():
         plt.title('PR Curve for Epoch_'+test_name)
         fig_path = os.path.join(result_dir, test_name+'_PR.jpg')
         plt.savefig(fig_path)
+
     else:
         print "Zero matches"          
 

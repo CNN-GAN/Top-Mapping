@@ -10,7 +10,8 @@ from matplotlib import pyplot as plt
 from parameters import *
 
 method = 'simpleCYC'
-test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+#test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+test_dir = ["JOINT"]
 
 result_dir = os.path.join('results', method)
 matrix_dir = os.path.join(result_dir, 'MATRIX')
@@ -22,9 +23,9 @@ if not os.path.exists(matrix_dir):
 
 args = Param()
 
-for epoch_id in range(10, 30):
+for epoch_id in range(21, 23):
 
-    Testvector_path = os.path.join(result_dir, str(epoch_id)+'_SUNNY1_vt.npy')
+    Testvector_path = os.path.join(result_dir, str(epoch_id)+'_JOINT_vt.npy')
     train_code = np.load(Testvector_path)
 
     for file_id, file_name in enumerate(test_dir):
@@ -33,11 +34,16 @@ for epoch_id in range(10, 30):
         Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+file_name+'_vt.npy')
         test_code = np.load(Testvector_path)
         D = Euclidean(train_code, test_code)
-        #D = enhanceContrast(D, 10)
+        D_sub = D[100:300, 300:500]
+        print (D_sub.shape)
         scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_matrix.jpg'), D * 255)
+        DD = enhanceContrast(D, 30)
+        DD_sub = DD[100:300, 300:500]
+        scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_enhance.jpg'), DD * 255)
+
 
         ## Save matching 
-        match = getMatches(D, 0, args)
+        match = getMatches(DD, 0, args)
         m = match[:,0]
         thresh = 0.95
         matched = match[match[:,1]<thresh, 1]
@@ -50,7 +56,29 @@ for epoch_id in range(10, 30):
         plt.plot(m,'.') 
         plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
         plt.savefig(os.path.join(result_dir, str(epoch_id)+'_'+file_name+'_match.jpg'))
-                
+
+
+        ## Save sub matrix
+        plt.figure()
+        fig, ax = plt.subplots()
+        ax.imshow(D_sub, cmap=plt.cm.gray, interpolation='nearest')
+        #ax.set_title('Difference Matrix')
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_sub_matrix.jpg'))
+        
+        ## Save sub enhance
+        plt.figure()
+        fig, ax = plt.subplots()
+        ax.imshow(DD_sub, cmap=plt.cm.gray, interpolation='nearest')
+        #ax.set_title('Enhance Matrix')
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_sub_enhance.jpg'))
 
         '''
     plt.figure()
