@@ -76,9 +76,8 @@ class SeqSLAM():
         # allocate memory for all the processed images
         data_files  = glob(os.path.join(params.dataset.imagePath, "*.jpg"))
         data_files.sort()
-
-        #n = len(data_files)
-        n = 700
+        data_files = data_files[:800]
+        n = len(data_files)
         m = params.downsample.size[0]*params.downsample.size[1] 
 
         if len(params.dataset.crop) > 0:
@@ -317,21 +316,7 @@ class SeqSLAM():
                 match = 1.0
 
             matches[N,:] = match
-        
 
-    
-        m = matches[:,0]
-        thresh = 0.95
-        matched = matches[matches[:,1]<thresh, 1]
-        score = np.mean(matched)
-        m[matches[:,1] > thresh] = np.nan
-        plt.figure()
-        plt.xlabel('Test data')
-        plt.ylabel('Stored data')
-        plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-        plt.plot(m,'.') 
-        plt.title('PR-curve')
-        plt.savefig('match.jpg')
 
         return matches
     

@@ -331,7 +331,7 @@ class Net_simpleCYC(object):
                 ## Evaulate test data
                 test_files  = glob(os.path.join(args.data_dir, args.dataset, file_name, "*.jpg"))
                 test_files.sort()
-                #test_files = test_files[:800]
+                test_files = test_files[:800]
                 
                 ## Extract Test data code
                 start_time = time.time()

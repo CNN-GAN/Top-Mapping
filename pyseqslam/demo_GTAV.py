@@ -45,7 +45,7 @@ def demo():
     ds2.imageSkip = 1     # use every n-nth image
     ds2.imageIndices = range(20, 700, ds.imageSkip)    
 
-    test_name = 'RAIN2'
+    test_name = 'SUNNY2'
     ds2.imagePath = '../data/GTAV/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
@@ -81,8 +81,11 @@ def demo():
         plt.savefig(test_name+'.jpg')
 
 
+
         match_PR = results.matches[int(params.matching.ds/2):int(results.matches.shape[0]-params.matching.ds/2), :]
+
         match_BS = np.array(range(match_PR.shape[0]))+int(int(params.matching.ds/2))
+
         match_EE = np.abs(match_PR[:,0] - match_BS)
         match_PR[match_EE<=80, 0] = 1
         match_PR[match_EE> 80, 0] = 0
