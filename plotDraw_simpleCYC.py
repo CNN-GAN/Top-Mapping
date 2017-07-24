@@ -11,6 +11,7 @@ from sklearn.metrics import precision_recall_curve
 from parameters import *
 
 method = 'simpleCYC'
+route_dir = ["Route1", "Route2", "Route3"]
 test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2",  "SUNNY2"]
 #test_dir = ["JOINT"]
 

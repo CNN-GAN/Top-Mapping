@@ -312,8 +312,9 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        #test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
-        test_dir = ['JOINT']
+        route_dir = ["Route1", "Route2", "Route3"]
+        test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+        #test_dir = ['JOINT']
         result_dir = os.path.join(args.result_dir, args.method)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
@@ -325,32 +326,33 @@ class Net_simpleCYC(object):
             self.loadParam(args)
             print("[*] Load network done")
 
+            for route_index, route_name in enumerate(route_dir):
 
-            for dir_index, file_name in enumerate(test_dir):
+                for dir_index, file_name in enumerate(test_dir):
                 
-                ## Evaulate test data
-                test_files  = glob(os.path.join(args.data_dir, args.dataset, file_name, "*.jpg"))
-                test_files.sort()
-                test_files = test_files[:800]
-                
-                ## Extract Test data code
-                start_time = time.time()
-                test_code = np.zeros([len(test_files), 512]).astype(np.float32)
+                    ## Evaulate test data
+                    test_files  = glob(os.path.join(args.data_dir, args.dataset, route_name, file_name, "*.jpg"))
+                    test_files.sort()
+                    test_files = test_files[:400]
+                    
+                    ## Extract Test data code
+                    start_time = time.time()
+                    test_code = np.zeros([len(test_files), 512]).astype(np.float32)
 
-                for img_index, file_img in enumerate(test_files):
+                    for img_index, file_img in enumerate(test_files):
 
-                    sample = get_image(file_img, args.image_size, is_crop=args.is_crop, \
-                                       resize_w=args.output_size, is_grayscale=0)
-                    sample_image = np.array(sample).astype(np.float32)
-                    sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
-                    print ("Load data {}".format(file_img))
-                    feed_dict={self.d_real_A: sample_image}
-                    test_code[img_index]  = self.sess.run(self.d_c_A, feed_dict=feed_dict)
+                        sample = get_image(file_img, args.image_size, is_crop=args.is_crop, \
+                                           resize_w=args.output_size, is_grayscale=0)
+                        sample_image = np.array(sample).astype(np.float32)
+                        sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
+                        print ("Load data {}".format(file_img))
+                        feed_dict={self.d_real_A: sample_image}
+                        test_code[img_index]  = self.sess.run(self.d_c_A, feed_dict=feed_dict)
 
     
-                print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+file_name+'_vt.npy')
-                np.save(Testvector_path, test_code)
+                    print("Test code extraction time: %4.4f"  % (time.time() - start_time))
+                    Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
+                    np.save(Testvector_path, test_code)
 
 
 
