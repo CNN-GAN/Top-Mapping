@@ -145,7 +145,7 @@ class Net(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_files = glob(os.path.join("./data", args.dataset, "train/*.jpg"))
+        data_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
 
         # Main loop for Training
         self.iter_counter = 0
@@ -220,11 +220,12 @@ class Net(object):
 
     def test(self, args):
 
-        #test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
+        result_dir = os.path.join(args.result_dir, args.method)
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
 
-        #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
         test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
-        for test_epoch in range(6, 22):
+        for test_epoch in range(3, 22):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -243,6 +244,7 @@ class Net(object):
             for id in range(len(train_files)):
                 if id%args.frame_skip != 0:
                     continue
+
                 sample_file = train_files[id]
                 sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                    resize_w=args.output_size, is_grayscale=0)
@@ -252,23 +254,20 @@ class Net(object):
                 feed_dict={self.d_real_x: sample_image}
                 if count >= args.test_len:
                     break
+
                 train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                 count = count+1
 
             print("Train code extraction time: %4.4f"  % (time.time() - start_time))
 
-            result_dir = os.path.join(args.result_dir, args.method)
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
-
             GTvector_path = os.path.join(result_dir, str(test_epoch)+'_gt_vt.npy')
             np.save(GTvector_path, train_code)
 
 
-            for dir_id in range(len(test_dir)):
+            for dir_id, dir_name in enumerate(test_dir):
                 
                 ## Evaulate test data
-                test_files  = glob(os.path.join(args.data_dir, args.dataset,'00', test_dir[dir_id],"img/*.jpg"))
+                test_files  = glob(os.path.join(args.data_dir, args.dataset, '00', dir_name, "img/*.jpg"))
                 test_files.sort()
             
                 ## Extract Test data code
@@ -292,7 +291,7 @@ class Net(object):
                     count = count+1
                     
                 print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+str(dir_id)+'_vt.npy')
+                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(Testvector_path, test_code)
         
                 '''

@@ -65,18 +65,9 @@ class Net3D(object):
 
         self.n_fake_x, self.d_fake_x = self.decoder(self.d_real_z, is_train=True, reuse=False)
         self.n_fake_z, self.d_fake_z = self.encoder(self.d_real_x, is_train=True, reuse=False)
-        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
         self.n_cycl_x, self.d_cycl_x = self.decoder(self.d_fake_z, is_train=True, reuse=True)
+        self.n_cycl_z, self.d_cycl_z = self.encoder(self.d_fake_x, is_train=True, reuse=True)
 
-        '''
-        with tf.name_scope('real'):
-            true_pcd = tf.reshape(self.d_real_x, [-1, 64, 64, 3])
-            self.summ_image_real = tf.summary.image('real', true_image[0:4], 4)
-
-        with tf.name_scope('fake'):
-            fake_pcd = tf.reshape(self.d_cycl_x, [-1, 64, 64, 3])
-            self.summ_image_fake = tf.summary.image('fake', fake_image[0:4], 4)
-        '''
 
         self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
         self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)
@@ -88,15 +79,10 @@ class Net3D(object):
         # Apply Loss
         self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
         self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-        #self.loss_encoder = args.side_D * tf.reduce_mean(self.d_dic_fz)
-        #self.loss_decoder = args.side_D * tf.reduce_mean(self.d_dic_fx)
 
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
                                           self.lossCYC(self.d_real_z, self.d_cycl_z))
-        #self.loss_cycle   = args.cycle * (tf.reduce_mean(tf.abs(self.d_real_x - self.d_cycl_x)) + \
-        #                                  tf.reduce_mean(tf.abs(self.d_real_z - self.d_cycl_z)))
-        #self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        #self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+
         self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
         self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
 
@@ -104,9 +90,6 @@ class Net3D(object):
                                              self.lossGAN(self.d_dic_fx,0))
         self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
                                              self.lossGAN(self.d_dic_fz,0))
-        #self.loss_dicX    = args.side_D * tf.reduce_mean(self.d_dic_x - self.d_dic_fx)
-        #self.loss_dicZ    = args.side_D * tf.reduce_mean(self.d_dic_z - self.d_dic_fz)
-
 
         # Make summary
         with tf.name_scope('Joint'):
@@ -127,7 +110,8 @@ class Net3D(object):
         if self.model == 'ALI_CLC':
             self.summ_merge = tf.summary.merge_all()
         elif self.model == 'ALI':
-            self.summ_merge = tf.summary.merge([self.summ_dicJ, self.summ_dicfJ])  
+            self.summ_merge = tf.summary.merge([self.summ_dicJ, self.summ_dicfJ])
+
         # Extract variables
         self.var_encoder  = tl.layers.get_variables_with_name('ENCODER', True, True)
         self.var_decoder  = tl.layers.get_variables_with_name('DECODER', True, True)
@@ -227,7 +211,6 @@ class Net3D(object):
 
                     ## update inverse mapping
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-                    #errClc = 0
                     print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, J_loss: %.8f, fJ_loss: %.8f,  clc_loss: %.8f"  % \
                               (epoch, args.epoch, idx, batch_idxs, time.time() - start_time, errJ, errfJ, errClc))
 
@@ -259,14 +242,13 @@ class Net3D(object):
 
     def test(self, args):
 
-        #test_dir = ["test_T1_R0.1", "test_T5_R0.5", "test_T10_R1", "test_T10_R2", "test_T20_R2"]
-
-        #test_dir = ["test_T10_R2.5", "test_T15_R1.5", "test_T20_R2.5"]
-        #test_dir = ["test_T1_R0.5", "test_T1_R1", "test_T1_R1.5", "test_T1_R2"]
-        #test_dir = ['00_T1_R1', '00_T1_R1.5', '00_T1_R2']
+        result_model = self.model + '_3D'
+        result_dir = os.path.join(args.result_dir, result_model)
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
 
         test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
-        for test_id in range(1, 20):
+        for test_id in range(1, 7):
 
             # Initial layer's variables
             test_epoch = test_id * 50
@@ -275,7 +257,7 @@ class Net3D(object):
             print("[*] Load network done")
 
             ## Evaulate train data
-            train_files = glob(os.path.join("./data", "new_loam", '00', "pcd/*.pcd"))
+            train_files = glob(os.path.join(args.data_dir, args.dataset, '00', "pcd/*.pcd"))
             train_files.sort()
 
             ## Extract Train data code
@@ -300,16 +282,14 @@ class Net3D(object):
                 
             print("Train code extraction time: %4.4f"  % (time.time() - start_time))
 
-            result_dir = os.path.join(args.result_dir, args.method)
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
+
             GTvector_path = os.path.join(result_dir, str(test_epoch)+'_gt_vt.npy')
             np.save(GTvector_path, train_code)
 
-            for dir_id in range(len(test_dir)):
+            for dir_id, dir_name in enumerate(test_dir):
                 
                 ## Evaulate test data
-                test_files  = glob(os.path.join(args.data_dir, args.dataset,'00', test_dir[dir_id],"pcd/*.pcd"))
+                test_files  = glob(os.path.join(args.data_dir, args.dataset,'00', dir_name, "pcd/*.pcd"))
                 test_files.sort()
                 
                 ## Extract Test data code
@@ -317,6 +297,9 @@ class Net3D(object):
                 test_code = np.zeros([args.test_len, 512]).astype(np.float32)
                 count = 0
                 for id in range(test_code.shape[0]):
+                    if id%args.frame_skip != 0:
+                        continue
+
                     sample_file = test_files[id]
                     sample = get_pcd(sample_file, args)
                     sample_image = np.array(sample).astype(np.float32)
@@ -330,86 +313,13 @@ class Net3D(object):
                     count = count+1
                     
                 print("test code extraction time: %4.4f"  % (time.time() - start_time))
-                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+str(dir_id)+'_vt.npy')
+                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(Testvector_path, test_code)
 
-                
-                '''
-                ## ANN search
-                start_time = time.time()
-                Ann, dists = getANN(train_code, test_code, args.Knn)
-                print("ANN search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Measure vector corrcoeffience
-                start_time = time.time()
-                D          = self.vec_D(train_code, test_code)
-                #D          = enhanceContrast(D, args.enhance)
-                print("Distance Matrix time: %4.4f"  % (time.time() - start_time))
-                
-                ## Estimate matches
-                start_time = time.time()
-                match      = self.getMatch(D, Ann, args)
-                print("Match search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Save Matrix image
-                if args.is_3D:
-                    save_path = args.method+'_3D'
-                else:
-                    save_path = args.method
-                result_dir = os.path.join(args.result_dir, save_path)
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
-                if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
-                    os.makedirs(os.path.join(result_dir, 'MATRIX'))
-                scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
-
-                ## Save matching 
-                m = match[:,0]
-                thresh = 0.95
-                matched = match[match[:,1]<thresh, 1]
-                score = np.mean(matched)
-                m[match[:,1] > thresh] = np.nan
-                plt.figure()
-                plt.xlabel('Test data')
-                plt.ylabel('Stored data')
-                plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-                plt.plot(m,'.') 
-                plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_match.jpg'))
-
-                ## Caculate Precision and Recall Curve
-                np.set_printoptions(threshold='nan')
-                match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
-                match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
-                match_EE = np.abs(match_PR[:,0] - match_BS)
-                match_PR[match_EE<=args.match_thres, 0] = 1
-                match_PR[match_EE> args.match_thres, 0] = 0
-                match_PR[np.isnan(match_PR)]=0
-                precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
-                PR_data = zip(precision, recall)
-                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.json')
-                with open(PR_path, 'w') as data_out:
-                    json.dump(PR_data, data_out)
-                    
-                plt.figure()
-                plt.xlim(0.0, 1.0)
-                plt.ylim(0.0, 1.0)
-                plt.xlabel('Recall')
-                plt.ylabel('Precision')
-                plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-                plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_PR.jpg'))
-                '''
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
-        summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
-
-        # update summary
+        summary = self.sess.run([self.summ_merge], feed_dict=feed_dict)
         self.writer.add_summary(summary, self.iter_counter)
-        # save image
-        #img = (np.array(img) + 1) / 2 * 255
-        #save_images(img, [8, 8],'./{}/train_{:02d}_{:04d}.png'.format(sample_dir, epoch, idx))
 
     def loadParam(self, args):
         # load the latest checkpoints

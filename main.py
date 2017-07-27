@@ -6,12 +6,23 @@ from src.model.model import Net
 from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
+from src.plot.plotDraw_joint import Plot_Joint
+#from src.plot.plotDraw_GTAV import Plot_GTAV
+
 
 # Obtain parameters
 args = Param()
 
 def main(_):
     
+    if args.plot == True:
+        if args.is_3D == True:
+            args.method = args.method+'_3D'
+
+        print ("ploting the figures...")
+        Plot_Joint(args)
+        return
+
     # check the existence of directories
     if not os.path.exists(args.checkpoint_dir):
         os.makedirs(args.checkpoint_dir)
@@ -44,10 +55,6 @@ def main(_):
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
     config = tf.ConfigProto(gpu_options=gpu_options)
     config.gpu_options.allow_growth=True
-
-    #GPUID = 0
-    #gpuNow = '/gpu:'+str(GPUID)
-    #with tf.device(gpuNow):
 
     with tf.Session(config=config) as sess:
         model = Net_model(sess, args)
