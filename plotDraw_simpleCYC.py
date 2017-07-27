@@ -11,8 +11,8 @@ from sklearn.metrics import precision_recall_curve
 from parameters import *
 
 method = 'simpleCYC'
-route_dir = ["Route1", "Route2", "Route3"]
-test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2",  "SUNNY2"]
+route_dir = ["Route1", "Route2", "Route3", "Route4"]
+test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
 #test_dir = ["JOINT"]
 
 result_dir = os.path.join('results', method)
@@ -34,86 +34,89 @@ if not os.path.exists(match_dir):
 
 args = Param()
 
-for epoch_id in range(10, 21):
+Base_cmp = "SUNNY1"
 
-    Testvector_path = os.path.join(result_dir, str(epoch_id)+'_SUNNY1_vt.npy')
-    train_code = np.load(Testvector_path)
+for epoch_id in range(18, 23):
 
-    for file_id, file_name in enumerate(test_dir):
+    for route_id, route_name in enumerate(route_dir):
+        Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+route_name+'_'+Base_cmp+'_vt.npy')
+        train_code = np.load(Testvector_path)
 
-        print('Load data epoch:{}, file:{}'.format(epoch_id, file_name)) 
-        Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+file_name+'_vt.npy')
-        test_code = np.load(Testvector_path)
-        D = Euclidean(train_code, test_code)
-        D_sub = D[100:300, 300:500]
-        print (D.shape)
-        scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_matrix.jpg'), D * 255)
-        DD = enhanceContrast(D, 30)
-        DD_sub = DD[100:300, 300:500]
-        scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_enhance.jpg'), DD * 255)
+        for file_id, file_name in enumerate(test_dir):
 
+            print('Load data epoch:{}, file:{}'.format(epoch_id, file_name)) 
+            Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_vt.npy')
+            test_code = np.load(Testvector_path)
+            D = Euclidean(train_code, test_code)
+            D_sub = D[100:300, 300:500]
+            print (D.shape)
+            scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_'+Base_cmp+'_matrix.jpg'), D * 255)
+            DD = enhanceContrast(D, 30)
+            DD_sub = DD[100:300, 300:500]
+            scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_'+Base_cmp+'_enhance.jpg'), DD * 255)
 
-        ## Save matching 
-        match = getMatches(DD, 0, args)
-        m = match[:,0]
-        thresh = 0.95
-        matched = match[match[:,1]<thresh, 1]
-        score = np.mean(matched)
-        m[match[:,1] > thresh] = np.nan
-        plt.figure()
-        plt.xlabel('Test data')
-        plt.ylabel('Stored data')
-        plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-        plt.plot(m,'.') 
-        plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
-        plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+file_name+'_match.jpg'))
-
-        ## Save sub matrix
-        plt.figure()
-        fig, ax = plt.subplots()
-        ax.imshow(D_sub, cmap=plt.cm.gray, interpolation='nearest')
-        #ax.set_title('Difference Matrix')
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
-        plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_sub_matrix.jpg'))
-        
-        ## Save sub enhance
-        plt.figure()
-        fig, ax = plt.subplots()
-        ax.imshow(DD_sub, cmap=plt.cm.gray, interpolation='nearest')
-        #ax.set_title('Enhance Matrix')
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
-        plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_SUNNY1_sub_enhance.jpg'))
-
-
-        ## Caculate Precision and Recall Curve
-        np.set_printoptions(threshold='nan')
-        match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
-        match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
-        match_EE = np.abs(match_PR[:,0] - match_BS)
-        match_PR[match_EE<=args.match_thres, 0] = 1
-        match_PR[match_EE> args.match_thres, 0] = 0
-        match_PR[np.isnan(match_PR)]=0
-        precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
-        PR_data = zip(precision, recall) 
-        PR_path = os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.json')
-        with open(PR_path, 'w') as data_out:
-            json.dump(PR_data, data_out)
+            
+            ## Save matching 
+            match = getMatches(DD, 0, args)
+            m = match[:,0]
+            thresh = 0.95
+            matched = match[match[:,1]<thresh, 1]
+            score = np.mean(matched)
+            m[match[:,1] > thresh] = np.nan
+            plt.figure()
+            plt.xlabel('Test data')
+            plt.ylabel('Stored data')
+            plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
+            plt.plot(m,'.') 
+            plt.title('Epoch_'+str(epoch_id)+'_'+route_name+'_'+file_name)
+            plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_match.jpg'))
+            
+            '''
+            ## Save sub matrix
+            plt.figure()
+            fig, ax = plt.subplots()
+            ax.imshow(D_sub, cmap=plt.cm.gray, interpolation='nearest')
+            #ax.set_title('Difference Matrix')
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_FOGGY1_sub_matrix.jpg'))
+            
+            ## Save sub enhance
+            plt.figure()
+            fig, ax = plt.subplots()
+            ax.imshow(DD_sub, cmap=plt.cm.gray, interpolation='nearest')
+            #ax.set_title('Enhance Matrix')
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_FOGGY1_sub_enhance.jpg'))
+            '''
+            
+            ## Caculate Precision and Recall Curve
+            np.set_printoptions(threshold='nan')
+            match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
+            match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
+            match_EE = np.abs(match_PR[:,0] - match_BS)
+            match_PR[match_EE<=args.match_thres, 0] = 1
+            match_PR[match_EE> args.match_thres, 0] = 0
+            match_PR[np.isnan(match_PR)]=0
+            precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
+            PR_data = zip(precision, recall) 
+            PR_path = os.path.join(pr_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_PR.json')
+            with open(PR_path, 'w') as data_out:
+                json.dump(PR_data, data_out)
     
-        plt.figure()
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
-        plt.xlabel('Recall')
-        plt.ylabel('Precision')
-        plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-        plt.title('PR Curve for Epoch_'+str(epoch_id)+'_'+file_name)
-        plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.jpg'))
-
+            plt.figure()
+            plt.xlim(0.0, 1.0)
+            plt.ylim(0.0, 1.0)
+            plt.xlabel('Recall')
+            plt.ylabel('Precision')
+            plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
+            plt.title('PR Curve for Epoch_'+str(epoch_id)+'_'+route_name+'_'+file_name)
+            plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_PR.jpg'))
 
 
 

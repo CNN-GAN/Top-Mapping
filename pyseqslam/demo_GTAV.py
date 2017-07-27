@@ -21,7 +21,7 @@ def demo():
     # Nordland spring dataset
     ds = AttributeDict()
     ds.name = 'train'
-    ds.imagePath = '../data/GTAV/SUNNY1'
+    ds.imagePath = '../data/GTAV/Route3/SUNNY1'
     
     ds.prefix=''
     ds.extension='.jpg'
@@ -45,8 +45,8 @@ def demo():
     ds2.imageSkip = 1     # use every n-nth image
     ds2.imageIndices = range(20, 700, ds.imageSkip)    
 
-    test_name = 'SUNNY2'
-    ds2.imagePath = '../data/GTAV/'+test_name
+    test_name = 'FOGGY1'
+    ds2.imagePath = '../data/GTAV/Route3/'+test_name
     ds2.saveFile = '%s-%d-%d-%d' % (ds2.name, ds2.imageIndices[0], ds2.imageSkip, ds2.imageIndices[-1])
     # ds.crop=[5 1 64 32]
     ds2.crop=[]

@@ -312,14 +312,14 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2", "Route3"]
+        route_dir = ["Route1", "Route2", "Route3", "Route4"]
         test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
         #test_dir = ['JOINT']
         result_dir = os.path.join(args.result_dir, args.method)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(18, 23):
+        for test_epoch in range(15, 24):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
