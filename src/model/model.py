@@ -18,8 +18,8 @@ from glob import glob
 from sklearn.metrics import precision_recall_curve
 from matplotlib import pyplot as plt
 from tensorlayer.layers import *
-from module import *
-from utils import *
+from src.module.module import *
+from src.util.utils import *
 
 class Net(object):
     def __init__(self, sess, args):

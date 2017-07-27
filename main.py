@@ -2,10 +2,10 @@ import os
 import sys
 import tensorflow as tf
 from parameters import *
-from model import Net
-from model3D import Net3D
-from model_feature import Net_Feature
-from model_simpleCYC import Net_simpleCYC
+from src.model.model import Net
+from src.model.model3D import Net3D
+from src.model.model_feature import Net_Feature
+from src.model.model_simpleCYC import Net_simpleCYC
 
 # Obtain parameters
 args = Param()
@@ -19,8 +19,8 @@ def main(_):
         os.makedirs(args.sample_dir)
     if not os.path.exists(args.result_dir):
         os.makedirs(args.result_dir)
-    if not os.path.exists(args.log_dir):
-        os.makedirs(args.log_dir)
+    if not os.path.exists(args.tb_dir):
+        os.makedirs(args.tb_dir)
 
 
     if args.is_3D == True:
@@ -55,3 +55,4 @@ def main(_):
 
 if __name__ == '__main__':
     tf.app.run()
+

@@ -23,9 +23,9 @@ def Param():
     
     ## Dir
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
-    flags.DEFINE_string("sample_dir",     "samples",    "Directory name to save the image samples [samples]")
-    flags.DEFINE_string("result_dir",     "results",    "Directory name to save SeqSLAM results [results]")
-    flags.DEFINE_string("log_dir",        "logs",       "Directory name to save logs [logs]")
+    flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
+    flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
+    flags.DEFINE_string("tb_dir",         "logs/tb_logs",       "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training

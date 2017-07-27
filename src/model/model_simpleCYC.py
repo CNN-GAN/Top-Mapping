@@ -18,8 +18,8 @@ from glob import glob
 from sklearn.metrics import precision_recall_curve
 from matplotlib import pyplot as plt
 from tensorlayer.layers import *
-from module_simpleCYC import *
-from utils import *
+from src.module.module_simpleCYC import *
+from src.util.utils import *
 
 class Net_simpleCYC(object):
     def __init__(self, sess, args):
@@ -345,13 +345,14 @@ class Net_simpleCYC(object):
                                            resize_w=args.output_size, is_grayscale=0)
                         sample_image = np.array(sample).astype(np.float32)
                         sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
-                        print ("Load data {}".format(file_img))
+                        #print ("Load data {}".format(file_img))
                         feed_dict={self.d_real_A: sample_image}
                         test_code[img_index]  = self.sess.run(self.d_c_A, feed_dict=feed_dict)
 
     
                     print("Test code extraction time: %4.4f"  % (time.time() - start_time))
                     Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
+                    print ("save path {}".format(Testvector_path))
                     np.save(Testvector_path, test_code)
 
 

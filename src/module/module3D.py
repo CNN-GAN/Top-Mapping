@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorlayer as tl
 from tensorlayer.layers import *
-from utils import *
+from src.util.utils import *
 
 flags = tf.app.flags
 args = flags.FLAGS
