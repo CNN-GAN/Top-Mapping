@@ -224,7 +224,8 @@ class Net(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
+        #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
+        test_dir = ["T5_R0.5", "T5_R1.5", "T5_R2", "T10_R0.5", "T10_R1.5", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2"]
         for test_epoch in range(3, 22):
 
             # Initial layer's variables
@@ -232,53 +233,22 @@ class Net(object):
             self.loadParam(args)
             print("[*] Load network done")
 
-            ## Evaulate train data
-            #train_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
-            train_files = glob(os.path.join(args.data_dir, args.dataset, "00/img/*.jpg"))
-            train_files.sort()
-
-            ## Extract Train data code
-            start_time = time.time()
-            train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
-            count = 0
-            for id in range(len(train_files)):
-                if id%args.frame_skip != 0:
-                    continue
-
-                sample_file = train_files[id]
-                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                   resize_w=args.output_size, is_grayscale=0)
-                sample_image = np.array(sample).astype(np.float32)
-                sample_image = sample_image.reshape([1,64,64,3])
-                print ("Load data {}".format(sample_file))
-                feed_dict={self.d_real_x: sample_image}
-                if count >= args.test_len:
-                    break
-
-                train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-                count = count+1
-
-            print("Train code extraction time: %4.4f"  % (time.time() - start_time))
-
-            GTvector_path = os.path.join(result_dir, str(test_epoch)+'_gt_vt.npy')
-            np.save(GTvector_path, train_code)
-
-
             for dir_id, dir_name in enumerate(test_dir):
+
+                ## Evaulate train data
+                train_files = glob(os.path.join(args.data_dir, args.dataset, "00", dir_name, "img/*.jpg"))
+                train_files.sort()
                 
-                ## Evaulate test data
-                test_files  = glob(os.path.join(args.data_dir, args.dataset, '00', dir_name, "img/*.jpg"))
-                test_files.sort()
-            
-                ## Extract Test data code
+                ## Extract Train data code
                 start_time = time.time()
-                test_code = np.zeros([args.test_len, 512]).astype(np.float32)
+                train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
                 count = 0
-                for id in range(len(test_files)):
+
+                for id in range(len(train_files)):
                     if id%args.frame_skip != 0:
                         continue
 
-                    sample_file = test_files[id]
+                    sample_file = train_files[id]
                     sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                        resize_w=args.output_size, is_grayscale=0)
                     sample_image = np.array(sample).astype(np.float32)
@@ -287,77 +257,16 @@ class Net(object):
                     feed_dict={self.d_real_x: sample_image}
                     if count >= args.test_len:
                         break
-                    test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+
+                    train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                     count = count+1
-                    
-                print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-                Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
-                np.save(Testvector_path, test_code)
+
+                print("Train code extraction time: %4.4f"  % (time.time() - start_time))
+
+                GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
+                np.save(GTvector_path, train_code)
+
         
-                '''
-                ## ANN search
-                start_time = time.time()
-                Ann, dists = getANN(train_code, test_code, args.Knn)
-                print("ANN search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Measure vector corrcoeffience
-                start_time = time.time()
-                D          = self.vec_D(train_code, test_code)
-                print("Distance Matrix time: %4.4f"  % (time.time() - start_time))
-                
-                ## Estimate matches
-                start_time = time.time()
-                match      = self.getMatch(D, Ann, args)
-                print("Match search time: %4.4f"  % (time.time() - start_time))
-                
-                ## Save Matrix image
-                result_dir = os.path.join(args.result_dir, args.method)
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
-                if not os.path.exists(os.path.join(result_dir, 'MATRIX')):
-                    os.makedirs(os.path.join(result_dir, 'MATRIX'))
-                scipy.misc.imsave(os.path.join(result_dir, 'MATRIX', \
-                                               test_dir[dir_id]+'_'+str(test_epoch)+'_matrix.jpg'), D * 255)
-
-                ## Save matching 
-                m = match[:,0]
-                thresh = 0.95
-                matched = match[match[:,1]<thresh, 1]
-                score = np.mean(matched)
-                m[match[:,1] > thresh] = np.nan
-                plt.figure()
-                plt.xlabel('Test data')
-                plt.ylabel('Stored data')
-                plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
-                plt.plot(m,'.') 
-                plt.title('Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_match.jpg'))
-
-
-                ## Caculate Precision and Recall Curve
-                np.set_printoptions(threshold='nan')
-                match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
-                match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
-                match_EE = np.abs(match_PR[:,0] - match_BS)
-                match_PR[match_EE<=args.match_thres, 0] = 1
-                match_PR[match_EE> args.match_thres, 0] = 0
-                match_PR[np.isnan(match_PR)]=0
-                precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
-                PR_data = zip(precision, recall)
-                PR_path = os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.json')
-                with open(PR_path, 'w') as data_out:
-                    json.dump(PR_data, data_out)
-                
-                plt.figure()
-                plt.xlim(0.0, 1.0)
-                plt.ylim(0.0, 1.0)
-                plt.xlabel('Recall')
-                plt.ylabel('Precision')
-                plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-                plt.title('PR Curve for Epoch_'+str(test_epoch)+'_'+test_dir[dir_id])
-                plt.savefig(os.path.join(result_dir, test_dir[dir_id]+'_'+str(test_epoch)+'_'+args.Search+'_PR.jpg'))
-                '''
-
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
 

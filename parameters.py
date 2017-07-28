@@ -61,14 +61,15 @@ def Param():
     flags.DEFINE_integer("test_len",      300,         "test data length")
     flags.DEFINE_string("test_dir",    "test_T10_R2",   "Directory name to extract image datas")
     flags.DEFINE_string("match_method",  "ANN",         "ANN or Force")
-    flags.DEFINE_integer("match_thres",   10,           "match threshold for PR curve")
+    flags.DEFINE_integer("match_thres",      10,           "match threshold for PR curve")
+    flags.DEFINE_integer("match_distance",   20,           "match threshold for distance")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         True,        "True for train the 3D module")
-    flags.DEFINE_boolean("is_train",      False,         "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
+    flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
-    flags.DEFINE_boolean("plot",          True,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",          True,        "True for ploting figures")
 
     return flags.FLAGS

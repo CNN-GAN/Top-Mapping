@@ -12,14 +12,16 @@ from parameters import *
 
 def Plot_Joint(args):
 
-    test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
-    
+    test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R0.5", "T5_R1", "T5_R1.5", "T5_R2", "T10_R0.5", "T10_R1", "T10_R1.5", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2"]
+    #test_dir = ["T5_R2"]    
+
     result_img = os.path.join(args.result_dir, 'ALI')
     result_pcd = os.path.join(args.result_dir, 'ALI_3D')
     result_dir = os.path.join(args.result_dir, 'Joint')
-    matrix_dir = os.path.join(result_dir, 'MATRIX')
-    pr_dir     = os.path.join(result_dir, 'PR')
-    match_dir  = os.path.join(result_dir, 'MATCH')
+    matrix_dir = os.path.join(result_dir,      'MATRIX')
+    pr_dir     = os.path.join(result_dir,      'PR')
+    match_dir  = os.path.join(result_dir,      'MATCH')
+    pose_dir   = os.path.join(args.data_dir,   'new_loam', '00')
     
     pcd_epoch = "250"
     img_epoch = "12"    
@@ -42,14 +44,22 @@ def Plot_Joint(args):
     train_pcd = np.load(Trainvector_pcd)
     train_code = np.concatenate((train_img, train_pcd), axis=1)
 
+    Trainvector_pose = os.path.join(pose_dir, 'gt', 'pose.txt')
+    train_pose = np.loadtxt(Trainvector_pose)
+    train_pose = train_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
+
     for file_id, file_name in enumerate(test_dir):
         print('Load data file:{}'.format(file_name)) 
         Testvector_img = os.path.join(result_img, img_epoch+'_'+file_name+'_vt.npy')
         Testvector_pcd = os.path.join(result_pcd, pcd_epoch+'_'+file_name+'_vt.npy')
         test_img = np.load(Testvector_img)
         test_pcd = np.load(Testvector_pcd)
-        test_code = np.concatenate((test_img, test_pcd), axis=1)        
-        
+        test_code = np.concatenate((test_img, test_pcd), axis=1)     
+
+        Testvector_pose = os.path.join(pose_dir, file_name, 'pose.txt')
+        test_pose = np.loadtxt(Testvector_pose)
+        test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]        
+
         D = Euclidean(train_code, test_code)
         DD = enhanceContrast(D, 30)
             
@@ -72,13 +82,21 @@ def Plot_Joint(args):
         plt.title('Epoch_'+img_epoch+'_'+pcd_epoch+'_'+file_name)
         plt.savefig(os.path.join(match_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_match.jpg'))
         
+
         ## Caculate Precision and Recall Curve
         np.set_printoptions(threshold='nan')
         match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
-        match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
-        match_EE = np.abs(match_PR[:,0] - match_BS)
-        match_PR[match_EE<=args.match_thres, 0] = 1
-        match_PR[match_EE> args.match_thres, 0] = 0
+        for match_id in range(len(match_PR)):
+            train_id = int(match_PR[match_id, 0])
+            test_id  = match_id+int(int(args.v_ds/2))
+            distance = np.linalg.norm(train_pose[train_id]-test_pose[test_id])
+
+            if distance <= args.match_distance:
+                match_PR[match_id,0] = 1
+            else:
+                match_PR[match_id,0] = 0
+
+        #print (match_PR)
         match_PR[np.isnan(match_PR)]=0
         precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
         PR_data = zip(precision, recall) 
