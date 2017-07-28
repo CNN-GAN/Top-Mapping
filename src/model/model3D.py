@@ -247,7 +247,7 @@ class Net3D(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        test_dir = ["T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
+        test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
         for test_id in range(1, 7):
 
             # Initial layer's variables
@@ -256,36 +256,43 @@ class Net3D(object):
             self.loadParam(args)
             print("[*] Load network done")
 
-            ## Evaulate train data
-            train_files = glob(os.path.join(args.data_dir, args.dataset, '00', "pcd/*.pcd"))
-            train_files.sort()
 
-            ## Extract Train data code
-            start_time = time.time()
-            train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
-            count = 0
-            for id in range(len(train_files)):
-                if id%args.frame_skip != 0:
-                    continue
+            for dir_id, dir_name in enumerate(test_dir):
 
-                sample_file = train_files[id]
-                sample = get_pcd(sample_file, args)
-                sample_image = np.array(sample).astype(np.float32)
-                sample_image = sample_image.reshape([1, args.voxel_size, args.voxel_size, \
-                                                     int(args.voxel_size/8), 1])
-                print ("Load data {}".format(sample_file))
-                feed_dict={self.d_real_x: sample_image}
-                if count >= args.test_len:
-                    break
-                train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-                count = count+1
+                ## Evaulate train data
+                train_files = glob(os.path.join(args.data_dir, args.dataset, '00', dir_name, "pcd/*.pcd"))
+                train_files.sort()
+
+                ## Extract Train data code
+                start_time = time.time()
+                train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
+
+                count = 0
+                for id in range(len(train_files)):
+                    if id%args.frame_skip != 0:
+                        continue
+
+                    sample_file = train_files[id]
+                    sample = get_pcd(sample_file, args)
+                    sample_image = np.array(sample).astype(np.float32)
+                    sample_image = sample_image.reshape([1, args.voxel_size, args.voxel_size, \
+                                                         int(args.voxel_size/8), 1])
+                    print ("Load data {}".format(sample_file))
+                    feed_dict={self.d_real_x: sample_image}
+                    if count >= args.test_len:
+                        break
+
+                    train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    count = count+1
                 
-            print("Train code extraction time: %4.4f"  % (time.time() - start_time))
+                print("Train code extraction time: %4.4f"  % (time.time() - start_time))
 
 
-            GTvector_path = os.path.join(result_dir, str(test_epoch)+'_gt_vt.npy')
-            np.save(GTvector_path, train_code)
+                GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
+                np.save(GTvector_path, train_code)
 
+
+            '''
             for dir_id, dir_name in enumerate(test_dir):
                 
                 ## Evaulate test data
@@ -315,7 +322,7 @@ class Net3D(object):
                 print("test code extraction time: %4.4f"  % (time.time() - start_time))
                 Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(Testvector_path, test_code)
-
+            '''
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary = self.sess.run([self.summ_merge], feed_dict=feed_dict)
