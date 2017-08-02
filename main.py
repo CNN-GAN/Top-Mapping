@@ -7,20 +7,30 @@ from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
 from src.plot.plotDraw_joint import Plot_Joint
-#from src.plot.plotDraw_GTAV import Plot_GTAV
-
+from src.plot.plotDraw_3d import Plot_3D
+from src.plot.plotDraw_2d import Plot_2D
+from src.third_function.pyseqslam.demo import Seq
 
 # Obtain parameters
 args = Param()
 
 def main(_):
-    
-    if args.plot == True:
-        if args.is_3D == True:
-            args.method = args.method+'_3D'
 
+    if args.SeqSLAM == True:
+        Seq(args)
+        return
+    
+
+    if args.plot == True:
         print ("ploting the figures...")
-        Plot_Joint(args)
+        
+        if args.plot_3D == True:
+            Plot_3D(args)
+        if args.plot_2D == True:
+            Plot_2D(args)
+        if args.plot_joint == True:
+            Plot_Joint(args)
+
         return
 
     # check the existence of directories

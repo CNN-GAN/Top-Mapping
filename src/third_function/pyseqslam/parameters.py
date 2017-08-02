@@ -8,7 +8,7 @@ def defaultParameters():
     # switches
     params.DO_PREPROCESSING = 1
     params.DO_RESIZE        = 1
-    params.DO_GRAYLEVEL     = 1
+    params.DO_GRAYLEVEL     = 0
     params.DO_PATCHNORMALIZATION    = 1 #!!!! 1
     params.DO_SAVE_PREPROCESSED_IMG = 0
     params.DO_DIFF_MATRIX   = 1
@@ -18,7 +18,7 @@ def defaultParameters():
 
     # parameters for preprocessing
     params.downsample = AttributeDict()
-    params.downsample.size = [32, 64]  # height, width
+    params.downsample.size = [64, 64]  # height, width
     try:
         params.downsample.method = Image.LANCZOS
     except:

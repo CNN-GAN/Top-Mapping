@@ -80,8 +80,6 @@ def demo():
         plt.title('Matching '+ test_name)
         plt.savefig(test_name+'.jpg')
 
-
-
         match_PR = results.matches[int(params.matching.ds/2):int(results.matches.shape[0]-params.matching.ds/2), :]
 
         match_BS = np.array(range(match_PR.shape[0]))+int(int(params.matching.ds/2))

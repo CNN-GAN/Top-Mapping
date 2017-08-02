@@ -7,13 +7,12 @@ import json
 from src.util.utils import *
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 
 def Plot_Joint(args):
 
-    test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R0.5", "T5_R1", "T5_R1.5", "T5_R2", "T10_R0.5", "T10_R1", "T10_R1.5", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2"]
-    #test_dir = ["T5_R2"]    
+    test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
 
     result_img = os.path.join(args.result_dir, 'ALI')
     result_pcd = os.path.join(args.result_dir, 'ALI_3D')
@@ -62,7 +61,8 @@ def Plot_Joint(args):
 
         D = Euclidean(train_code, test_code)
         DD = enhanceContrast(D, 30)
-            
+        DD_sub = DD[150:200, 150:200]    
+
         print (D.shape)
         scipy.misc.imsave(os.path.join(matrix_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_matrix.jpg'), D * 255)
         scipy.misc.imsave(os.path.join(matrix_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_enhance.jpg'), DD * 255)
@@ -104,11 +104,31 @@ def Plot_Joint(args):
         with open(PR_path, 'w') as data_out:
             json.dump(PR_data, data_out)
             
+        fpr, tpr, _ = roc_curve(match_PR[:, 0], match_PR[:, 1])
+        roc_auc     = auc(fpr, tpr)
+        
+        ROC_data = zip(fpr, tpr) 
+        ROC_path = os.path.join(pr_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_ROC.json')
+        with open(ROC_path, 'w') as data_out:
+            json.dump(ROC_data, data_out)
+
         plt.figure()
         plt.xlim(0.0, 1.0)
         plt.ylim(0.0, 1.0)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-        plt.title('PR Curve for Epoch_'+img_epoch+'_'+pcd_epoch+'_'+file_name)
+        plt.plot(fpr, tpr, lw=2, color='deeppink', label='ROC curve')
+        plt.title('PR Curve for Epoch_'+img_epoch+'_'+pcd_epoch+'_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
         plt.savefig(os.path.join(pr_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_PR.jpg'))
+
+        ## Save sub enhance
+        plt.figure()
+        fig, ax = plt.subplots()
+        ax.imshow(DD_sub, cmap=plt.cm.gray, interpolation='nearest')
+        #ax.set_title('Enhance Matrix')
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        plt.savefig(os.path.join(matrix_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_sub_enhance.jpg'))

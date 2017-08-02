@@ -16,8 +16,9 @@ import matplotlib.cm as cm
 class SeqSLAM():
     params = None
     
-    def __init__(self, params):
+    def __init__(self, params, args):
         self.params = params
+        self.args = args
 
     def run(self):
         # begin with preprocessing of the images
@@ -44,23 +45,13 @@ class SeqSLAM():
         results = AttributeDict()
         results.dataset = []
         for i in range(len(self.params.dataset)):
-            # shall we just load it?
-            filename = '%s/preprocessing-%s%s.mat' % (self.params.dataset[i].savePath, self.params.dataset[i].saveFile, self.params.saveSuffix)
-            if self.params.dataset[i].preprocessing.load and os.path.isfile(filename):         
-                r = loadmat(filename)
-                print('Loading file %s ...' % filename)
-                results.dataset[i].preprocessing = r.results_preprocessing
-            else:
-                # or shall we actually calculate it?
-                p = deepcopy(self.params)    
-                p.dataset = self.params.dataset[i]
-                d = AttributeDict()
-                d.preprocessing = np.copy(SeqSLAM.preprocessing(p))
-                results.dataset.append(d)
-    
-                if self.params.dataset[i].preprocessing.save:
-                    results_preprocessing = results.dataset[i].preprocessing
-                    savemat(filename, {'results_preprocessing': results_preprocessing})
+
+            # or shall we actually calculate it?
+            p = deepcopy(self.params)    
+            p.dataset = self.params.dataset[i]
+            d = AttributeDict()
+            d.preprocessing = np.copy(SeqSLAM.preprocessing(p, self.args))
+            results.dataset.append(d)
 
         return results
     
@@ -71,12 +62,12 @@ class SeqSLAM():
         return gray
     
     @staticmethod
-    def preprocessing(params):
-        print('Preprocessing dataset %s, indices %d - %d ...' % (params.dataset.name, params.dataset.imageIndices[0], params.dataset.imageIndices[-1]))
+    def preprocessing(params, args):
+        print('Preprocessing dataset  ...')
         # allocate memory for all the processed images
         data_files  = glob(os.path.join(params.dataset.imagePath, "*.jpg"))
         data_files.sort()
-        data_files = data_files[:400]
+        data_files = data_files[0:args.test_len*args.frame_skip:args.frame_skip]
         n = len(data_files)
         m = params.downsample.size[0]*params.downsample.size[1] 
 
@@ -92,14 +83,6 @@ class SeqSLAM():
 
             if img_index >= n:
                 break
-
-            '''
-            filename = '%s/%s%05d%s%s' % (params.dataset.imagePath, \
-                params.dataset.prefix, \
-                i, \
-                params.dataset.suffix, \
-                params.dataset.extension)
-            '''
 
             img = Image.open(filename)
 
@@ -170,34 +153,21 @@ class SeqSLAM():
         return D
     
     def doDifferenceMatrix(self, results):
-        filename = '%s/difference-%s-%s%s.mat' % (self.params.savePath, self.params.dataset[0].saveFile, self.params.dataset[1].saveFile, self.params.saveSuffix)  
     
-        if self.params.differenceMatrix.load and os.path.isfile(filename):
-            print('Loading image difference matrix from file %s ...' % filename)
-    
-            d = loadmat(filename)
-            results.D = d.D                                    
-        else:
-            if len(results.dataset)<2:
-                print('Error: Cannot calculate difference matrix with less than 2 datasets.')
-                return None
-    
-            print('Calculating image difference matrix ...')
-    
-            results.D=self.getDifferenceMatrix(results.dataset[0].preprocessing, results.dataset[1].preprocessing)
-            imsave('D_matrix.jpg', results.D * 255)
-
-            # save it
-            if self.params.differenceMatrix.save:                   
-                savemat(filename, {'D':results.D})
+        if len(results.dataset)<2:
+            print('Error: Cannot calculate difference matrix with less than 2 datasets.')
+            return None
             
+        print('Calculating image difference matrix ...')
+        
+        results.D=self.getDifferenceMatrix(results.dataset[0].preprocessing, results.dataset[1].preprocessing)
+
         return results
     
     def enhanceContrast(self, D):
         # TODO parallelize
         DD = np.zeros(D.shape)
     
-        print (D.shape)
         #parfor?
         for i in range(D.shape[0]):
             a=np.max((0, i-self.params.contrastEnhancement.R/2))
@@ -208,49 +178,23 @@ class SeqSLAM():
         return DD-np.min(np.min(DD))
     
     def doContrastEnhancement(self, results):
-        
-        filename = '%s/differenceEnhanced-%s-%s%s.mat' % (self.params.savePath, self.params.dataset[0].saveFile, self.params.dataset[1].saveFile, self.params.saveSuffix)  
-        
-        if self.params.contrastEnhanced.load and os.path.isfile(filename):    
-            print('Loading contrast-enhanced image distance matrix from file %s ...' % filename)
-            dd = loadmat(filename)
-            results.DD = dd.DD
-        else:
-            print('Performing local contrast enhancement on difference matrix ...')
-               
-            # let the minimum distance be 0
-            results.DD = self.enhanceContrast(results.D)
 
-            # save it?
-            if self.params.contrastEnhanced.save:                        
-                DD = results.DD
-                savemat(filename, {'DD':DD})
-         
-        imsave('DD_enhance.jpg', results.DD * 255)       
+        print('Performing local contrast enhancement on difference matrix ...')
+        
+        # let the minimum distance be 0
+        results.DD = self.enhanceContrast(results.D)
         return results
     
     def doFindMatches(self, results):
      
-        filename = '%s/matches-%s-%s%s.mat' % (self.params.savePath, self.params.dataset[0].saveFile, self.params.dataset[1].saveFile, self.params.saveSuffix)  
-         
-        if self.params.matching.load and os.path.isfile(filename):   
-            print('Loading matchings from file %s ...' % filename)
-            m = loadmat(filename)
-            results.matches = m.matches          
-        else:
+        print('Searching for matching images ...')
         
-            print('Searching for matching images ...')
-            
-            # make sure ds is dividable by two
-            self.params.matching.ds = self.params.matching.ds + np.mod(self.params.matching.ds,2)
+        # make sure ds is dividable by two
+        self.params.matching.ds = self.params.matching.ds + np.mod(self.params.matching.ds,2)
         
-            matches = self.getMatches_new(results.DD)
-                   
-            # save it
-            if self.params.matching.save:
-                savemat(filename, {'matches':matches})
-            
-            results.matches = matches
+        matches = self.getMatches_new(results.DD)
+        
+        results.matches = matches
             
         return results
 
@@ -367,24 +311,11 @@ class SeqSLAM():
             
             min_idx = np.argmin(score)
             min_value=score[min_idx]
-            #window = np.arange(np.max((0, min_idx-self.params.matching.Rwindow/2)), np.min((len(score), min_idx+self.params.matching.Rwindow/2)))
-            #not_window = list(set(range(len(score))).symmetric_difference(set(window))) #xor
-            #min_value_2nd = np.min(score[not_window])
-            
-            #match = [min_idx + self.params.matching.ds/2, min_value / min_value_2nd]
-            #matches[N,:] = match
 
             match = [min_idx + self.params.matching.ds/2, 1.0 / min_value]
             if match[1] > 1:
                 match = 1.0
                 
-            '''
-            if len(score[a1+a2]) > 0:
-            min_value_2nd = np.min(score[a1+a2])
-            match = [min_idx + v_ds/2, min_value_2nd / min_value]
-            else:
-            match = [min_idx + v_ds/2, 0.2]
-            '''
             matches[N,:] = match
                 
         return matches
