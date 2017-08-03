@@ -125,6 +125,10 @@ def Seq(args):
 
             # print
             match_PR[np.isnan(match_PR)]=0
+            match_path = os.path.join(pr_dir, file_name+'_match.json')
+            with open(match_path, 'w') as data_out:
+                json.dump(match_PR.tolist(), data_out)            
+
             precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
             PR_data = zip(precision, recall)
             PR_path = os.path.join(pr_dir, file_name+'_PR.json')

@@ -34,10 +34,10 @@ for epoch_id in range(1, 21):
         D = enhanceContrast(D, 10)
         scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_matrix.jpg'), D * 255)
 
-        '''
-    plt.figure()
-    legend = []
-    for id in range(1, 20):
+
+        plt.figure()
+        legend = []
+        for id in range(1, 20):
             with open(os.path.join('results', model[0], test_data[test_id]+'_'+str(id)+'_N_PR.json'), 'r') as data_file:
                 data = json.load(data_file)
                 legend.append('Epoch ' + str(id))
@@ -81,4 +81,4 @@ for epoch_id in range(1, 21):
     plt.savefig(test_data[test_id]+'_PR.jpg')
 
     print ('plot done')
-        '''
+

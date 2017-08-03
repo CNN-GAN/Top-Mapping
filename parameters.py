@@ -72,9 +72,10 @@ def Param():
     
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
     ## Plot
-    flags.DEFINE_boolean("plot",          True,        "True for ploting figures")
+    flags.DEFINE_boolean("plot",          True,         "True for ploting figures")
     flags.DEFINE_boolean("plot_3D",       False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",       True,        "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",       False,        "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",    False,        "True for ploting Joint")
+    flags.DEFINE_boolean("plot_paper1",   True,         "True for ploting Joint")
 
     return flags.FLAGS

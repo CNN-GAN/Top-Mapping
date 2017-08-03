@@ -9,6 +9,7 @@ from src.model.model_simpleCYC import Net_simpleCYC
 from src.plot.plotDraw_joint import Plot_Joint
 from src.plot.plotDraw_3d import Plot_3D
 from src.plot.plotDraw_2d import Plot_2D
+from src.plot.plotPaper1  import Plot_Paper1
 from src.third_function.pyseqslam.demo import Seq
 
 # Obtain parameters
@@ -23,7 +24,8 @@ def main(_):
 
     if args.plot == True:
         print ("ploting the figures...")
-        
+        if args.plot_paper1 == True:
+            Plot_Paper1(args)
         if args.plot_3D == True:
             Plot_3D(args)
         if args.plot_2D == True:

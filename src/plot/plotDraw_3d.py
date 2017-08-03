@@ -32,7 +32,7 @@ def Plot_3D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for id in range(1, 7):
+    for id in range(5, 6):
 
         epoch_id = id*50
         Trainvector_path = os.path.join(result_dir, str(epoch_id)+'_gt_vt.npy')
@@ -74,7 +74,7 @@ def Plot_3D(args):
             plt.plot(m,'.') 
             plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
             plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+file_name+'_match.jpg'))
-        
+            plt.close()
 
             ## Caculate Precision and Recall Curve
             np.set_printoptions(threshold='nan')
@@ -90,6 +90,10 @@ def Plot_3D(args):
 
             #print (match_PR)
             match_PR[np.isnan(match_PR)]=0
+            match_path = os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_match.json')
+            with open(match_path, 'w') as data_out:
+                json.dump(match_PR.tolist(), data_out)
+
             precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
             PR_data = zip(precision, recall) 
             PR_path = os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.json')
@@ -114,3 +118,4 @@ def Plot_3D(args):
             plt.plot(fpr, tpr, lw=2, color='deeppink', label='ROC curve')
             plt.title('PR Curve for Epoch_'+str(epoch_id)+'_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
             plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.jpg'))
+            plt.close()

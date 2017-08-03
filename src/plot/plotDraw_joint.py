@@ -81,7 +81,7 @@ def Plot_Joint(args):
         plt.plot(m,'.') 
         plt.title('Epoch_'+img_epoch+'_'+pcd_epoch+'_'+file_name)
         plt.savefig(os.path.join(match_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_match.jpg'))
-        
+        plt.close()
 
         ## Caculate Precision and Recall Curve
         np.set_printoptions(threshold='nan')
@@ -98,6 +98,10 @@ def Plot_Joint(args):
 
         #print (match_PR)
         match_PR[np.isnan(match_PR)]=0
+        match_path = os.path.join(pr_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_match.json')
+        with open(match_path, 'w') as data_out:
+            json.dump(match_PR.tolist(), data_out)
+
         precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
         PR_data = zip(precision, recall) 
         PR_path = os.path.join(pr_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_PR.json')
@@ -121,6 +125,7 @@ def Plot_Joint(args):
         plt.plot(fpr, tpr, lw=2, color='deeppink', label='ROC curve')
         plt.title('PR Curve for Epoch_'+img_epoch+'_'+pcd_epoch+'_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
         plt.savefig(os.path.join(pr_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_PR.jpg'))
+        plt.close()
 
         ## Save sub enhance
         plt.figure()
@@ -132,3 +137,4 @@ def Plot_Joint(args):
         ax.spines['left'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
         plt.savefig(os.path.join(matrix_dir, img_epoch+'_'+pcd_epoch+'_'+file_name+'_sub_enhance.jpg'))
+        plt.close()
