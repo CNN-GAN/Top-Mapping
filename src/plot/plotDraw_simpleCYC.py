@@ -88,24 +88,6 @@ def Plot_simpleCYC(args):
                     with open(match_path, 'w') as data_out:
                         json.dump(match_PR.tolist(), data_out)
 
-                    '''
-                    precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
-                    PR_data = zip(precision, recall) 
-                    PR_path = os.path.join(pr_dir, str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j]+'_PR.json')
-                    with open(PR_path, 'w') as data_out:
-                        json.dump(PR_data, data_out)
-                
-                    plt.figure()
-                    plt.xlim(0.0, 1.0)
-                    plt.ylim(0.0, 1.0)
-                    plt.xlabel('Recall')
-                    plt.ylabel('Precision')
-                    plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
-                    plt.title('PR Curve for Epoch_'+str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j])
-                    plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j]+'_PR.jpg'))
-                    plt.close()
-                    '''
-
 
                 '''
                 ## Save sub matrix
