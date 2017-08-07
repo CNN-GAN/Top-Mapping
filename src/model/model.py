@@ -83,12 +83,19 @@ class Net(object):
         self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
                                                 self.lossCYC(self.d_real_z, self.d_cycl_z))
-        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+
+        if self.model == 'ALI_CLC':
+            self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
+            self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+        else:
+            self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+            self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+
         self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
                                                    self.lossGAN(self.d_dic_fx,0))
         self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
                                                    self.lossGAN(self.d_dic_fz,0))
+
         # Make summary
         self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
         self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
@@ -110,6 +117,9 @@ class Net(object):
         self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
         self.var_gen    = self.var_encoder
         self.var_gen.extend(self.var_decoder)
+        
+        # clip for discriminator J
+        self.d_clip       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicJ]
 
     def train(self, args):
         
@@ -145,7 +155,15 @@ class Net(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_files = glob(os.path.join(args.data_dir, args.dataset, "train/*.jpg"))
+        data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        data_files = []
+        for data_name in data_dir:
+            read_path = os.path.join("./data", args.dataset, data_name, "img/*.jpg")
+            print (read_path)
+            data_file = glob(read_path)
+            data_files = data_files + data_file
+            
+        print (len(data_files))
 
         # Main loop for Training
         self.iter_counter = 0
@@ -182,16 +200,19 @@ class Net(object):
                 if self.model == 'ALI_CLC':
                     feed_dict.update(self.n_dic_z.all_drop)
                     feed_dict.update(self.n_dic_fz.all_drop)
+                    for _ in range (args.d_iter):
+                        self.sess.run(self.d_clip)
+                        errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
                     errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
-                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+
+                    ## updates the Joint Generator multi times to avoid Discriminator converge early
+                    for _ in range(args.g_iter):
+                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
                     errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
                     errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
-
-                    ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(4):
-                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
                     ## update inverse mapping
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
@@ -224,9 +245,9 @@ class Net(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T10_R1"] 
-        test_dir = ["T5_R0.5", "T5_R1.5", "T5_R2", "T10_R0.5", "T10_R1.5", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2"]
-        for test_epoch in range(3, 22):
+        test_dir = ["gt", "T1_R1", "T1_R1.5", "T1_R2" "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
+        
+        for test_epoch in range(6, 22):
 
             # Initial layer's variables
             self.test_epoch = test_epoch

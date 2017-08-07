@@ -6,12 +6,18 @@ from src.model.model import Net
 from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
-from src.plot.plotDraw_joint import Plot_Joint
-from src.plot.plotDraw_3d import Plot_3D
-from src.plot.plotDraw_2d import Plot_2D
-from src.plot.plotDraw_simpleCYC import Plot_simpleCYC
 
+# For the first paper, Unsupervised LiDAR Feature Learning
+from src.plot.ULFL.plotDraw_joint import Plot_Joint
+from src.plot.ULFL.plotDraw_3d import Plot_3D
+from src.plot.ULFL.plotDraw_2d import Plot_2D
 from src.plot.plotPaper1  import Plot_Paper1
+
+# For the second paper, Stable LiDAR Feature Learning
+from src.plot.SLFL.plotDraw_slfl import Plot_SLFL
+
+# For the third paper, Common Feature Learning
+from src.plot.CFL.plotDraw_simpleCYC import Plot_simpleCYC
 
 # SeqSLAM for LiDAR inputs
 from src.third_function.pyseqslam.seq_lidar import Seq_LiDAR
@@ -23,6 +29,7 @@ args = Param()
 
 def main(_):
 
+    # Original SeqSLAM method
     if args.SeqSLAM == True:
         Seq_LiDAR(args)
         return
@@ -30,6 +37,7 @@ def main(_):
     if args.SeqGTAV == True:
         Seq_GTAV(args)
         return
+
 
     if args.plot == True:
         print ("ploting the figures...")
@@ -43,6 +51,8 @@ def main(_):
             Plot_Joint(args)
         if args.plot_simplecyc == True:
             Plot_simpleCYC(args)
+        if args.plot_slfl == True:
+            Plot_SLFL(args)
 
         return
 
