@@ -62,6 +62,7 @@ def Param():
     flags.DEFINE_string("test_dir",    "test_T10_R2",   "Directory name to extract image datas")
     flags.DEFINE_string("match_method",  "ANN",         "ANN or Force")
     flags.DEFINE_float("match_distance",   10,           "match threshold for distance")
+    flags.DEFINE_float("match_thres",      40,           "match threshold for GTAV")
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         True,        "True for train the 3D module")
@@ -70,12 +71,16 @@ def Param():
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
     
+    ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
+    flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
+
     ## Plot
-    flags.DEFINE_boolean("plot",          True,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",          True,        "True for ploting figures")
     flags.DEFINE_boolean("plot_3D",       False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",       False,        "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",    False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper1",   True,         "True for ploting Joint")
+    flags.DEFINE_boolean("plot_paper1",   False,        "True for ploting Joint")
+    flags.DEFINE_boolean("plot_simplecyc",  True,         "True for ploting simplecyc")
 
     return flags.FLAGS

@@ -9,8 +9,14 @@ from src.model.model_simpleCYC import Net_simpleCYC
 from src.plot.plotDraw_joint import Plot_Joint
 from src.plot.plotDraw_3d import Plot_3D
 from src.plot.plotDraw_2d import Plot_2D
+from src.plot.plotDraw_simpleCYC import Plot_simpleCYC
+
 from src.plot.plotPaper1  import Plot_Paper1
-from src.third_function.pyseqslam.demo import Seq
+
+# SeqSLAM for LiDAR inputs
+from src.third_function.pyseqslam.seq_lidar import Seq_LiDAR
+# SeqSLAM for GTAV image
+from src.third_function.pyseqslam.seq_gtav import Seq_GTAV
 
 # Obtain parameters
 args = Param()
@@ -18,9 +24,12 @@ args = Param()
 def main(_):
 
     if args.SeqSLAM == True:
-        Seq(args)
+        Seq_LiDAR(args)
         return
-    
+
+    if args.SeqGTAV == True:
+        Seq_GTAV(args)
+        return
 
     if args.plot == True:
         print ("ploting the figures...")
@@ -32,6 +41,8 @@ def main(_):
             Plot_2D(args)
         if args.plot_joint == True:
             Plot_Joint(args)
+        if args.plot_simplecyc == True:
+            Plot_simpleCYC(args)
 
         return
 
