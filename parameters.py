@@ -10,8 +10,8 @@ def Param():
     flags.DEFINE_integer("enhance",       20,           "Enhancement for different matrix")
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
-    flags.DEFINE_float("side_D",          0.0,          "side discriminator for cycle updating")
-    flags.DEFINE_float("cycle",           0.0,          "threshold for cycle updating")
+    flags.DEFINE_float("side_D",          0.5,          "side discriminator for cycle updating")
+    flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
@@ -30,9 +30,10 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI_CLC",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
+    flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
     flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")
     flags.DEFINE_integer("save_step",     50,           "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")

@@ -40,7 +40,7 @@ class Net(object):
         
         # Loss function
         self.lossGAN = mae_criterion
-        self.lossCYC = abs_criterion
+        self.lossCYC = mae_criterion
 
         # Data iterator
         self.data_iter = DataSampler
@@ -85,23 +85,12 @@ class Net(object):
 
 
         if self.model == 'ALI_CLC':
-            '''
-            self.loss_dicJ    =  tf.reduce_mean(self.d_dic_fJ) - tf.reduce_mean(self.d_dic_J)
-            self.loss_dicfJ   = -tf.reduce_mean(self.d_dic_fJ)
-            epsilon = tf.random_uniform([], 0.0, 1.0)
-            x_hat = epsilon * self.d_real_x + (1-epsilon) * self.d_fake_x
-            z_hat = epsilon * self.d_real_z + (1-epsilon) * self.d_fake_z
-            _,  dJ_hat  = self.discJ(x_hat, z_hat, is_train=False, reuse=True)
-            ddJ = tf.gradients(dJ_hat, [x_hat, z_hat])[0]
-            ddJ = tf.sqrt(tf.reduce_sum(tf.square(ddJ), axis=1))
-            ddJ = tf.reduce_mean(tf.square(ddJ-1.0) * 10.0)
-            self.loss_dicJ += ddJ
-            '''
             # Apply Loss
-            self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-                                              self.lossCYC(self.d_real_z, self.d_cycl_z))
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+            self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
+                                              self.lossCYC(self.d_real_z, self.d_cycl_z))
+
             '''
             self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
             self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
@@ -117,7 +106,7 @@ class Net(object):
             _,  dX_hat  = self.discX(x_hat, is_train=False, reuse=True)
             ddX = tf.gradients(dX_hat, x_hat)[0]
             ddX = tf.sqrt(tf.reduce_sum(tf.square(ddX), axis=1))
-            ddX = tf.reduce_mean(tf.square(ddX-1.0) * 10.0)
+            ddX = tf.reduce_mean(tf.square(ddX-1.0) * args.scale)
             self.loss_dicX += args.side_D * ddX
 
             self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
@@ -127,7 +116,7 @@ class Net(object):
             _,  dZ_hat  = self.discZ(z_hat, is_train=False, reuse=True)
             ddZ = tf.gradients(dZ_hat, z_hat)[0]
             ddZ = tf.sqrt(tf.reduce_sum(tf.square(ddZ), axis=1))
-            ddZ = tf.reduce_mean(tf.square(ddZ-1.0) * 10.0)
+            ddZ = tf.reduce_mean(tf.square(ddZ-1.0) * args.scale)
             self.loss_dicZ += args.side_D * ddZ
 
         else:
@@ -145,7 +134,7 @@ class Net(object):
                 self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
 
             with tf.name_scope('J_space'):
-                self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
+                self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle/args.cycle)
                 self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
                 self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
         else:
@@ -167,9 +156,6 @@ class Net(object):
         self.var_dicJ     = tl.layers.get_variables_with_name('DISC_J',  True, True)
         self.var_gen    = self.var_encoder
         self.var_gen.extend(self.var_decoder)
-        
-        # clip for discriminator J
-        #self.d_clip       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicJ]
 
     def feed_datas(self, data_iter, noise_iter):
         batch_images = data_iter()
@@ -253,8 +239,8 @@ class Net(object):
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
                 for _ in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
-                '''
                 # Update Side
                 for _ in range (args.d_iter):
                     feed_dict = self.feed_datas(data_iter, noise_iter)
@@ -263,15 +249,10 @@ class Net(object):
                     
                 errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
                 errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
-                '''
-
-                # Update CYC
-                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
             elif self.model == 'ALI':
                 feed_dict = self.feed_datas(data_iter, noise_iter)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-                ## updates the Joint Generator multi times to/// avoid Discriminator converge early
                 for _ in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
