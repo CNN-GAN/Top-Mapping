@@ -20,6 +20,7 @@ from matplotlib import pyplot as plt
 from tensorlayer.layers import *
 from src.module.module import *
 from src.util.utils import *
+from src.data import *
 
 class Net(object):
     def __init__(self, sess, args):
@@ -40,6 +41,10 @@ class Net(object):
         # Loss function
         self.lossGAN = mae_criterion
         self.lossCYC = abs_criterion
+
+        # Data iterator
+        self.data_iter = DataSampler
+        self.noise_iter = NoiseSampler
 
         # SeqSLAM
         self.vec_D    = Euclidean
@@ -78,32 +83,77 @@ class Net(object):
         self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
         self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
-        # Apply Loss
-        self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
-        self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-        self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-                                                self.lossCYC(self.d_real_z, self.d_cycl_z))
 
         if self.model == 'ALI_CLC':
-            self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
-            self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+            '''
+            self.loss_dicJ    =  tf.reduce_mean(self.d_dic_fJ) - tf.reduce_mean(self.d_dic_J)
+            self.loss_dicfJ   = -tf.reduce_mean(self.d_dic_fJ)
+            epsilon = tf.random_uniform([], 0.0, 1.0)
+            x_hat = epsilon * self.d_real_x + (1-epsilon) * self.d_fake_x
+            z_hat = epsilon * self.d_real_z + (1-epsilon) * self.d_fake_z
+            _,  dJ_hat  = self.discJ(x_hat, z_hat, is_train=False, reuse=True)
+            ddJ = tf.gradients(dJ_hat, [x_hat, z_hat])[0]
+            ddJ = tf.sqrt(tf.reduce_sum(tf.square(ddJ), axis=1))
+            ddJ = tf.reduce_mean(tf.square(ddJ-1.0) * 10.0)
+            self.loss_dicJ += ddJ
+            '''
+            # Apply Loss
+            self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
+                                              self.lossCYC(self.d_real_z, self.d_cycl_z))
+            self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+            self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+            '''
+            self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+            self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
+            self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
+                                                 self.lossGAN(self.d_dic_fx,0))
+            self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
+                                                 self.lossGAN(self.d_dic_fz,0))
+            '''
+            self.loss_decoder = args.side_D * tf.reduce_mean(-self.d_dic_fx)
+            self.loss_dicX    = args.side_D * tf.reduce_mean( self.d_dic_fx - self.d_dic_x)
+            epsilon1 = tf.random_uniform([], 0.0, 1.0)
+            x_hat = epsilon1 * self.d_real_x + (1-epsilon1) * self.d_fake_x
+            _,  dX_hat  = self.discX(x_hat, is_train=False, reuse=True)
+            ddX = tf.gradients(dX_hat, x_hat)[0]
+            ddX = tf.sqrt(tf.reduce_sum(tf.square(ddX), axis=1))
+            ddX = tf.reduce_mean(tf.square(ddX-1.0) * 10.0)
+            self.loss_dicX += args.side_D * ddX
+
+            self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
+            self.loss_dicZ    = args.side_D * tf.reduce_mean( self.d_dic_fz - self.d_dic_z)
+            epsilon2 = tf.random_uniform([], 0.0, 1.0)
+            z_hat = epsilon2 * self.d_real_z + (1-epsilon2) * self.d_fake_z
+            _,  dZ_hat  = self.discZ(z_hat, is_train=False, reuse=True)
+            ddZ = tf.gradients(dZ_hat, z_hat)[0]
+            ddZ = tf.sqrt(tf.reduce_sum(tf.square(ddZ), axis=1))
+            ddZ = tf.reduce_mean(tf.square(ddZ-1.0) * 10.0)
+            self.loss_dicZ += args.side_D * ddZ
+
         else:
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
-
-        self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
-                                                   self.lossGAN(self.d_dic_fx,0))
-        self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-                                                   self.lossGAN(self.d_dic_fz,0))
-
+        
         # Make summary
-        self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
-        self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
-        self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
-        self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
-        self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
-        self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
-        self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+        if self.model == 'ALI_CLC':
+            with tf.name_scope('X_space'):
+                self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
+                self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
+
+            with tf.name_scope('Z_space'):
+                self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
+                self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+
+            with tf.name_scope('J_space'):
+                self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle)
+                self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
+                self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
+        else:
+            with tf.name_scope('J_space'):
+                self.summ_dicJ    = tf.summary.scalar('d_J_loss',     self.loss_dicJ)
+                self.summ_dicfJ   = tf.summary.scalar('d_fJ_loss',    self.loss_dicfJ)
+            
+
         if self.model == 'ALI_CLC':
             self.summ_merge = tf.summary.merge_all()
         elif self.model == 'ALI':
@@ -119,7 +169,23 @@ class Net(object):
         self.var_gen.extend(self.var_decoder)
         
         # clip for discriminator J
-        self.d_clip       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicJ]
+        #self.d_clip       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicJ]
+
+    def feed_datas(self, data_iter, noise_iter):
+        batch_images = data_iter()
+        batch_codes = noise_iter()
+        feed_dict={self.d_real_x: batch_images, self.d_real_z: batch_codes }
+        if self.model == 'ALI_CLC':
+            feed_dict.update(self.n_dic_J.all_drop)
+            feed_dict.update(self.n_dic_fJ.all_drop)
+            feed_dict.update(self.n_dic_z.all_drop)
+            feed_dict.update(self.n_dic_fz.all_drop)
+        else:
+            feed_dict.update(self.n_dic_J.all_drop)
+            feed_dict.update(self.n_dic_fJ.all_drop)
+            
+        return feed_dict
+                                
 
     def train(self, args):
         
@@ -135,12 +201,15 @@ class Net(object):
                                 .minimize(self.loss_dicX,    var_list=self.var_dicX)
             self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
-
-        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
-        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
-
+            self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+            self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+        else:
+            self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+            self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicfJ,   var_list=self.var_gen)
         # Initial layer's variables
         tl.layers.initialize_global_variables(self.sess)
         if args.restore == True:
@@ -155,7 +224,8 @@ class Net(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        #data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        data_dir = ['00/gt', '05', '07', '08']
         data_files = []
         for data_name in data_dir:
             read_path = os.path.join("./data", args.dataset, data_name, "img/*.jpg")
@@ -164,77 +234,58 @@ class Net(object):
             data_files = data_files + data_file
             
         print (len(data_files))
-
+        data_iter = self.data_iter(args, data_files)
+        noise_iter = self.noise_iter(args)
+        
         # Main loop for Training
         self.iter_counter = 0
         begin_epoch = 0
         if args.restore == True:
             begin_epoch = args.c_epoch+1
 
-        for epoch in range(begin_epoch, args.epoch):
-            ## shuffle data
-            shuffle(data_files)
-            print("[*] Dataset shuffled!")
+        for idx in xrange(0, args.iteration):
             
-            ## load image data
-            batch_idxs = min(len(data_files), args.train_size) // args.batch_size
-            
-            for idx in xrange(0, batch_idxs):
-                ### Get datas ###
-                batch_files  = data_files[idx*args.batch_size:(idx+1)*args.batch_size]
-                ## get real images
-                batch        = [get_image(batch_file, args.image_size, is_crop=args.is_crop, \
-                                          resize_w=args.output_size, is_grayscale = 0) \
-                                for batch_file in batch_files]
-                batch_images = np.array(batch).astype(np.float32)
-                ## get real code
-                batch_codes  = np.random.normal(loc=0.0, scale=1.0, \
-                                                size=(args.sample_size, args.code_dim)).astype(np.float32)
-                
-                ### Update Nets ###
-                start_time = time.time()
-                feed_dict={self.d_real_x: batch_images, self.d_real_z: batch_codes }
-                feed_dict.update(self.n_dic_J.all_drop)
-                feed_dict.update(self.n_dic_fJ.all_drop)
+            ### Update Nets ###
+            start_time = time.time()
+            if self.model == 'ALI_CLC':
+                # Update Joint
+                feed_dict = self.feed_datas(data_iter, noise_iter)
+                errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+                for _ in range(args.g_iter):
+                    errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
-                if self.model == 'ALI_CLC':
-                    feed_dict.update(self.n_dic_z.all_drop)
-                    feed_dict.update(self.n_dic_fz.all_drop)
-                    for _ in range (args.d_iter):
-                        self.sess.run(self.d_clip)
-                        errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-
+                '''
+                # Update Side
+                for _ in range (args.d_iter):
+                    feed_dict = self.feed_datas(data_iter, noise_iter)
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
                     errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
+                    
+                errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
+                errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+                '''
 
-                    ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(args.g_iter):
-                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+                # Update CYC
+                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
-                    errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
-                    errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+            elif self.model == 'ALI':
+                feed_dict = self.feed_datas(data_iter, noise_iter)
+                errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+                ## updates the Joint Generator multi times to/// avoid Discriminator converge early
+                for _ in range(args.g_iter):
+                    errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
-                    ## update inverse mapping
-                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
-                elif self.model == 'ALI':
-                    errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-
-                    ## updates the Joint Generator multi times to avoid Discriminator converge early
-                    for _ in range(4):
-                        errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-
-                print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f"  % \
-                      (epoch, args.epoch, idx, batch_idxs, time.time() - start_time))
-                sys.stdout.flush()
-                self.iter_counter += 1
-
-                if np.mod(self.iter_counter, args.sample_step) == 0:
-                    self.makeSample(feed_dict, args.sample_dir, epoch, idx)
+            print("Iteration [%4d] time: %4.4f"  % \
+                  (self.iter_counter, time.time() - start_time))
+            sys.stdout.flush()
+            self.iter_counter += 1
             
-                if np.mod(self.iter_counter, args.save_step) == 0:
-                    self.saveParam(args)
-                    print("[*] Saving checkpoints SUCCESS!")
+            if np.mod(self.iter_counter, args.sample_step) == 0:
+                self.makeSample(feed_dict, args.sample_dir, self.iter_counter)
+                
+            if np.mod(self.iter_counter, args.save_step) == 0:
+                self.saveParam(args)
+                print("[*] Saving checkpoints SUCCESS!")
 
         # Shutdown writer
         self.writer.close()
@@ -288,14 +339,14 @@ class Net(object):
                 np.save(GTvector_path, train_code)
 
         
-    def makeSample(self, feed_dict, sample_dir, epoch, idx):
+    def makeSample(self, feed_dict, sample_dir, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
 
         # update summary
         self.writer.add_summary(summary, self.iter_counter)
         # save image
         img = (np.array(img) + 1) / 2 * 255
-        save_images(img, [8, 8],'./{}/train_{:02d}_{:04d}.png'.format(sample_dir, epoch, idx))
+        save_images(img, [8, 8],'./{}/train_{:04d}.png'.format(sample_dir, idx))
 
     def loadParam(self, args):
         # load the latest checkpoints

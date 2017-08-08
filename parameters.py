@@ -8,16 +8,17 @@ def Param():
     flags.DEFINE_integer("epoch",         40,           "Epoch to train [40]")
     flags.DEFINE_integer("c_epoch",       0,            "current Epoch")
     flags.DEFINE_integer("enhance",       20,           "Enhancement for different matrix")
-    flags.DEFINE_float("lr",              0.00005,       "Learning rate of for adam [0.0002]")
+    flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
-    flags.DEFINE_float("side_D",          1.0,          "side discriminator for cycle updating")
-    flags.DEFINE_float("cycle",           0.5,          "threshold for cycle updating")
+    flags.DEFINE_float("side_D",          0.0,          "side discriminator for cycle updating")
+    flags.DEFINE_float("cycle",           0.0,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
     flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, GTAV, loam]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
+    flags.DEFINE_integer("output_size",   64,          "The size of the output images to produce [64]")
     flags.DEFINE_integer("code_dim",      512,          "code dimension")
     flags.DEFINE_integer("condition_dim", 64,           "condition code dimension")
     
@@ -29,7 +30,7 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")
@@ -39,11 +40,11 @@ def Param():
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
     flags.DEFINE_integer("dJ_dim",        2048,         "The number of discriminator for Joint")
     flags.DEFINE_integer("image_size",    500,          "The size of image to use (will be center cropped) [108]")
-    flags.DEFINE_integer("output_size",   64,          "The size of the output images to produce [64]")
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
-    flags.DEFINE_integer("d_iter",        5,            "The number of iteration for discriminator")
-    flags.DEFINE_integer("g_iter",        1,            "The number of iteration for generator")
+    flags.DEFINE_integer("d_iter",        2,            "The number of iteration for discriminator")
+    flags.DEFINE_integer("g_iter",        8,            "The number of iteration for generator")
+    flags.DEFINE_integer("iteration",     10000000,     "Training iteration")
 
     ## 3D conv
     flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")

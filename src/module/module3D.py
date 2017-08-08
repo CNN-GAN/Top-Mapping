@@ -210,23 +210,33 @@ def discriminator_J(input_X, input_Z, is_train=True, reuse=False):
 
         ## For Code
         netZ_in = InputLayer(input_Z, name='DZ/in')
-        netZ_h0 = DropoutLayer(netZ_in, keep=0.8, name='DZ/h0/drop')
-        netZ_h0 = DenseLayer(netZ_h0, n_units=args.dZ_dim, act=tf.identity,
+        if  is_train==True:
+            netZ_in = DropoutLayer(netZ_in, keep=0.8, name='DZ/in/drop')
+
+        netZ_h0 = DenseLayer(netZ_in, n_units=args.dZ_dim, act=tf.identity,
                              W_init = w_init, name='DZ/h0/fcn')
-        netZ_h1 = DropoutLayer(netZ_h0, keep=0.8, name='DZ/h1/drop')
-        netZ_h1 = DenseLayer(netZ_h1, n_units=args.dZ_dim, act=tf.identity, 
+        if  is_train==True:
+            netZ_h0 = DropoutLayer(netZ_h0, keep=0.8, name='DZ/h0/drop')
+
+        netZ_h1 = DenseLayer(netZ_h0, n_units=args.dZ_dim, act=tf.identity, 
                              W_init = w_init, name='DZ/h1/fcn')
         
         ## For Joint (Image, Code)
         net_in = ConcatLayer(layer=[netX_h5, netZ_h1], name='DIS/in')
-        net_h0 = DropoutLayer(net_in, keep=0.8, name='DIS/h0/drop')
-        net_h0 = DenseLayer(net_h0, n_units=args.dJ_dim, act=lambda x: tl.act.lrelu(x, 0.2),
+        if  is_train==True:
+            net_in = DropoutLayer(net_in, keep=0.8, name='DIS/in/drop')
+
+        net_h0 = DenseLayer(net_in, n_units=args.dJ_dim, act=lambda x: tl.act.lrelu(x, 0.2),
                             W_init = w_init, name='DIS/h0/fcn')
-        net_h1 = DropoutLayer(net_h0, keep=0.8, name='DIS/h1/drop')
-        net_h1 = DenseLayer(net_h1, n_units=args.dJ_dim, act=lambda x: tl.act.lrelu(x, 0.2),
+        if  is_train==True:
+            net_h0 = DropoutLayer(net_h0, keep=0.8, name='DIS/h0/drop')
+
+        net_h1 = DenseLayer(net_h0, n_units=args.dJ_dim, act=lambda x: tl.act.lrelu(x, 0.2),
                             W_init = w_init, name='DIS/h1/fcn')
-        net_h2 = DropoutLayer(net_h1, keep=0.8, name='DIS/h2/drop')
-        net_h2 = DenseLayer(net_h2, n_units=1,  act=lambda x: tl.act.lrelu(x, 0.2),
+        if  is_train==True:
+            net_h1 = DropoutLayer(net_h1, keep=0.8, name='DIS/h1/drop')
+
+        net_h2 = DenseLayer(net_h1, n_units=1,  act=lambda x: tl.act.lrelu(x, 0.2),
                             W_init = w_init, name='DIS/h2/fcn')
         logits = net_h2.outputs
 
