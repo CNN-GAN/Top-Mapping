@@ -86,31 +86,26 @@ class Net(object):
 
         if self.model == 'ALI_CLC':
             # Apply Loss
-            self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
-            self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
             self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
                                               self.lossCYC(self.d_real_z, self.d_cycl_z))
 
-            '''
-            self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
-            self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-            self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
-                                                 self.lossGAN(self.d_dic_fx,0))
-            self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-                                                 self.lossGAN(self.d_dic_fz,0))
-            '''
+            self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+            self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+
             self.loss_decoder = args.side_D * tf.reduce_mean(-self.d_dic_fx)
-            self.loss_dicX    = args.side_D * tf.reduce_mean( self.d_dic_fx - self.d_dic_x)
+            self.loss_dicX    = args.side_D * tf.reduce_mean(-self.d_dic_x + self.d_dic_fx)
+            '''
             epsilon1 = tf.random_uniform([], 0.0, 1.0)
             x_hat = epsilon1 * self.d_real_x + (1-epsilon1) * self.d_fake_x
             _,  dX_hat  = self.discX(x_hat, is_train=False, reuse=True)
             ddX = tf.gradients(dX_hat, x_hat)[0]
             ddX = tf.sqrt(tf.reduce_sum(tf.square(ddX), axis=1))
             ddX = tf.reduce_mean(tf.square(ddX-1.0) * args.scale)
-            self.loss_dicX += args.side_D * ddX
-
+            self.loss_dicX += args.side_D * 10 * ddX
+            '''
             self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
             self.loss_dicZ    = args.side_D * tf.reduce_mean( self.d_dic_fz - self.d_dic_z)
+            '''
             epsilon2 = tf.random_uniform([], 0.0, 1.0)
             z_hat = epsilon2 * self.d_real_z + (1-epsilon2) * self.d_fake_z
             _,  dZ_hat  = self.discZ(z_hat, is_train=False, reuse=True)
@@ -118,7 +113,7 @@ class Net(object):
             ddZ = tf.sqrt(tf.reduce_sum(tf.square(ddZ), axis=1))
             ddZ = tf.reduce_mean(tf.square(ddZ-1.0) * args.scale)
             self.loss_dicZ += args.side_D * ddZ
-
+            '''
         else:
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
@@ -126,12 +121,12 @@ class Net(object):
         # Make summary
         if self.model == 'ALI_CLC':
             with tf.name_scope('X_space'):
-                self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder)
-                self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX)
+                self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder/args.side_D)
+                self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX/args.side_D)
 
             with tf.name_scope('Z_space'):
-                self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder)
-                self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ)
+                self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder/args.side_D)
+                self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ/args.side_D)
 
             with tf.name_scope('J_space'):
                 self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle/args.cycle)
@@ -157,6 +152,11 @@ class Net(object):
         self.var_gen    = self.var_encoder
         self.var_gen.extend(self.var_decoder)
 
+        if self.model == 'ALI_CLC':
+            self.clip_X       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicX]
+            self.clip_Z       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicZ]
+            self.clip_J       = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.var_dicJ]
+
     def feed_datas(self, data_iter, noise_iter):
         batch_images = data_iter()
         batch_codes = noise_iter()
@@ -177,20 +177,32 @@ class Net(object):
         
         # Set optimal for nets
         if self.model == 'ALI_CLC':
-            self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_encoder, var_list=self.var_encoder)
-            self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_decoder, var_list=self.var_decoder)
+
             self.optim_cycle   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_cycle,   var_list=self.var_gen)
-            self.optim_dicX    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_dicX,    var_list=self.var_dicX)
-            self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
+                                         .minimize(self.loss_cycle,   var_list=self.var_gen)
             self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
             self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+            '''
+            self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_encoder, var_list=self.var_encoder)
+            self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_decoder, var_list=self.var_decoder)
+            self.optim_dicX    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_dicX,    var_list=self.var_dicX)
+            self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
+            '''
+            self.optim_encoder = tf.train.RMSPropOptimizer(5e-5) \
+                                         .minimize(self.loss_encoder, var_list=self.var_encoder)
+            self.optim_decoder = tf.train.RMSPropOptimizer(5e-5) \
+                                         .minimize(self.loss_decoder, var_list=self.var_decoder)
+            self.optim_dicX    = tf.train.RMSPropOptimizer(5e-5) \
+                                         .minimize(self.loss_dicX,    var_list=self.var_dicX)
+            self.optim_dicZ    = tf.train.RMSPropOptimizer(5e-5) \
+                                         .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
+
         else:
             self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
@@ -236,19 +248,29 @@ class Net(object):
             if self.model == 'ALI_CLC':
                 # Update Joint
                 feed_dict = self.feed_datas(data_iter, noise_iter)
+                #self.sess.run(self.clip_J)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-                for _ in range(args.g_iter):
+                for g_id in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
                 # Update Side
-                for _ in range (args.d_iter):
+                d_iter = 5
+                if self.iter_counter%50==0 or self.iter_counter<25:
+                    d_iter = 20
+                    print ('dense disc with iter counter {}'.format(self.iter_counter))
+
+                for _ in range (d_iter):
                     feed_dict = self.feed_datas(data_iter, noise_iter)
+                    self.sess.run(self.clip_X)
+                    self.sess.run(self.clip_Z)
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
                     errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
-                    
+
+                feed_dict = self.feed_datas(data_iter, noise_iter)
                 errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
                 errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
             elif self.model == 'ALI':
                 feed_dict = self.feed_datas(data_iter, noise_iter)

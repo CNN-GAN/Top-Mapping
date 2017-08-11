@@ -10,7 +10,7 @@ def Param():
     flags.DEFINE_integer("enhance",       20,           "Enhancement for different matrix")
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
-    flags.DEFINE_float("side_D",          0.5,          "side discriminator for cycle updating")
+    flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
     flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
