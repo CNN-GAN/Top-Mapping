@@ -30,7 +30,7 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -70,7 +70,7 @@ def Param():
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
-    flags.DEFINE_boolean("is_train",      True,        "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
@@ -83,7 +83,7 @@ def Param():
     flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2

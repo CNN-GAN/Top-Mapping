@@ -12,8 +12,8 @@ from parameters import *
 
 def Plot_2D(args):
 
-    test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
-
+    #test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5"]
     result_dir = os.path.join(args.result_dir, 'ALI')
     matrix_dir = os.path.join(result_dir,      'MATRIX')
     pr_dir     = os.path.join(result_dir,      'PR')
@@ -33,7 +33,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(12, 13):
+    for epoch_id in range(1, 56):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_gt_vt.npy')
         train_img = np.load(Trainvector_img)
 

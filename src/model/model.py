@@ -222,8 +222,8 @@ class Net(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        #data_dir = ['01', '02', '03', '04','05', '06','07', '08']
-        data_dir = ['00/gt', '05', '07', '08']
+        data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        #data_dir = ['00/gt', '05', '07', '08']
         data_files = []
         for data_name in data_dir:
             read_path = os.path.join("./data", args.dataset, data_name, "img/*.jpg")
@@ -248,11 +248,12 @@ class Net(object):
             if self.model == 'ALI_CLC':
                 # Update Joint
                 feed_dict = self.feed_datas(data_iter, noise_iter)
-                #self.sess.run(self.clip_J)
+                self.sess.run(self.clip_J)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
                 for g_id in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+
+                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
                 # Update Side
                 d_iter = 5
@@ -270,6 +271,7 @@ class Net(object):
                 feed_dict = self.feed_datas(data_iter, noise_iter)
                 errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
                 errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+
                 errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
 
             elif self.model == 'ALI':
@@ -299,9 +301,9 @@ class Net(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        test_dir = ["gt", "T1_R1", "T1_R1.5", "T1_R2" "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
-        
-        for test_epoch in range(6, 22):
+        test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
+        #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5"]
+        for test_epoch in range(1, 18):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -328,7 +330,7 @@ class Net(object):
                                        resize_w=args.output_size, is_grayscale=0)
                     sample_image = np.array(sample).astype(np.float32)
                     sample_image = sample_image.reshape([1,64,64,3])
-                    print ("Load data {}".format(sample_file))
+                    #print ("Load data {}".format(sample_file))
                     feed_dict={self.d_real_x: sample_image}
                     if count >= args.test_len:
                         break
@@ -337,7 +339,7 @@ class Net(object):
                     count = count+1
 
                 print("Train code extraction time: %4.4f"  % (time.time() - start_time))
-
+                print("save file {}".format(str(test_epoch)+'_'+dir_name+'_vt.npy'))
                 GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, train_code)
 
