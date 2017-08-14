@@ -32,20 +32,20 @@ def Plot_simpleCYC(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(18, 19):
+    for epoch_id in range(1, 49):
         for route_id, route_name in enumerate(route_dir):
             for w_i in range(len(test_dir)):
                 Trainvector_path = os.path.join(result_dir, \
                                                 str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_vt.npy')
                 train_code = np.load(Trainvector_path)
-                train_code = train_code[0:args.test_len*args.frame_skip:args.frame_skip]
+                #train_code = train_code[0:args.test_len]
             
                 for w_j in range(w_i+1, len(test_dir)):
 
                     print('Load data epoch:{}, file:{}'.format(epoch_id, test_dir[w_j])) 
                     Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+route_name+'_'+test_dir[w_j]+'_vt.npy')
                     test_code = np.load(Testvector_path)
-                    test_code = test_code[0:args.test_len*args.frame_skip:args.frame_skip]
+                    #test_code = test_code[0:args.test_len*args.frame_skip:args.frame_skip]
                     D = Euclidean(train_code, test_code)
                     DD = enhanceContrast(D, 30)
                     

@@ -18,7 +18,7 @@ def Param():
     flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, GTAV, loam]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
-    flags.DEFINE_integer("output_size",   64,          "The size of the output images to produce [64]")
+    flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("code_dim",      512,          "code dimension")
     flags.DEFINE_integer("condition_dim", 64,           "condition code dimension")
     
@@ -28,10 +28,10 @@ def Param():
     flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("log_name",       "ALI",    "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("log_name",       "ALI",        "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "simpleCYC",        "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -55,17 +55,17 @@ def Param():
     flags.DEFINE_integer("voxel_code",    512,          "voxel code dimension")
 
     ## SeqSLAM
-    flags.DEFINE_float("v_ds",            10,           "seqslam distance")
-    #flags.DEFINE_float("enhance",         20,           "enhance distance")
-    flags.DEFINE_float("vmin",            0.8,          "min velocity of seqslam")
-    flags.DEFINE_float("vskip",           0.1,          "velocity gap")
-    flags.DEFINE_float("vmax",            1.2,          "max velocity of seqslam")
-    flags.DEFINE_integer("Rwindow",       10,           "rainbow")
-    flags.DEFINE_integer("frame_skip",    3,            "frame skip")    
-    flags.DEFINE_integer("Knn",           5,            "K nearest point")
-    flags.DEFINE_integer("test_len",      300,         "test data length")
-    flags.DEFINE_string("test_dir",    "test_T10_R2",   "Directory name to extract image datas")
-    flags.DEFINE_string("match_method",  "ANN",         "ANN or Force")
+    flags.DEFINE_float("v_ds",            10,            "seqslam distance")
+    #flags.DEFINE_float("enhance",        20,            "enhance distance")
+    flags.DEFINE_float("vmin",            0.8,           "min velocity of seqslam")
+    flags.DEFINE_float("vskip",           0.1,           "velocity gap")
+    flags.DEFINE_float("vmax",            1.2,           "max velocity of seqslam")
+    flags.DEFINE_integer("Rwindow",       10,            "rainbow")
+    flags.DEFINE_integer("frame_skip",    3,             "frame skip")    
+    flags.DEFINE_integer("Knn",           5,             "K nearest point")
+    flags.DEFINE_integer("test_len",      300,           "test data length")
+    flags.DEFINE_string("test_dir",    "test_T10_R2",    "Directory name to extract image datas")
+    flags.DEFINE_string("match_method",   "ANN",         "ANN or Force")
     flags.DEFINE_float("match_distance",   10,           "match threshold for distance")
     flags.DEFINE_float("match_thres",      40,           "match threshold for GTAV")
 
@@ -86,11 +86,11 @@ def Param():
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper1",    True,        "True for ploting paper1")
+    flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
     ## Plot for paper 3
-    flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
+    flags.DEFINE_boolean("plot_simplecyc", True,         "True for ploting simplecyc")
 
     return flags.FLAGS

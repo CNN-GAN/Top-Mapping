@@ -318,7 +318,7 @@ class Net_simpleCYC(object):
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(15, 24):
+        for test_epoch in range(1, 49):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
@@ -332,7 +332,7 @@ class Net_simpleCYC(object):
                     ## Evaulate test data
                     test_files  = glob(os.path.join(args.data_dir, args.dataset, route_name, file_name, "*.jpg"))
                     test_files.sort()
-                    test_files = test_files[:400]
+                    test_files = test_files[0:args.test_len]
                     
                     ## Extract Test data code
                     start_time = time.time()
