@@ -92,8 +92,18 @@ class Net(object):
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
 
-            self.loss_decoder = args.side_D * tf.reduce_mean(-self.d_dic_fx)
-            self.loss_dicX    = args.side_D * tf.reduce_mean(-self.d_dic_x + self.d_dic_fx)
+            self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+            self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
+
+            self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
+                                                 self.lossGAN(self.d_dic_fx,0))
+            self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
+                                                 self.lossGAN(self.d_dic_fz,0))
+
+
+            #self.loss_decoder = args.side_D * tf.reduce_mean(-self.d_dic_fx)
+            #self.loss_dicX    = args.side_D * tf.reduce_mean(-self.d_dic_x + self.d_dic_fx)
+
             '''
             epsilon1 = tf.random_uniform([], 0.0, 1.0)
             x_hat = epsilon1 * self.d_real_x + (1-epsilon1) * self.d_fake_x
@@ -103,8 +113,8 @@ class Net(object):
             ddX = tf.reduce_mean(tf.square(ddX-1.0) * args.scale)
             self.loss_dicX += args.side_D * 10 * ddX
             '''
-            self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
-            self.loss_dicZ    = args.side_D * tf.reduce_mean( self.d_dic_fz - self.d_dic_z)
+            #self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
+            #self.loss_dicZ    = args.side_D * tf.reduce_mean( self.d_dic_fz - self.d_dic_z)
             '''
             epsilon2 = tf.random_uniform([], 0.0, 1.0)
             z_hat = epsilon2 * self.d_real_z + (1-epsilon2) * self.d_fake_z
@@ -184,7 +194,8 @@ class Net(object):
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
             self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicfJ,   var_list=self.var_gen)
-            '''
+
+
             self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_encoder, var_list=self.var_encoder)
             self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
@@ -193,6 +204,7 @@ class Net(object):
                                 .minimize(self.loss_dicX,    var_list=self.var_dicX)
             self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
+
             '''
             self.optim_encoder = tf.train.RMSPropOptimizer(5e-5) \
                                          .minimize(self.loss_encoder, var_list=self.var_encoder)
@@ -202,7 +214,7 @@ class Net(object):
                                          .minimize(self.loss_dicX,    var_list=self.var_dicX)
             self.optim_dicZ    = tf.train.RMSPropOptimizer(5e-5) \
                                          .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
-
+            '''
         else:
             self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
@@ -217,9 +229,12 @@ class Net(object):
             print("[!] Initial network done")
 
         # Initial global variables
-        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        log_dir = os.path.join(args.log_dir, args.method, args.log_name)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)     
+        self.writer = tf.summary.FileWriter(log_dir, self.sess.graph)
         init_op = tf.global_variables_initializer()
-        self.sess.run(init_op)        
+        self.sess.run(init_op)
 
         # Load Data files
         data_dir = ['01', '02', '03', '04','05', '06','07', '08']
@@ -248,32 +263,48 @@ class Net(object):
             if self.model == 'ALI_CLC':
                 # Update Joint
                 feed_dict = self.feed_datas(data_iter, noise_iter)
-                self.sess.run(self.clip_J)
+                #self.sess.run(self.clip_J)
+                errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+                for g_id in range(args.g_iter):
+                    errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
+                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+
+
+                errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
+                errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
+
+                '''
+                # Update Joint
+                feed_dict = self.feed_datas(data_iter, noise_iter)
+                #self.sess.run(self.clip_J)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
                 for g_id in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
 
+                errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
+                errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
                 errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
+                '''
+                '''
                 # Update Side
-                d_iter = 5
+                d_iter = 2
                 if self.iter_counter%50==0 or self.iter_counter<25:
-                    d_iter = 20
+                    d_iter = 4
                     print ('dense disc with iter counter {}'.format(self.iter_counter))
 
                 for _ in range (d_iter):
                     feed_dict = self.feed_datas(data_iter, noise_iter)
                     self.sess.run(self.clip_X)
-                    self.sess.run(self.clip_Z)
+                    #self.sess.run(self.clip_Z)
                     errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
-                    errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
+                    #errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
 
                 feed_dict = self.feed_datas(data_iter, noise_iter)
-                errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
+                #errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
                 errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
 
-                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
+                #errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+                '''
             elif self.model == 'ALI':
                 feed_dict = self.feed_datas(data_iter, noise_iter)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
@@ -297,13 +328,13 @@ class Net(object):
 
     def test(self, args):
 
-        result_dir = os.path.join(args.result_dir, args.method)
+        result_dir = os.path.join(args.result_dir, args.method, args.log_name)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
-        #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5"]
-        for test_epoch in range(1, 18):
+        #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
+        test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
+        for test_epoch in range(1, 51):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -357,15 +388,15 @@ class Net(object):
         # load the latest checkpoints
         if self.model == 'ALI_CLC':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dZ_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -373,15 +404,15 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dX_%d00.npz' % self.test_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dZ_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -390,21 +421,21 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
         elif self.model == 'ALI':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -412,7 +443,7 @@ class Net(object):
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.method)
+        save_dir = os.path.join(args.checkpoint_dir, args.method, args.log_name)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)        
         print (save_dir)

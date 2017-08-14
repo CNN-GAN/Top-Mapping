@@ -27,6 +27,8 @@ from src.third_function.pyseqslam.seq_gtav import Seq_GTAV
 # Obtain parameters
 args = Param()
 
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 def main(_):
 
     # Original SeqSLAM method
@@ -63,8 +65,10 @@ def main(_):
         os.makedirs(args.sample_dir)
     if not os.path.exists(args.result_dir):
         os.makedirs(args.result_dir)
-    if not os.path.exists(args.tb_dir):
-        os.makedirs(args.tb_dir)
+
+    log_path = os.path.join(args.log_dir, args.log_name)
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
 
 
     if args.is_3D == True:

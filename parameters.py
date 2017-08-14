@@ -11,7 +11,7 @@ def Param():
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
     flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
-    flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
+    flags.DEFINE_float("cycle",           0.5,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
@@ -26,8 +26,9 @@ def Param():
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
     flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
     flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
-    flags.DEFINE_string("tb_dir",         "logs/tb_logs",       "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
+    flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("log_name",       "ALI",    "Directory name to save tensorboard [tb_logs]")
     
     ## Training
     flags.DEFINE_string("method",         "ALI",    "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
@@ -43,7 +44,7 @@ def Param():
     flags.DEFINE_integer("image_size",    500,          "The size of image to use (will be center cropped) [108]")
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
-    flags.DEFINE_integer("d_iter",        2,            "The number of iteration for discriminator")
+    flags.DEFINE_integer("d_iter",        4,            "The number of iteration for discriminator")
     flags.DEFINE_integer("g_iter",        8,            "The number of iteration for generator")
     flags.DEFINE_integer("iteration",     10000000,     "Training iteration")
 
@@ -80,12 +81,12 @@ def Param():
     flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
+    flags.DEFINE_boolean("plot_paper1",    True,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")    
     ## Plot for paper 3
