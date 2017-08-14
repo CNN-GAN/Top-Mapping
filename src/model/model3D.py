@@ -135,11 +135,15 @@ class Net3D(object):
                                          .minimize(self.loss_dicX,    var_list=self.var_dicX)
             self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
-
-        self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
-        self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                     .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+            self.optim_dicJ    = tf.train.RMSPropOptimizer(args.lr) \
+                                         .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+            self.optim_dicfJ   = tf.train.RMSPropOptimizer(args.lr) \
+                                         .minimize(self.loss_dicfJ,   var_list=self.var_gen)
+        else:
+            self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
+            self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_dicfJ,   var_list=self.var_gen)
 
         # Initial layer's variables
         tl.layers.initialize_global_variables(self.sess)

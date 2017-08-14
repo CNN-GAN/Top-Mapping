@@ -14,7 +14,7 @@ python main.py
 
 ## Tensorboard
 ```bash
-tensorboard --logdir=./logs --port=8008
+tensorboard --logdir=./logs --port=8080
 ```
 
 ## Param

@@ -14,8 +14,8 @@ import matplotlib.cm as cm
 
 
 class SeqSLAM():
+
     params = None
-    
     def __init__(self, params, args):
         self.params = params
         self.args = args
@@ -47,7 +47,7 @@ class SeqSLAM():
         for i in range(len(self.params.dataset)):
 
             # or shall we actually calculate it?
-            p = deepcopy(self.params)    
+            p = deepcopy(self.params)
             p.dataset = self.params.dataset[i]
             d = AttributeDict()
             d.preprocessing = np.copy(SeqSLAM.preprocessing(p, self.args))
@@ -136,7 +136,6 @@ class SeqSLAM():
                     f = 255.0/np.max((1, np.max(pp) - np.min(pp)))
                     img[n[i]:n[i+1], m[j]:m[j+1]] = np.round(f * (p-np.min(pp)))
                     
-                #print str((n[i], n[i+1], m[j], m[j+1]))
         return img
     
     def getDifferenceMatrix(self, data0preproc, data1preproc):

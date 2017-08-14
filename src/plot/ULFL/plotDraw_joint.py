@@ -14,7 +14,7 @@ def Plot_Joint(args):
 
     test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
 
-    result_img = os.path.join(args.result_dir, 'ALI')
+    result_img = os.path.join(args.result_dir, 'ALI/ALI')
     result_pcd = os.path.join(args.result_dir, 'ALI_3D')
     result_dir = os.path.join(args.result_dir, 'Joint')
     matrix_dir = os.path.join(result_dir,      'MATRIX')
@@ -23,7 +23,7 @@ def Plot_Joint(args):
     pose_dir   = os.path.join(args.data_dir,   'new_loam', '00')
     
     pcd_epoch = "250"
-    img_epoch = "12"    
+    img_epoch = "22"    
 
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)   
@@ -40,7 +40,7 @@ def Plot_Joint(args):
     Trainvector_img = os.path.join(result_img, img_epoch+'_gt_vt.npy')
     Trainvector_pcd = os.path.join(result_pcd, pcd_epoch+'_gt_vt.npy')
     train_img = np.load(Trainvector_img)
-    train_pcd = np.load(Trainvector_pcd)
+    train_pcd = np.load(Trainvector_pcd)*1.0
     train_code = np.concatenate((train_img, train_pcd), axis=1)
 
     Trainvector_pose = os.path.join(pose_dir, 'gt', 'pose.txt')

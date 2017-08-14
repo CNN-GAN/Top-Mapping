@@ -1,5 +1,7 @@
-from src.third_function.pyseqslam.parameters import defaultParameters
-from src.third_function.pyseqslam.utils import AttributeDict
+from src.parameters import defaultParameters
+from src.utils import AttributeDict
+from src.seqslam import *
+
 import matplotlib
 import matplotlib.pyplot as plt
 from copy import deepcopy
@@ -10,13 +12,12 @@ import scipy.misc
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
 import json
 
-from seqslam import *
-
-def Seq(args):
+def Seq_LiDAR(args):
 
     # set the parameters
-    test_dir = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
+    #test_dir = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
 
+    test_dir = ["T1_R0.5", "T5_R0.5", "T10_R0.5", "T20_R0.5"]
     # start with default parameters
     params = defaultParameters()    
     
@@ -123,12 +124,13 @@ def Seq(args):
                 else:
                     match_PR[match_id,0] = 0
 
-            # print
+            # save match matrix
             match_PR[np.isnan(match_PR)]=0
             match_path = os.path.join(pr_dir, file_name+'_match.json')
             with open(match_path, 'w') as data_out:
                 json.dump(match_PR.tolist(), data_out)            
 
+            '''
             precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
             PR_data = zip(precision, recall)
             PR_path = os.path.join(pr_dir, file_name+'_PR.json')
@@ -153,5 +155,6 @@ def Seq(args):
             plt.title('PR Curve for Epoch_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
             fig_path = os.path.join(pr_dir, file_name+'_PR.jpg')
             plt.savefig(fig_path)
+            '''
         else:
             print "Zero matches"

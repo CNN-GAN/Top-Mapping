@@ -10,11 +10,13 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 
-def Plot_2D(args):
+def Plot_SLFL(args):
 
-    test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
-
-    result_dir = os.path.join(args.result_dir, 'ALI')
+    #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5"]
+    test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
+    file_name = ["r9_X_0.1_diter_2", "r10_Cout_0.05_X_0.1_diter_2", "r11_S_LS", "r12_X_LS", "r13_Ceach_X_LS", "r14_Cout_0.1_X_LS", "r15_Cout_0.5_X_LS"]
+    result_dir = os.path.join(args.result_dir, 'ALI_CLC', "r14_Cout_0.1_X_LS")
     matrix_dir = os.path.join(result_dir,      'MATRIX')
     pr_dir     = os.path.join(result_dir,      'PR')
     match_dir  = os.path.join(result_dir,      'MATCH')
@@ -33,7 +35,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(12, 13):
+    for epoch_id in range(1, 51):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_gt_vt.npy')
         train_img = np.load(Trainvector_img)
 
@@ -56,7 +58,7 @@ def Plot_2D(args):
             print (D.shape)
             scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_matrix.jpg'), D * 255)
             scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_enhance.jpg'), DD * 255)
-        
+            
             ## Save matching 
             match = getMatches(DD, 0, args)
             m = match[:,0]
@@ -97,7 +99,7 @@ def Plot_2D(args):
             PR_path = os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.json')
             with open(PR_path, 'w') as data_out:
                 json.dump(PR_data, data_out)
-            
+                
             fpr, tpr, _ = roc_curve(match_PR[:, 0], match_PR[:, 1])
             roc_auc     = auc(fpr, tpr)
             

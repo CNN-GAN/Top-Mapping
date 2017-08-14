@@ -12,16 +12,16 @@ from parameters import *
 
 def Plot_Paper1(args):
 
-    test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    test_name = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5",  "T5_R1.5", "T10_R1.5", "T1_R2",  "T5_R2",  "T10_R2"]
     linestyle = ['-', '--', '-.', ':']
-    result_2D = os.path.join(args.result_dir, 'ALI', 'PR')
+    result_2D = os.path.join(args.result_dir, 'ALI/ALI', 'PR')
     result_3D = os.path.join(args.result_dir, 'ALI_3D', 'PR')
     result_JD = os.path.join(args.result_dir, 'Joint', 'PR')
     result_Seq = os.path.join(args.result_dir, 'SeqSLAM', 'PR')
     result_dir = [result_2D, result_3D, result_JD, result_Seq]
     
     pcd_epoch = "250"
-    img_epoch = "12"
+    img_epoch = "22"
 
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', '']
     methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'SeqSLAM']
