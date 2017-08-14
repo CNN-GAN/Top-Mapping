@@ -7,21 +7,24 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 
-def Plot_Paper1(args):
+def Plot_Paper2(args):
 
-    test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    #test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    test_name = ["T1_R1", "T5_R1", "T10_R1", "T20_R1", "T1_R1.5",  "T5_R1.5", "T10_R1.5", "T20_R1.5", "T1_R2",  "T5_R2",  "T10_R2", "T20_R2"]
     linestyle = ['-', '--', '-.', ':']
-    result_2D = os.path.join(args.result_dir, 'ALI', 'PR')
+    result_2D = os.path.join(args.result_dir, 'ALI/ALI', 'PR')
     result_3D = os.path.join(args.result_dir, 'ALI_3D', 'PR')
     result_JD = os.path.join(args.result_dir, 'Joint', 'PR')
+    result_CLC = os.path.join(args.result_dir, 'ALI_CLC/r14_Cout_0.1_X_LS', 'PR')
     result_Seq = os.path.join(args.result_dir, 'SeqSLAM', 'PR')
-    result_dir = [result_2D, result_3D, result_JD, result_Seq]
+    result_dir = [result_2D, result_3D, result_JD, result_CLC, result_Seq]
     
     pcd_epoch = "250"
-    img_epoch = "12"
+    img_epoch = "22"
+    clc_epoch = "49"
 
-    method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', '']
-    methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'SeqSLAM']
+    method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', clc_epoch+'_', '']
+    methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'ALI cycle SeqSLAM', 'SeqSLAM']
 
     ROC = np.zeros([len(methods), len(test_name)]).astype('float')
 
@@ -44,11 +47,7 @@ def Plot_Paper1(args):
             precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
             plt.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
             legend.append(test_name[i])
-            #print (precision.shape)
-            #print (recall.shape)
-            
-            #PR_2D[i,0] = precision
-            #PR_2D[i,1] = recall     
+
             
         plt.legend(legend, loc='lower left')
         
@@ -62,7 +61,7 @@ def Plot_Paper1(args):
 
 
     ## plot in figure
-    plt.figure()
+    plt.figure(figsize=(15, 7.5))
     plt.xlabel("Transformation Error")
     plt.ylabel("AUC score")
     w = 1.2
@@ -71,9 +70,10 @@ def Plot_Paper1(args):
     dimw = w/method
     x = np.arange(len(test_name))
     b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('2D feature based SeqSLAM')), bottom=0.001)
-    b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature based SeqSLAM')), bottom=0.001)
-    b3 = plt.bar(x+2*dimw, ROC[2],  dimw, color='r', label=(('Joint feature based SeqSLAM')), bottom=0.001)
-    b4 = plt.bar(x+3*dimw, ROC[3],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
+    #b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature based SeqSLAM')), bottom=0.001)
+    b3 = plt.bar(x+1*dimw, ROC[2],  dimw, color='b', label=(('Joint feature based SeqSLAM')), bottom=0.001)
+    b4 = plt.bar(x+2*dimw, ROC[3],  dimw, color='r', label=(('ALI_CLC')), bottom=0.001)
+    b5 = plt.bar(x+3*dimw, ROC[4],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
     plt.legend()
     plt.ylim(0.0, 1.5)
     plt.xticks(x + dimw*2, test_name)

@@ -40,7 +40,7 @@ def Plot_Joint(args):
     Trainvector_img = os.path.join(result_img, img_epoch+'_gt_vt.npy')
     Trainvector_pcd = os.path.join(result_pcd, pcd_epoch+'_gt_vt.npy')
     train_img = np.load(Trainvector_img)
-    train_pcd = np.load(Trainvector_pcd)*2.0
+    train_pcd = np.load(Trainvector_pcd)*1.0
     train_code = np.concatenate((train_img, train_pcd), axis=1)
 
     Trainvector_pose = os.path.join(pose_dir, 'gt', 'pose.txt')

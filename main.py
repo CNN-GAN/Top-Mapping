@@ -12,6 +12,7 @@ from src.plot.ULFL.plotDraw_joint import Plot_Joint
 from src.plot.ULFL.plotDraw_3d import Plot_3D
 from src.plot.ULFL.plotDraw_2d import Plot_2D
 from src.plot.plotPaper1  import Plot_Paper1
+from src.plot.plotPaper2  import Plot_Paper2
 
 # For the second paper, Stable LiDAR Feature Learning
 from src.plot.SLFL.plotDraw_slfl import Plot_SLFL
@@ -45,6 +46,8 @@ def main(_):
         print ("ploting the figures...")
         if args.plot_paper1 == True:
             Plot_Paper1(args)
+        if args.plot_paper2 == True:
+            Plot_Paper2(args)
         if args.plot_3D == True:
             Plot_3D(args)
         if args.plot_2D == True:
