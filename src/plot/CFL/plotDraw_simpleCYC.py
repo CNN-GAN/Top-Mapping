@@ -7,13 +7,13 @@ import json
 from src.util.utils import *
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 
 def Plot_simpleCYC(args):
 
-    route_dir = ["Route1", "Route2", "Route3"]
-    test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+    route_dir = ["Route1", "Route2"]
+    test_dir = ["FOGGY", "RAIN", "SUNNY"]
     
     result_dir = os.path.join(args.result_dir, 'simpleCYC')
     matrix_dir = os.path.join(result_dir, 'MATRIX')
@@ -32,7 +32,7 @@ def Plot_simpleCYC(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1, 49):
+    for epoch_id in range(29, 30):
         for route_id, route_name in enumerate(route_dir):
             for w_i in range(len(test_dir)):
                 Trainvector_path = os.path.join(result_dir, \
@@ -42,12 +42,16 @@ def Plot_simpleCYC(args):
             
                 for w_j in range(w_i+1, len(test_dir)):
 
+                    file_name = str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j]
                     print('Load data epoch:{}, file:{}'.format(epoch_id, test_dir[w_j])) 
                     Testvector_path = os.path.join(result_dir, str(epoch_id)+'_'+route_name+'_'+test_dir[w_j]+'_vt.npy')
                     test_code = np.load(Testvector_path)
                     #test_code = test_code[0:args.test_len*args.frame_skip:args.frame_skip]
                     D = Euclidean(train_code, test_code)
                     DD = enhanceContrast(D, 30)
+
+                    scipy.misc.imsave(os.path.join(matrix_dir, file_name+'_matrix.jpg'), D * 255)
+                    scipy.misc.imsave(os.path.join(matrix_dir, file_name+'_enhance.jpg'), DD * 255)
                     
                     #D_sub = D[100:300, 300:500]
                     #scipy.misc.imsave(os.path.join(matrix_dir, \
@@ -70,8 +74,8 @@ def Plot_simpleCYC(args):
                     plt.ylabel('Stored data')
                     plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
                     plt.plot(m,'.') 
-                    plt.title('Epoch_'+str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j])
-                    plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j]+'_match.jpg'))
+                    plt.title('Epoch_'+file_name)
+                    plt.savefig(os.path.join(match_dir, file_name+'_match.jpg'))
                     plt.close()
 
                     ## Caculate Precision and Recall Curve
@@ -82,11 +86,38 @@ def Plot_simpleCYC(args):
                     match_PR[match_EE<=args.match_thres, 0] = 1
                     match_PR[match_EE> args.match_thres, 0] = 0
                     match_PR[np.isnan(match_PR)]=0
-                    match_path = os.path.join(pr_dir, \
-                                    str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_'+test_dir[w_j]+'_match.json')
+                    match_path = os.path.join(pr_dir, file_name+'_match.json')
                     print (match_path)
                     with open(match_path, 'w') as data_out:
                         json.dump(match_PR.tolist(), data_out)
+
+                    precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
+                    PR_data = zip(precision, recall) 
+                    PR_path = os.path.join(pr_dir, file_name+'_PR.json')
+                    with open(PR_path, 'w') as data_out:
+                        json.dump(PR_data, data_out)
+                
+                    fpr, tpr, _ = roc_curve(match_PR[:, 0], match_PR[:, 1])
+                    roc_auc     = auc(fpr, tpr)
+                    
+                    ROC_data = zip(fpr, tpr) 
+                    PR_path = os.path.join(pr_dir, file_name+'_ROC.json')
+                    with open(PR_path, 'w') as data_out:
+                        json.dump(PR_data, data_out)
+
+                    plt.figure()
+                    plt.xlim(0.0, 1.0)
+                    plt.ylim(0.0, 1.0)
+                    plt.xlabel('Recall/FPR')
+                    plt.ylabel('Precision/TPR')
+                    plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
+                    plt.plot(fpr, tpr, lw=2, color='deeppink', label='ROC curve')
+                    plt.title('PR Curve for Epoch_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
+                    plt.savefig(os.path.join(pr_dir, file_name+'_PR.jpg'))
+                    plt.close()
+                    plt.clf()
+
+
 
 
                 '''

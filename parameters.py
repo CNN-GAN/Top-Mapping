@@ -11,7 +11,7 @@ def Param():
     flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
     flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
     flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
-    flags.DEFINE_float("cycle",           0.5,          "threshold for cycle updating")
+    flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
@@ -28,7 +28,7 @@ def Param():
     flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("log_name",       "ALI",        "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("log_name",       "r1_C_0.1",  "Directory name to save tensorboard [tb_logs]")
     
     ## Training
     flags.DEFINE_string("method",         "simpleCYC",        "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
@@ -61,13 +61,14 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,           "velocity gap")
     flags.DEFINE_float("vmax",            1.2,           "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,            "rainbow")
-    flags.DEFINE_integer("frame_skip",    3,             "frame skip")    
+    flags.DEFINE_integer("frame_skip",    1,             "frame skip")    
     flags.DEFINE_integer("Knn",           5,             "K nearest point")
     flags.DEFINE_integer("test_len",      300,           "test data length")
+    flags.DEFINE_integer("test_base",     0,             "test data base")
     flags.DEFINE_string("test_dir",    "test_T10_R2",    "Directory name to extract image datas")
     flags.DEFINE_string("match_method",   "ANN",         "ANN or Force")
     flags.DEFINE_float("match_distance",   10,           "match threshold for distance")
-    flags.DEFINE_float("match_thres",      40,           "match threshold for GTAV")
+    flags.DEFINE_float("match_thres",      80,           "match threshold for GTAV")
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
@@ -78,19 +79,20 @@ def Param():
     
     ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
-    flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
+    flags.DEFINE_boolean("SeqGTAV",       False,         "SeqGTAV")
 
     ## Plotting
     flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
+    flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
     ## Plot for paper 3
-    flags.DEFINE_boolean("plot_simplecyc", True,         "True for ploting simplecyc")
+    flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
+    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
 
     return flags.FLAGS

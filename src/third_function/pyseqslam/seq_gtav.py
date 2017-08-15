@@ -7,7 +7,7 @@ from copy import deepcopy
 import time
 import os
 
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, roc_curve, auc
 import json
 
 def Seq_GTAV(args):
@@ -35,10 +35,14 @@ def Seq_GTAV(args):
         os.makedirs(match_dir)   
 
     img_base = os.path.join(data_dir, 'GTAV')
-    route = ['Route1', 'Route2', 'Route3']
-    weather = ['FOGGY1', 'FOGGY2', 'RAIN1', 'RAIN2', 'SUNNY1', 'SUNNY2']
+    route = ['Route1', 'Route2']
+    weather = ['FOGGY', 'RAIN', 'SUNNY']
 
     for r_id, route_name in enumerate(route):
+
+        if r_id==2:
+            args.test_base=400
+
         for w_i in range(len(weather)):
             # Train dataset
             ds = AttributeDict()
@@ -54,6 +58,7 @@ def Seq_GTAV(args):
             
             for w_j in range(w_i+1, len(weather)):
 
+                file_name = route_name+'_'+weather[w_i]+'_'+weather[w_j]
                 # Test dataset
                 ds2 = deepcopy(ds)
                 ds2.name = 'test'
@@ -81,12 +86,12 @@ def Seq_GTAV(args):
                 ## show some results
                 plt.figure()
                 m = results.matches[:,0] # The LARGER the score, the WEAKER the match.
-                thresh=0.95  # you can calculate a precision-recall plot by varying this threshold
+                thresh=0.80  # you can calculate a precision-recall plot by varying this threshold
                 m[results.matches[:,1]>thresh] = np.nan # remove the weakest matches
                 plt.plot(m,'.')      # ideally, this would only be the diagonal
                 plt.title('Matchings')   
                 plt.title('Matching '+ route_name + '_' + weather[w_i] + '_' + weather[w_j])
-                plt.savefig(os.path.join(match_dir, route_name+'_'+weather[w_i]+'_'+weather[w_j]+'_match.jpg'))
+                plt.savefig(os.path.join(match_dir, file_name+'_match.jpg'))
                 plt.close()
 
                 # save match matrix
@@ -94,10 +99,36 @@ def Seq_GTAV(args):
                 match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
                 match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
                 match_EE = np.abs(match_PR[:,0] - match_BS)
-                match_PR[match_EE<=args.match_thres, 0] = 1
-                match_PR[match_EE> args.match_thres, 0] = 0
+                match_PR[match_EE<=20, 0] = 1
+                match_PR[match_EE> 20, 0] = 0
                 match_PR[np.isnan(match_PR)]=0
-                match_path = os.path.join(pr_dir, route_name+'_'+weather[w_i]+'_'+weather[w_j]+'_match.json')
+                match_path = os.path.join(pr_dir, file_name+'_match.json')
                 print (match_path)
                 with open(match_path, 'w') as data_out:
                     json.dump(match_PR.tolist(), data_out)
+
+                precision, recall, _ = precision_recall_curve(match_PR[:, 0], match_PR[:, 1])
+                PR_data = zip(precision, recall) 
+                PR_path = os.path.join(pr_dir, file_name+'_PR.json')
+                with open(PR_path, 'w') as data_out:
+                    json.dump(PR_data, data_out)
+                    
+                fpr, tpr, _ = roc_curve(match_PR[:, 0], match_PR[:, 1])
+                roc_auc     = auc(fpr, tpr)
+                
+                ROC_data = zip(fpr, tpr) 
+                PR_path = os.path.join(pr_dir, file_name+'_ROC.json')
+                with open(PR_path, 'w') as data_out:
+                    json.dump(PR_data, data_out)
+
+                plt.figure()
+                plt.xlim(0.0, 1.0)
+                plt.ylim(0.0, 1.0)
+                plt.xlabel('Recall/FPR')
+                plt.ylabel('Precision/TPR')
+                plt.plot(recall, precision, lw=2, color='navy', label='Precision-Recall curve')
+                plt.plot(fpr, tpr, lw=2, color='deeppink', label='ROC curve')
+                plt.title('PR Curve for Epoch_'+file_name+'  (area={0:0.2f})'.format(roc_auc))
+                plt.savefig(os.path.join(pr_dir, file_name+'_PR.jpg'))
+                plt.close()
+                plt.clf()

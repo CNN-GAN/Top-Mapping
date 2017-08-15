@@ -200,13 +200,37 @@ class Net_simpleCYC(object):
             print("[!] Initial network done")
 
         # Initial global variables
-        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        log_dir = os.path.join(args.log_dir, args.method, args.log_name)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)     
+        self.writer = tf.summary.FileWriter(log_dir, self.sess.graph)
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)        
 
         # Load Data files
         data_bags = [[],[],[]]
         min_len = 20000
+
+        route_names = ['Route1', 'Route2']
+        data_names = ['FOGGY1', 'FOGGY2', 'SUNNY1', 'SUNNY2', 'RAIN1', 'RAIN2']
+
+        for data_id, data_name in enumerate(data_names):
+            data_file = []
+            for route_id, route_name in enumerate(route_names):
+                read_path = os.path.join("./data/GTAV", route_name, data_name, "*.jpg")
+                tmp_file = glob(read_path)
+                data_file += tmp_file
+
+            data_code = np.ones(len(data_file)) * np.int(data_id/2)
+            datas = zip(data_file, data_code)
+            data_bags[np.int(data_id/2)] += datas
+
+            #print ('shape is {}'.format(np.array(data_bags[np.int(data_id/2)])))
+            if data_id%2==1:
+                if len(data_bags[np.int(data_id/2)]) < min_len:
+                    min_len = len(data_bags[np.int(data_id/2)])
+
+        '''
         for data_id in range(0, 3):
             read_path = os.path.join("./data/GTAV", 'data'+str(data_id), "*.jpg")
             data_file = glob(read_path)
@@ -217,6 +241,7 @@ class Net_simpleCYC(object):
 
             datas = zip(data_file, data_code)
             data_bags[data_id] = datas
+        '''
 
         print ("Minimum length is {}".format(min_len))
 
@@ -312,13 +337,13 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2", "Route3"]
-        test_dir = ["FOGGY1", "FOGGY2", "RAIN1", "RAIN2", "SUNNY1", "SUNNY2"]
+        route_dir = ["Route1", "Route2"]
+        test_dir = ["FOGGY", "RAIN", "SUNNY"]
         result_dir = os.path.join(args.result_dir, args.method)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(1, 49):
+        for test_epoch in range(29, 30):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
@@ -332,7 +357,10 @@ class Net_simpleCYC(object):
                     ## Evaulate test data
                     test_files  = glob(os.path.join(args.data_dir, args.dataset, route_name, file_name, "*.jpg"))
                     test_files.sort()
-                    test_files = test_files[0:args.test_len]
+                    if route_index != 2:
+                        test_files = test_files[0:args.test_len]
+                    else:
+                        test_files = test_files[400:args.test_len+400]
                     
                     ## Extract Test data code
                     start_time = time.time()
@@ -349,6 +377,9 @@ class Net_simpleCYC(object):
 
     
                     print("Test code extraction time: %4.4f"  % (time.time() - start_time))
+                    if route_index==2:
+                        route_name = "Route3"
+
                     Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
                     print ("save path {}".format(Testvector_path))
                     np.save(Testvector_path, test_code)

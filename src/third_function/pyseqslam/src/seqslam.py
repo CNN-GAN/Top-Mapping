@@ -67,7 +67,7 @@ class SeqSLAM():
         # allocate memory for all the processed images
         data_files  = glob(os.path.join(params.dataset.imagePath, "*.jpg"))
         data_files.sort()
-        data_files = data_files[0:args.test_len*args.frame_skip:args.frame_skip]
+        data_files = data_files[args.test_base:(args.test_len*args.frame_skip+args.test_base):args.frame_skip]
         n = len(data_files)
         m = params.downsample.size[0]*params.downsample.size[1] 
 
