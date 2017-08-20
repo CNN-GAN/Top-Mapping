@@ -52,18 +52,13 @@ def Plot_Paper3(args):
                 axarr[method_id].set_title('PR Curve for '+method_name)
                 axarr[method_id].set_xlim(0.0, 1.0)
                 axarr[method_id].set_ylim(0.0, 1.0)
-                #axarr[method_id].set_xlabel('Recall')
-                #axarr[method_id].set_ylabel('Precision')
                 legend.append(weather_name)
 
         plt.legend(legend, loc='lower left')
-        #plt.xlim(0.0, 1.0)
-        #plt.ylim(0.0, 1.0)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.savefig(route_name+'_'+'_PR.jpg')
         plt.close()
-
 
 
     plt.figure()
@@ -87,6 +82,5 @@ def Plot_Paper3(args):
     plt.legend()
     plt.ylim(0.0, 1.5)
     
-
     plt.savefig('AUC_score.jpg')
     plt.close()
