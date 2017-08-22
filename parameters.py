@@ -90,9 +90,9 @@ def Param():
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
+    flags.DEFINE_boolean("plot_paper2",    True,        "True for ploting paper2")
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
-    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
 
     return flags.FLAGS

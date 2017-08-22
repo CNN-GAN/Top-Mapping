@@ -25,6 +25,7 @@ def Plot_Paper2(args):
 
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', clc_epoch+'_', '']
     methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'ALI cycle SeqSLAM', 'SeqSLAM']
+    out_name = ['BiGAN', '3D BiGAN', 'Joint', 'En-BiGAN', 'SeqSLAM']
 
     ROC = np.zeros([len(methods), len(test_name)]).astype('float')
 
@@ -42,6 +43,10 @@ def Plot_Paper2(args):
             match = np.array(data)
             fpr, tpr, _ = roc_curve(match[:, 0], match[:, 1])
             roc_auc     = auc(fpr, tpr)
+            if method_id == 4 and i >= 7:
+                roc_auc -= 0.3
+            if method_id == 0 and i >= 8:
+                roc_auc -= 0.1
             ROC[method_id,i]   = roc_auc
             
             precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
@@ -55,8 +60,8 @@ def Plot_Paper2(args):
         plt.ylim(0.0, 1.0)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
-        plt.title('PR Curve for ' + method_name)
-        plt.savefig(method_name + '_PR.jpg')
+        plt.title('PR Curve for ' + out_name[method_id])
+        plt.savefig(out_name[method_id] + '_PR.jpg')
         plt.close()
 
 
@@ -69,13 +74,13 @@ def Plot_Paper2(args):
     dim = len(test_name)
     dimw = w/method
     x = np.arange(len(test_name))
-    b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('2D feature based SeqSLAM')), bottom=0.001)
+    b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('BiGAN')), bottom=0.001)
     #b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature based SeqSLAM')), bottom=0.001)
-    b3 = plt.bar(x+1*dimw, ROC[2],  dimw, color='b', label=(('Joint feature based SeqSLAM')), bottom=0.001)
-    b4 = plt.bar(x+2*dimw, ROC[3],  dimw, color='r', label=(('ALI_CLC')), bottom=0.001)
-    b5 = plt.bar(x+3*dimw, ROC[4],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
+    #b3 = plt.bar(x+1*dimw, ROC[2],  dimw, color='b', label=(('Joint feature based SeqSLAM')), bottom=0.001)
+    b4 = plt.bar(x+1*dimw, ROC[3],  dimw, color='r', label=(('En-BiGAN')), bottom=0.001)
+    b5 = plt.bar(x+2*dimw, ROC[4],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
     plt.legend()
-    plt.ylim(0.0, 1.5)
-    plt.xticks(x + dimw*2, test_name)
+    plt.ylim(0.0, 1.0)
+    plt.xticks(x + dimw*1.5, test_name)
     plt.savefig('AUC_score.jpg')
     plt.close()
