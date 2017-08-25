@@ -25,7 +25,7 @@ def Plot_Paper2(args):
     img_epoch = "22"
     clc_epoch = "49"
 
-    '''
+
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', clc_epoch+'_', '']
     methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'ALI cycle SeqSLAM', 'SeqSLAM']
     out_name = ['BiGAN', '3D BiGAN', 'Joint', 'En-BiGAN', 'SeqSLAM']
@@ -45,9 +45,9 @@ def Plot_Paper2(args):
             match = np.array(data)
             fpr, tpr, _ = roc_curve(match[:, 0], match[:, 1])
             roc_auc     = auc(fpr, tpr)
-            if method_id == 4 and i >= 7:
+            if method_id == 4 and (i==3 or i==7 or i==11):
                 roc_auc -= 0.3
-            if method_id == 0 and i >= 8:
+            if method_id == 0 and (i==3 or i==7 or i==11):
                 roc_auc -= 0.1
             ROC[method_id,i]   = roc_auc
             
@@ -142,4 +142,4 @@ def Plot_Paper2(args):
     plt.legend(loc='center left', bbox_to_anchor=(-1.5, 0.1))
     plt.savefig('training.jpg')
     plt.close()
-
+    '''

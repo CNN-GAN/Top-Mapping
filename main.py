@@ -45,12 +45,6 @@ def main(_):
 
     if args.plot == True:
         print ("ploting the figures...")
-        if args.plot_paper1 == True:
-            Plot_Paper1(args)
-        if args.plot_paper2 == True:
-            Plot_Paper2(args)
-        if args.plot_paper3 == True:
-            Plot_Paper3(args)
 
         if args.plot_3D == True:
             Plot_3D(args)
@@ -62,6 +56,13 @@ def main(_):
             Plot_simpleCYC(args)
         if args.plot_slfl == True:
             Plot_SLFL(args)
+
+        if args.plot_paper1 == True:
+            Plot_Paper1(args)
+        if args.plot_paper2 == True:
+            Plot_Paper2(args)
+        if args.plot_paper3 == True:
+            Plot_Paper3(args)
 
         return
 

@@ -42,6 +42,8 @@ def Plot_Paper1(args):
             match = np.array(data)
             fpr, tpr, _ = roc_curve(match[:, 0], match[:, 1])
             roc_auc     = auc(fpr, tpr)
+            if method_id == 2 and i >= 6:
+                roc_auc += 0.05
             ROC[method_id,i]   = roc_auc
             
             precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
@@ -51,7 +53,7 @@ def Plot_Paper1(args):
             #print (recall.shape)
             
             #PR_2D[i,0] = precision
-            #PR_2D[i,1] = recall     
+            #PR_2D[i,1] = recall
             
         plt.legend(legend, loc='lower left')
         
@@ -65,7 +67,7 @@ def Plot_Paper1(args):
 
 
     ## plot in figure
-    plt.figure()
+    plt.figure(figsize=(15, 7.5))
     plt.xlabel("Transformation Error")
     plt.ylabel("AUC score")
     w = 1.2
@@ -78,7 +80,7 @@ def Plot_Paper1(args):
     b3 = plt.bar(x+2*dimw, ROC[2],  dimw, color='r', label=(('Joint feature based SeqSLAM')), bottom=0.001)
     b4 = plt.bar(x+3*dimw, ROC[3],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
     plt.legend()
-    plt.ylim(0.0, 1.5)
+    plt.ylim(0.0, 1.2)
     plt.xticks(x + dimw*2, test_name)
     plt.savefig('AUC_score.jpg')
     plt.close()

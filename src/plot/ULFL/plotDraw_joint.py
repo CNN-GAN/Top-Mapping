@@ -51,8 +51,8 @@ def Plot_Joint(args):
         print('Load data file:{}'.format(file_name)) 
         Testvector_img = os.path.join(result_img, img_epoch+'_'+file_name+'_vt.npy')
         Testvector_pcd = os.path.join(result_pcd, pcd_epoch+'_'+file_name+'_vt.npy')
-        test_img = np.load(Testvector_img)
-        test_pcd = np.load(Testvector_pcd)
+        test_img = np.load(Testvector_img)*1.0
+        test_pcd = np.load(Testvector_pcd)*1.0
         test_code = np.concatenate((test_img, test_pcd), axis=1)     
 
         Testvector_pose = os.path.join(pose_dir, file_name, 'pose.txt')
@@ -60,6 +60,7 @@ def Plot_Joint(args):
         test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]        
 
         D = Euclidean(train_code, test_code)
+        #D = Cosine(train_code, test_code)
         DD = enhanceContrast(D, 30)
         DD_sub = DD[150:200, 150:200]    
 
