@@ -124,14 +124,14 @@ def Plot_Paper2(args):
         xd = range(1, 29)
         x_new = np.linspace(1, 29, 300)
         smooth_auc = spline(xd, AUC[i,0], x_new)
-        l1 = ax.plot(xd, AUC[i,0], '*',     color='r', label=methods[0])
-        l2 = ax.plot(x_new,  smooth_auc,  color='r', label=methods[0]+'_fit')
+        l1 = ax.plot(xd, AUC[i,0], '*',     color='r')
+        l2 = ax.plot(x_new,  smooth_auc,  color='r', label=methods[0])
 
         xd = range(1, 29)
         x_new = np.linspace(1, 29, 300)
         smooth_auc = spline(xd, AUC[i,1], x_new)
-        l3 = ax.plot(xd, AUC[i,1], '*',     color='g', label=methods[1])
-        l4 = ax.plot(x_new,  smooth_auc,  color='g', label=methods[1]+'_fit')
+        l3 = ax.plot(xd, AUC[i,1], '*',     color='g')
+        l4 = ax.plot(x_new,  smooth_auc,  color='g', label=methods[1])
 
         ax.set_xlim(0.0, 28.0)
         ax.set_title(test_name[i])

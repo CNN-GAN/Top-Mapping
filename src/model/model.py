@@ -374,6 +374,47 @@ class Net(object):
                 GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, train_code)
 
+    def reconstruct(self, args):
+
+        result_dir = os.path.join(args.result_dir, args.method, args.log_name, 'reconstruct')
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+
+        for test_epoch in range(22, 23):
+
+            # Initial layer's variables
+            self.test_epoch = test_epoch
+            self.loadParam(args)
+            print("[*] Load network done")
+
+            ## Evaulate train data
+            train_files = glob(os.path.join(args.data_dir, args.dataset, "00", "gt/img/*.jpg"))
+            train_files.sort()
+            
+            ## Extract Train data code
+            for id in range(1, 400):
+                if id%5 != 0:
+                    continue
+
+                sample_file = train_files[id]
+                sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                               resize_w=args.output_size, is_grayscale=0)
+                sample_image = np.array(sample).astype(np.float32)
+                sample_image = sample_image.reshape([1,64,64,3])
+                print ("Load data {}".format(sample_file))
+                feed_dict={self.d_real_x: sample_image}
+
+                cycl_img = self.sess.run([self.n_cycl_x.outputs], feed_dict=feed_dict)
+
+                # save image
+                cycl_img = (np.array(cycl_img) + 1) / 2 * 255
+                cycl_img = cycl_img.reshape((64, 64, 3))
+                sample_image = sample_image.reshape((64, 64, 3))
+                print (cycl_img.shape)
+                print (sample_image.shape)
+                scipy.misc.imsave('{}/{}_origin_{:04d}.png'.format(result_dir, str(test_epoch), id), sample_image)
+                scipy.misc.imsave('{}/{}_cycle_{:04d}.png'.format(result_dir, str(test_epoch), id), cycl_img)
+
         
     def makeSample(self, feed_dict, sample_dir, idx):
         summary, img = self.sess.run([self.summ_merge, self.n_fake_x.outputs], feed_dict=feed_dict)
