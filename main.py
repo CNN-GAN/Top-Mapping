@@ -102,7 +102,13 @@ def main(_):
 
     with tf.Session(config=config) as sess:
         model = Net_model(sess, args)
-        model.train(args) if args.is_train == True else model.test(args)
+        if args.is_train == True:
+            model.train(args) 
+        else:
+            if args.is_reconstruct == True:
+                model.reconstruct(args)
+            else:
+                model.test(args)
 
 if __name__ == '__main__':
     tf.app.run()
