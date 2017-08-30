@@ -35,7 +35,6 @@ def Plot_Paper1(args):
         PR  = np.zeros([len(test_name),2,300]).astype('float')
         for i in range(len(test_name)):
             file_path = os.path.join(result_dir[method_id], method_dir[method_id]+test_name[i]+'_match.json')
-            print (file_path)
             with open(file_path) as data_file:
                 data = json.load(data_file)
 
@@ -49,11 +48,10 @@ def Plot_Paper1(args):
             precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
             plt.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
             legend.append(test_name[i])
-            #print (precision.shape)
-            #print (recall.shape)
-            
-            #PR_2D[i,0] = precision
-            #PR_2D[i,1] = recall
+            recall_id = [x for x in range(len(precision)) if precision[x] >=0.99][0]
+            print (file_path)
+            print (recall[recall_id])
+
             
         plt.legend(legend, loc='lower left')
         
