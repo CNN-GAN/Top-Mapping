@@ -20,11 +20,14 @@ from src.plot.SLFL.plotDraw_slfl import Plot_SLFL
 
 # For the third paper, Common Feature Learning
 from src.plot.CFL.plotDraw_simpleCYC import Plot_simpleCYC
+from src.plot.CFL.plotDraw_VGG import Plot_VGG
 
 # SeqSLAM for LiDAR inputs
 from src.third_function.pyseqslam.seq_lidar import Seq_LiDAR
 # SeqSLAM for GTAV image
 from src.third_function.pyseqslam.seq_gtav import Seq_GTAV
+# SeqSLAM with VGG cnn features
+from src.third_function.vgg16.vgg16 import Seq_VGG
 
 # Obtain parameters
 args = Param()
@@ -42,7 +45,6 @@ def main(_):
         Seq_GTAV(args)
         return
 
-
     if args.plot == True:
         print ("ploting the figures...")
 
@@ -54,6 +56,8 @@ def main(_):
             Plot_Joint(args)
         if args.plot_simplecyc == True:
             Plot_simpleCYC(args)
+        if args.plot_VGG == True:
+            Plot_VGG(args)
         if args.plot_slfl == True:
             Plot_SLFL(args)
 
@@ -102,6 +106,12 @@ def main(_):
     config.gpu_options.allow_growth=True
 
     with tf.Session(config=config) as sess:
+
+        # Use VGG CNN features for SeqSLAM
+        if args.SeqVGG == True:
+            Seq_VGG(sess, args)
+            return
+
         model = Net_model(sess, args)
         if args.is_train == True:
             model.train(args) 

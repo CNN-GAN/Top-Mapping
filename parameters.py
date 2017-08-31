@@ -28,10 +28,10 @@ def Param():
     flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("log_name",       "ALI",           "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI",        "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "simpleCYC",        "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -72,15 +72,16 @@ def Param():
 
     ## Flag
     flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
-    flags.DEFINE_boolean("is_train",      False,        "True for training, False for testing [False]")
-    flags.DEFINE_boolean("is_reconstruct",True,         "True for reconstruct")
+    flags.DEFINE_boolean("is_train",      False,         "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_reconstruct",False,         "True for reconstruct")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
     flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
     
     ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
-    flags.DEFINE_boolean("SeqGTAV",       False,         "SeqGTAV")
+    flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
+    flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
     flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
@@ -88,12 +89,13 @@ def Param():
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper1",    True,        "True for ploting paper1")
+    flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
-    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
+    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
 
     return flags.FLAGS

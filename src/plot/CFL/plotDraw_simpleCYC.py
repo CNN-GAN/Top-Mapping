@@ -15,7 +15,7 @@ def Plot_simpleCYC(args):
     route_dir = ["Route1", "Route2"]
     test_dir = ["FOGGY", "RAIN", "SUNNY"]
     
-    result_dir = os.path.join(args.result_dir, 'simpleCYC')
+    result_dir = os.path.join(args.result_dir, 'simpleCYC', args.log_name)
     matrix_dir = os.path.join(result_dir, 'MATRIX')
     pr_dir = os.path.join(result_dir, 'PR')
     match_dir = os.path.join(result_dir, 'MATCH')
