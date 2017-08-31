@@ -31,7 +31,11 @@ class Net_simpleCYC(object):
         self.is_train = args.is_train 
         
         # Network module
-        self.encoder  = encoder
+        if args.log_name == 'r1_C_0.1':
+            self.encoder  = encoder
+        else:
+            self.encoder  = encoder_condition
+
         self.decoder  = decoder_condition
         self.classify = classify
         self.discriminatorX = discriminator_condition
@@ -67,13 +71,16 @@ class Net_simpleCYC(object):
         self.d_id_B = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_B')
 
         self.rand_code = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name='rand_code')
-
-        ## Encoder
-        self.n_c_A,   self.d_c_A     = self.encoder(self.d_real_A, is_train=True, reuse=False)
         
         ## Classifier
         self.n_f_A,   self.d_f_A     = self.classify(self.d_real_A, is_train=True, reuse=False)
         self.n_f_B,   self.d_f_B     = self.classify(self.d_real_B, is_train=True, reuse=True)
+
+        ## Encoder
+        if args.log_name == 'r1_C_0.1':
+            self.n_c_A,   self.d_c_A     = self.encoder(self.d_real_A, is_train=True, reuse=False)
+        else:
+            self.n_c_A,   self.d_c_A     = self.encoder(self.d_f_A, self.d_real_A, is_train=True, reuse=False)
 
         ## Decoder
         self.n_fake_A, self.d_fake_A = self.decoder(self.d_f_A, self.d_c_A, is_train=True, reuse=False)
@@ -337,13 +344,13 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2"]
+        route_dir = ["Route1", "Route2", "Route3"]
         test_dir = ["FOGGY", "RAIN", "SUNNY"]
-        result_dir = os.path.join(args.result_dir, args.method)
+        result_dir = os.path.join(args.result_dir, args.method, args.log_name)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(29, 30):
+        for test_epoch in range(1, 27):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
@@ -399,27 +406,30 @@ class Net_simpleCYC(object):
     def loadParam(self, args):
         # load the latest checkpoints
         if args.is_train == True:
-            load_de  = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+            load_de  = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                          name='/net_de_%d.npz' % args.c_epoch)
-            load_en  = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+            load_en  = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                          name='/net_en_%d.npz' % args.c_epoch)
-            load_cls = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+            load_cls = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                          name='/net_cls_%d.npz' % args.c_epoch)
-            load_dis = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+            load_dis = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                          name='/net_dis_%d.npz' % args.c_epoch)
             tl.files.assign_params(self.sess, load_en, self.n_c_A)
             tl.files.assign_params(self.sess, load_de, self.n_h_B)
             tl.files.assign_params(self.sess, load_cls, self.n_f_A)
             tl.files.assign_params(self.sess, load_dis, self.n_dis_h_A)
         else:
-            load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method), \
+            load_cls = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                         name='/net_cls_%d.npz' % self.test_epoch)
+            load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                         name='/net_en_%d.npz' % self.test_epoch)
+            tl.files.assign_params(self.sess, load_cls, self.n_f_A)
             tl.files.assign_params(self.sess, load_en, self.n_c_A)
 
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.method)
+        save_dir = os.path.join(args.checkpoint_dir, args.method, args.log_name)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
             

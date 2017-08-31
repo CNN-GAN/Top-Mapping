@@ -96,7 +96,7 @@ def decoder_condition(condition, inputs, is_train=True, reuse=False):
         net_c_h1 = DenseLayer(net_c_h0, n_units=args.condition_dim, act=tf.identity, W_init = w_init, \
                               name='Condition/fc2')
 
-        # latent coder from Encoder
+        # latent coder from decoder
         net_e_in = InputLayer(inputs, name='Encoder/in')
         net_e_h0 = DenseLayer(net_e_in, n_units=1024, act=tf.identity, W_init = w_init, name='Encoder/fc1')
         net_e_h1 = DenseLayer(net_e_h0, n_units=args.code_dim, act=tf.identity, W_init = w_init, \
@@ -171,6 +171,54 @@ def decoder(inputs, is_train=True, reuse=False):
 
     return net_h4, logits
 
+def encoder_condition(condition, inputs, is_train=True, reuse=False):
+
+    w_init = tf.random_normal_initializer(stddev=0.02)
+    gamma_init = tf.random_normal_initializer(1., 0.02)
+
+    with tf.variable_scope("ENCODER", reuse=reuse):
+        tl.layers.set_name_reuse(reuse)
+
+        # latent coder from conditions
+        net_c_in = InputLayer(condition, name='Condition/in')
+        net_c_h0 = DenseLayer(net_c_in, n_units=512, act=tf.identity, W_init = w_init, name='Condition/fc1')
+        net_c_h1 = DenseLayer(net_c_h0, n_units=args.condition_dim, act=tf.identity, W_init = w_init, \
+                              name='Condition/fc2')
+
+        # latent coder from encoder
+        net_in = InputLayer(inputs, name='En/in')
+        net_h0 = Conv2d(net_in, args.img_filter, (5, 5), (2, 2), act=None,
+                        padding='SAME', W_init=w_init, name='En/h0/conv2d')
+        net_h0 = BatchNormLayer(net_h0, act=lambda x: tl.act.lrelu(x, 0.2),
+                                is_train=is_train, gamma_init=gamma_init, name='En/h0/batch_norm')
+
+        net_h1 = Conv2d(net_h0, args.img_filter*2, (5, 5), (2, 2), act=None,
+                        padding='SAME', W_init=w_init, name='En/h1/conv2d')
+        net_h1 = BatchNormLayer(net_h1, act=lambda x: tl.act.lrelu(x, 0.2),
+                                is_train=is_train, gamma_init=gamma_init, name='En/h1/batch_norm')
+
+        net_h2 = Conv2d(net_h1, args.img_filter*4, (5, 5), (2, 2), act=None,
+                        padding='SAME', W_init=w_init, name='En/h2/conv2d')
+        net_h2 = BatchNormLayer(net_h2, act=lambda x: tl.act.lrelu(x, 0.2),
+                                is_train=is_train, gamma_init=gamma_init, name='En/h2/batch_norm')
+
+        net_h3 = Conv2d(net_h2, args.img_filter*8, (5, 5), (2, 2), act=None,
+                        padding='SAME', W_init=w_init, name='En/h3/conv2d')
+        net_h3 = BatchNormLayer(net_h3, act=lambda x: tl.act.lrelu(x, 0.2),
+                                is_train=is_train, gamma_init=gamma_init, name='En/h3/batch_norm')
+
+        net_h4 = FlattenLayer(net_h3, name='En/h4/flatten')
+        net_h4 = DenseLayer(net_h4, n_units=args.code_dim, act=tf.identity,
+                            W_init = w_init, name='En/h4/lin_sigmoid')
+
+        # Joint coder for encodering
+        net_J0 = ConcatLayer(layer=[net_c_h1, net_h4], name='J0')
+        net_J1 = DenseLayer(net_J0, n_units=1024, W_init=w_init, act = tf.identity, name='J1')
+        net_J2 = DenseLayer(net_J1, n_units=args.code_dim, W_init=w_init, act = tf.identity, name='J2')
+
+        logits = net_J2.outputs
+
+    return net_J2, logits
 
 def encoder(inputs, is_train=True, reuse=False):
 
