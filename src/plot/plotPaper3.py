@@ -52,11 +52,11 @@ def Plot_Paper3(args):
                 precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
                 axarr[method_id].plot(recall, precision, lw=2, linestyle=linestyle[weather_id%3], label='Precision-Recall curve')
                 axarr[method_id].set_title('PR Curve for '+change_method[method_id])
-                axarr[method_id].set_xlim(0.0, 1.0)
+                axarr[method_id].set_xticklabels([])
                 axarr[method_id].set_ylim(0.0, 1.0)
                 legend.append(weather_name)
 
-        plt.legend(legend, loc='lower left')
+        plt.legend(legend, loc='center left', bbox_to_anchor=(0.0, 2.9))
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.savefig(route_name+'_'+'_PR.jpg')
