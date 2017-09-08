@@ -7,6 +7,7 @@ import matplotlib.image as mpimg
 from PIL import Image 
 from copy import deepcopy
 from glob import glob
+import time
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -26,9 +27,11 @@ class SeqSLAM():
             results = self.doPreprocessing()
         
         # image difference matrix             
+        #tmp_time = time.time()
         if self.params.DO_DIFF_MATRIX:
             results = self.doDifferenceMatrix(results)
         
+        #print("Time used: %4.4f"  % ((time.time()-tmp_time)/self.args.test_len))
         # contrast enhancement
         if self.params.DO_CONTRAST_ENHANCEMENT:
             results = self.doContrastEnhancement(results)        

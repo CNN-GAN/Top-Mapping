@@ -17,7 +17,8 @@ def Seq_LiDAR(args):
     # set the parameters
     #test_dir = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
 
-    test_dir = ["T1_R0.5", "T5_R0.5", "T10_R0.5", "T20_R0.5"]
+    #test_dir = ["T1_R0.5", "T5_R0.5", "T10_R0.5", "T20_R0.5"]
+    test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
     # start with default parameters
     params = defaultParameters()    
     

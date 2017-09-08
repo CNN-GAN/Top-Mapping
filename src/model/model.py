@@ -333,7 +333,8 @@ class Net(object):
             os.makedirs(result_dir)
 
         #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
-        test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
+        #test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
+        test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
         for test_epoch in range(1, 51):
 
             # Initial layer's variables
@@ -348,11 +349,14 @@ class Net(object):
                 train_files.sort()
                 
                 ## Extract Train data code
-                start_time = time.time()
                 train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
                 count = 0
-
+                time_sum = 0
+                time_min = 10000
+                time_max = -1.0
                 for id in range(len(train_files)):
+
+                    start_time = time.time()
                     if id%args.frame_skip != 0:
                         continue
 
@@ -368,8 +372,18 @@ class Net(object):
 
                     train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                     count = count+1
+                    time_len = time.time() - start_time
+                    time_sum += time_len
 
-                print("Train code extraction time: %4.4f"  % (time.time() - start_time))
+                    if time_max < time_len:
+                        time_max = time_len
+                    if time_min > time_len:
+                        time_min = time_len
+                
+                print("For {}".format(dir_name))
+                print("Average time: %4.4f"  % (time_sum/args.test_len))
+                print("Min time: %4.4f"  % time_min)
+                print("Max time: %4.4f"  % time_max)
                 print("save file {}".format(str(test_epoch)+'_'+dir_name+'_vt.npy'))
                 GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, train_code)
