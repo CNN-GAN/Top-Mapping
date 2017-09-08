@@ -24,7 +24,7 @@ def Plot_Paper3(args):
 
     method_dir = ['', simple_epoch+'_', '']
     methods = ['SeqGTAV', 'simpleCYC', 'VGG16']
-    change_method = ['CFL', 'SeqSLAM', 'DNN']
+    change_method = ['MDT', 'SeqSLAM', 'DNN']
 
     ROC = np.zeros([len(routes), len(methods), len(weathers)]).astype('float')
 
@@ -50,13 +50,17 @@ def Plot_Paper3(args):
                 ROC[route_id, method_id, weather_id] = roc_auc
                 
                 precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
+                recall_id = [x for x in range(len(precision)) if precision[x] >=0.99][0]
+                print (recall[recall_id])
+
                 axarr[method_id].plot(recall, precision, lw=2, linestyle=linestyle[weather_id%3], label='Precision-Recall curve')
                 axarr[method_id].set_title('PR Curve for '+change_method[method_id])
-                axarr[method_id].set_xlim(0.0, 1.0)
+                axarr[method_id].set_xticklabels([])
                 axarr[method_id].set_ylim(0.0, 1.0)
                 legend.append(weather_name)
 
-        plt.legend(legend, loc='lower left')
+        plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1],[0, 0.2, 0.4, 0.6, 0.8, 1])
+        plt.legend(legend, loc='center left', bbox_to_anchor=(0.0, 2.9))
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.savefig(route_name+'_'+'_PR.jpg')
@@ -76,7 +80,8 @@ def Plot_Paper3(args):
     for route_id, route_name in enumerate(routes):
 
         x = np.arange(len(weathers))
-        b1 = axarr[route_id].bar(x,        ROC[route_id, 0],  dimw, color='g', label=(('CFL')), bottom=0.001)
+        axarr[route_id].set_title('AUC index for '+route_name)
+        b1 = axarr[route_id].bar(x,        ROC[route_id, 0],  dimw, color='g', label=(('MDT')), bottom=0.001)
         b2 = axarr[route_id].bar(x+dimw*1, ROC[route_id, 1],  dimw, color='r', label=(('SeqSLAM')), bottom=0.001)
         b2 = axarr[route_id].bar(x+dimw*2, ROC[route_id, 2],  dimw, color='b', label=(('DNN')), bottom=0.001)
         axarr[route_id].set_xticklabels([])
