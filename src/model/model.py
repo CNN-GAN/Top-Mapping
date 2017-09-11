@@ -333,8 +333,8 @@ class Net(object):
             os.makedirs(result_dir)
 
         #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
-        #test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
-        test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+        test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
+        #test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
         for test_epoch in range(1, 51):
 
             # Initial layer's variables
