@@ -15,7 +15,7 @@ def Param():
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
         
     ## Data
-    flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, GTAV, loam]")
+    flags.DEFINE_string("dataset",        "GTAV",   "The name of dataset [new_loam, GTAV, loam]")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
     flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
@@ -92,9 +92,9 @@ def Param():
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    True,         "True for ploting paper2")
+    flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
     ## Plot for paper 3
-    flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
+    flags.DEFINE_boolean("plot_simplecyc", True,         "True for ploting simplecyc")
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
     flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
     flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")

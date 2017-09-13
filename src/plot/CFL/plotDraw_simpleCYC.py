@@ -4,6 +4,9 @@ import os
 import sys
 import json
 
+from glob import glob
+
+import scipy.misc
 from src.util.utils import *
 import numpy as np
 from matplotlib import pyplot as plt
@@ -19,6 +22,7 @@ def Plot_simpleCYC(args):
     matrix_dir = os.path.join(result_dir, 'MATRIX')
     pr_dir = os.path.join(result_dir, 'PR')
     match_dir = os.path.join(result_dir, 'MATCH')
+    pair_dir = os.path.join(result_dir, 'PAIR')
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)   
@@ -32,6 +36,10 @@ def Plot_simpleCYC(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
+    if not os.path.exists(pair_dir):
+        os.makedirs(pair_dir)   
+
+
     for epoch_id in range(29, 30):
         for route_id, route_name in enumerate(route_dir):
             for w_i in range(len(test_dir)):
@@ -39,6 +47,10 @@ def Plot_simpleCYC(args):
                                                 str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_vt.npy')
                 train_code = np.load(Trainvector_path)
                 #train_code = train_code[0:args.test_len]
+
+                ## Evaulate test data
+                train_files  = glob(os.path.join(args.data_dir, 'GTAV', route_name, 'o'+test_dir[w_i], "*.jpg"))
+                train_files.sort()
             
                 for w_j in range(w_i+1, len(test_dir)):
 
@@ -61,10 +73,26 @@ def Plot_simpleCYC(args):
                     #scipy.misc.imsave(os.path.join(matrix_dir, \
                     #            str(epoch_id)+'_'+route_name+'_'+file_name+'_'+Base_cmp+'_enhance.jpg'), DD * 255)
 
+                    ## Evaulate test data
+                    test_files  = glob(os.path.join(args.data_dir, 'GTAV', route_name, 'o'+test_dir[w_j], "*.jpg"))
+                    test_files.sort()
             
-                    ## Save matching 
+                    ## Extract Video
                     match = getMatches(DD, 0, args)
-                    print (match)
+                    #print (match)
+
+                    for mt in range(5, len(match)-10):
+                        #print (test_files[mt])
+                        #print (train_files[np.int(match[mt, 0])])
+                        img_Test  = scipy.misc.imread(test_files[mt], mode='RGB')
+                        img_Train = scipy.misc.imread(train_files[np.int(match[mt, 0])], mode='RGB')
+                        h, w = img_Test.shape[0], img_Test.shape[1]
+                        img = np.zeros((h, w*2, 3))
+                        img[0:h, 0:w, :] = img_Test
+                        img[0:h, w:2*w, :] = img_Train
+                        scipy.misc.imsave('{}/{}_{}_{:04d}.png'.format(pair_dir, test_dir[w_i], test_dir[w_j], mt), img)
+
+                    ## Save Matches
                     m = match[:,0]
                     thresh = 0.95
                     matched = match[match[:,1]<thresh, 1]
