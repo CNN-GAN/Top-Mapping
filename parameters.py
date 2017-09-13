@@ -31,7 +31,7 @@ def Param():
     flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "BiGAN_GTAV", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "simpleCYC", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -81,10 +81,10 @@ def Param():
     ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
     flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
-    flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
+    flags.DEFINE_boolean("SeqVGG",        True,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")

@@ -344,7 +344,7 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2", "Route3"]
+        route_dir = ["Route1", "Route2"]
         test_dir = ["FOGGY", "RAIN", "SUNNY"]
         result_dir = os.path.join(args.result_dir, args.method, args.log_name)
         if not os.path.exists(result_dir):
@@ -373,7 +373,14 @@ class Net_simpleCYC(object):
                     start_time = time.time()
                     test_code = np.zeros([len(test_files), 512]).astype(np.float32)
 
+                    count = 0
+                    time_sum = 0
+                    time_min = 10000
+                    time_max = -1.0
+
                     for img_index, file_img in enumerate(test_files):
+
+                        start_time = time.time()
 
                         sample = get_image(file_img, args.image_size, is_crop=args.is_crop, \
                                            resize_w=args.output_size, is_grayscale=0)
@@ -382,13 +389,22 @@ class Net_simpleCYC(object):
                         feed_dict={self.d_real_A: sample_image}
                         test_code[img_index]  = self.sess.run(self.d_c_A, feed_dict=feed_dict)
 
+                        count = count+1
+                        time_len = time.time() - start_time
+                        time_sum += time_len
+
+                        if time_max < time_len:
+                            time_max = time_len
+                        if time_min > time_len:
+                            time_min = time_len
+
     
-                    print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-                    if route_index==2:
-                        route_name = "Route3"
 
                     Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
                     print ("save path {}".format(Testvector_path))
+                    print("Average time: %4.4f"  % (time_sum/count))
+                    print("Min time: %4.4f"  % time_min)
+                    print("Max time: %4.4f"  % time_max)
                     np.save(Testvector_path, test_code)
 
 

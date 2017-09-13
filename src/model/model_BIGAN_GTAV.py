@@ -207,7 +207,6 @@ class Net_BIGAN_GTAV(object):
                     test_files = test_files[0:args.test_len]
                     
                     ## Extract Test data code
-                    start_time = time.time()
                     test_code = np.zeros([len(test_files), 512]).astype(np.float32)
                     
                     count = 0

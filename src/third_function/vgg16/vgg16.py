@@ -133,7 +133,7 @@ def Seq_VGG(sess, args):
     tl.files.assign_params(sess, params, network)
 
     # data iterator
-    route_dir = ["Route1", "Route2", "Route3"]
+    route_dir = ["Route1", "Route2"]
     test_dir = ["FOGGY", "RAIN", "SUNNY"]
     result_dir = os.path.join(args.result_dir, 'VGG16')
     if not os.path.exists(result_dir):
@@ -154,7 +154,14 @@ def Seq_VGG(sess, args):
             start_time = time.time()
             test_code = np.zeros([len(test_files), 1000]).astype(np.float32)
 
+            count = 0
+            time_sum = 0
+            time_min = 10000
+            time_max = -1.0
+
             for img_index, file_img in enumerate(test_files):
+
+                start_time = time.time()
                 
                 img = imread(file_img, mode='RGB') # test data in github
                 img = imresize(img, (224, 224))
@@ -162,13 +169,21 @@ def Seq_VGG(sess, args):
                 prob = sess.run(probs, feed_dict={x: [img]})[0]
                 test_code[img_index]  = prob
 
+                count = count+1
+                time_len = time.time() - start_time
+                time_sum += time_len
+                
+                if time_max < time_len:
+                    time_max = time_len
+                if time_min > time_len:
+                    time_min = time_len
     
-            print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-            if route_index==2:
-                route_name = "Route3"
                         
             Testvector_path = os.path.join(result_dir, route_name+'_'+file_name+'_vt.npy')
             print ("save path {}".format(Testvector_path))
+            print("Average time: %4.4f"  % (time_sum/args.test_len))
+            print("Min time: %4.4f"  % time_min)
+            print("Max time: %4.4f"  % time_max)
             np.save(Testvector_path, test_code)
 
 
