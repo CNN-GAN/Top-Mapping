@@ -96,7 +96,7 @@ def Param():
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
-    flags.DEFINE_boolean("plot_biganGTAV", True,         "True for biganGTAV")
-    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
+    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
 
     return flags.FLAGS

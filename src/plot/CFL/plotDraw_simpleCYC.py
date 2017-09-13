@@ -64,6 +64,7 @@ def Plot_simpleCYC(args):
             
                     ## Save matching 
                     match = getMatches(DD, 0, args)
+                    print (match)
                     m = match[:,0]
                     thresh = 0.95
                     matched = match[match[:,1]<thresh, 1]
