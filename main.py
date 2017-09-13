@@ -6,6 +6,7 @@ from src.model.model import Net
 from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
+from src.model.model_BIGAN_GTAV import Net_BIGAN_GTAV
 
 # For the first paper, Unsupervised LiDAR Feature Learning
 from src.plot.ULFL.plotDraw_joint import Plot_Joint
@@ -96,6 +97,10 @@ def main(_):
 
     if args.method == 'simpleCYC':
         Net_model = Net_simpleCYC
+        args.dataset = 'GTAV'
+
+    if args.method == 'BiGAN_GTAV':
+        Net_model = Net_BIGAN_GTAV
         args.dataset = 'GTAV'
 
     if args.is_train == False:
