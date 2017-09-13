@@ -22,6 +22,7 @@ from src.plot.SLFL.plotDraw_slfl import Plot_SLFL
 # For the third paper, Common Feature Learning
 from src.plot.CFL.plotDraw_simpleCYC import Plot_simpleCYC
 from src.plot.CFL.plotDraw_VGG import Plot_VGG
+from src.plot.CFL.plotDraw_biganGTAV import Plot_biganGTAV
 
 # SeqSLAM for LiDAR inputs
 from src.third_function.pyseqslam.seq_lidar import Seq_LiDAR
@@ -59,6 +60,8 @@ def main(_):
             Plot_simpleCYC(args)
         if args.plot_VGG == True:
             Plot_VGG(args)
+        if args.plot_biganGTAV == True:
+            Plot_biganGTAV(args)
         if args.plot_slfl == True:
             Plot_SLFL(args)
 

@@ -184,64 +184,68 @@ class Net_BIGAN_GTAV(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2", "Route3"]
+        route_dir = ["Route1", "Route2"]
         test_dir = ["FOGGY", "RAIN", "SUNNY"]
         result_dir = os.path.join(args.result_dir, args.method, args.log_name)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(1, 51):
+        for test_epoch in range(1, 18):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
             self.loadParam(args)
             print("[*] Load network done")
 
-            for dir_id, dir_name in enumerate(test_dir):
+            for route_index, route_name in enumerate(route_dir):
 
-                ## Evaulate train data
-                train_files = glob(os.path.join(args.data_dir, args.dataset, "00", dir_name, "img/*.jpg"))
-                train_files.sort()
-                
-                ## Extract Train data code
-                train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
-                count = 0
-                time_sum = 0
-                time_min = 10000
-                time_max = -1.0
-                for id in range(len(train_files)):
+                for dir_index, file_name in enumerate(test_dir):
 
+                    ## Evaulate test data
+                    test_files  = glob(os.path.join(args.data_dir, args.dataset, route_name, file_name, "*.jpg"))
+                    test_files.sort()
+                    test_files = test_files[0:args.test_len]
+                    
+                    ## Extract Test data code
                     start_time = time.time()
-                    if id%args.frame_skip != 0:
-                        continue
+                    test_code = np.zeros([len(test_files), 512]).astype(np.float32)
+                    
+                    count = 0
+                    time_sum = 0
+                    time_min = 10000
+                    time_max = -1.0
+                    
+                    for id in range(len(test_files)):
+                        
+                        start_time = time.time()
+                        if id%args.frame_skip != 0:
+                            continue
+                            
+                        sample_file = test_files[id]
+                        sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
+                                    resize_w=args.output_size, is_grayscale=0)
+                        sample_image = np.array(sample).astype(np.float32)
+                        sample_image = sample_image.reshape([1,64,64,3])
+                        feed_dict={self.d_real_x: sample_image}
+                        if count >= args.test_len:
+                            break
 
-                    sample_file = train_files[id]
-                    sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
-                                       resize_w=args.output_size, is_grayscale=0)
-                    sample_image = np.array(sample).astype(np.float32)
-                    sample_image = sample_image.reshape([1,64,64,3])
-                    #print ("Load data {}".format(sample_file))
-                    feed_dict={self.d_real_x: sample_image}
-                    if count >= args.test_len:
-                        break
+                        test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                        count = count+1
+                        time_len = time.time() - start_time
+                        time_sum += time_len
+                        
+                        if time_max < time_len:
+                            time_max = time_len
+                        if time_min > time_len:
+                            time_min = time_len
 
-                    train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-                    count = count+1
-                    time_len = time.time() - start_time
-                    time_sum += time_len
-
-                    if time_max < time_len:
-                        time_max = time_len
-                    if time_min > time_len:
-                        time_min = time_len
-                
-                print("For {}".format(dir_name))
-                print("Average time: %4.4f"  % (time_sum/args.test_len))
-                print("Min time: %4.4f"  % time_min)
-                print("Max time: %4.4f"  % time_max)
-                print("save file {}".format(str(test_epoch)+'_'+dir_name+'_vt.npy'))
-                GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
-                np.save(GTvector_path, train_code)
+                    print("save file {}".format(str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy'))                
+                    print("Average time: %4.4f"  % (time_sum/args.test_len))
+                    print("Min time: %4.4f"  % time_min)
+                    print("Max time: %4.4f"  % time_max)
+                    GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
+                    np.save(GTvector_path, test_code)
 
     def reconstruct(self, args):
 
@@ -296,60 +300,26 @@ class Net_BIGAN_GTAV(object):
 
     def loadParam(self, args):
         # load the latest checkpoints
-        if self.model == 'ALI_CLC':
-            if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_en_%d00.npz' % args.c_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dZ_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dJ_%d00.npz' % args.c_epoch)
-                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
-                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
-            else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_en_%d00.npz' % self.test_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dX_%d00.npz' % self.test_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dZ_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dJ_%d00.npz' % self.test_epoch)
-                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
-                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
-        elif self.model == 'ALI':
-            if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dJ_%d00.npz' % args.c_epoch)
-                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
-            else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_en_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
-                                            name='/net_dJ_%d00.npz' % self.test_epoch)
-                tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+        if args.is_train == True:
+            load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_de_%d00.npz' % args.c_epoch)
+            load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_en_%d00.npz' % args.c_epoch)
+            load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_dJ_%d00.npz' % args.c_epoch)
+            tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+            tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+            tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+        else:
+            load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_de_%d00.npz' % self.test_epoch)
+            load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_en_%d00.npz' % self.test_epoch)
+            load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                        name='/net_dJ_%d00.npz' % self.test_epoch)
+            tl.files.assign_params(self.sess, load_en, self.n_fake_z)
+            tl.files.assign_params(self.sess, load_de, self.n_fake_x)
+            tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
@@ -358,45 +328,19 @@ class Net_BIGAN_GTAV(object):
             os.makedirs(save_dir)        
         print (save_dir)
 
-        if self.model == 'ALI_CLC':
-            # the latest version location
-            net_de_name = os.path.join(save_dir, 'net_de.npz')
-            net_en_name = os.path.join(save_dir, 'net_en.npz')
-            net_dX_name = os.path.join(save_dir, 'net_dX.npz')
-            net_dZ_name = os.path.join(save_dir, 'net_dZ.npz')
-            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
-            # this version is for future re-check and visualization analysis
-            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
-            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
-            net_dX_iter_name = os.path.join(save_dir, 'net_dX_%d.npz' % self.iter_counter)
-            net_dZ_iter_name = os.path.join(save_dir, 'net_dZ_%d.npz' % self.iter_counter)
-            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
-            
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
-
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
-        elif self.model == 'ALI':
-            # the latest version location
-            net_de_name = os.path.join(save_dir, 'net_de.npz')
-            net_en_name = os.path.join(save_dir, 'net_en.npz')
-            net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
-            # this version is for future re-check and visualization analysis
-            net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
-            net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
-            net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
-            
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
-
-            tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
+        # the latest version location
+        net_de_name = os.path.join(save_dir, 'net_de.npz')
+        net_en_name = os.path.join(save_dir, 'net_en.npz')
+        net_dJ_name = os.path.join(save_dir, 'net_dJ.npz')
+        # this version is for future re-check and visualization analysis
+        net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
+        net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
+        net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
+        
+        tl.files.save_npz(self.n_fake_x.all_params, name=net_de_name, sess=self.sess)
+        tl.files.save_npz(self.n_fake_z.all_params, name=net_en_name, sess=self.sess)
+        tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_name, sess=self.sess)
+        
+        tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
+        tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
+        tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
