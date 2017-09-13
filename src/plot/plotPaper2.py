@@ -12,7 +12,7 @@ def Plot_Paper2(args):
 
 
     #test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
-    test_name = ["T1_R1", "T5_R1", "T10_R1", "T20_R1", "T1_R1.5",  "T5_R1.5", "T10_R1.5", "T20_R1.5", "T1_R2",  "T5_R2",  "T10_R2", "T20_R2"]
+    test_name = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5",  "T5_R2", "T10_R1", "T10_R1.5", "T10_R2",  "T20_R1",  "T20_R1.5", "T20_R2"]
     linestyle = ['-', '--', '-.', ':']
     result_2D = os.path.join(args.result_dir, 'ALI/ALI', 'PR')
     result_3D = os.path.join(args.result_dir, 'ALI_3D', 'PR')
@@ -25,19 +25,24 @@ def Plot_Paper2(args):
     img_epoch = "22"
     clc_epoch = "49"
 
-    '''
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', clc_epoch+'_', '']
     methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'ALI cycle SeqSLAM', 'SeqSLAM']
     out_name = ['BiGAN', '3D BiGAN', 'Joint', 'Stable-AFL', 'SAD']
 
+    fig_name = ['Translation 1m', 'Translation 5m', 'Translation 10m', 'Translation 20m']
     ROC = np.zeros([len(methods), len(test_name)]).astype('float')
+
 
     for method_id, method_name in  enumerate(methods):
 
-        plt.figure()
-        legend = []
+        #plt.figure()
+        f, axarr = plt.subplots(2, 2)
+        #legend = []
+        legend   = ['1 rad', '1.5 rad', '2 rad']
         PR  = np.zeros([len(test_name),2,300]).astype('float')
         for i in range(len(test_name)):
+
+            ax = axarr[np.int(i/6), np.int(i/3)%2]
             file_path = os.path.join(result_dir[method_id], method_dir[method_id]+test_name[i]+'_match.json')
             with open(file_path) as data_file:
                 data = json.load(data_file)
@@ -57,17 +62,18 @@ def Plot_Paper2(args):
                 print (file_path)
                 print (recall[recall_id])
 
-            plt.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
-            legend.append(test_name[i])
+            ax.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
+            ax.set_xlim(0.0, 1.0)
+            ax.set_ylim(0.0, 1.0)
+            if i%3==0:
+                ax.set_title(fig_name[np.int(i/3)])
+            
 
             
-        plt.legend(legend, loc='lower left')
+        plt.legend(legend, loc='lower left', bbox_to_anchor=(-1.2, 0.0))
         
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
-        plt.title('PR Curve for ' + out_name[method_id])
         plt.savefig(out_name[method_id] + '_PR.jpg')
         plt.close()
 
@@ -143,3 +149,4 @@ def Plot_Paper2(args):
     plt.legend(loc='center left', bbox_to_anchor=(-1.5, 0.1))
     plt.savefig('training.jpg')
     plt.close()
+    '''

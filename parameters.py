@@ -81,10 +81,10 @@ def Param():
     ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
     flags.DEFINE_boolean("SeqGTAV",       False,        "SeqGTAV")
-    flags.DEFINE_boolean("SeqVGG",        True,        "SeqVGG")
+    flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
     flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")
@@ -92,11 +92,11 @@ def Param():
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
+    flags.DEFINE_boolean("plot_paper2",    True,         "True for ploting paper2")
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
     flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
-    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
 
     return flags.FLAGS
