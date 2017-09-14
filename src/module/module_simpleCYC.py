@@ -92,6 +92,7 @@ def decoder_condition(condition, inputs, is_train=True, reuse=False):
 
         # latent coder from conditions
         net_c_in = InputLayer(condition, name='Condition/in')
+        net_c_in = FlattenLayer(net_c_in, name='Condition/flatten')
         net_c_h0 = DenseLayer(net_c_in, n_units=512, act=tf.identity, W_init = w_init, name='Condition/fc1')
         net_c_h1 = DenseLayer(net_c_h0, n_units=args.condition_dim, act=tf.identity, W_init = w_init, \
                               name='Condition/fc2')
