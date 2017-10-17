@@ -99,8 +99,8 @@ def Seq_GTAV(args):
                 match_PR = match[int(args.v_ds/2):int(match.shape[0]-args.v_ds/2), :]
                 match_BS = np.array(range(match_PR.shape[0]))+int(int(args.v_ds/2))
                 match_EE = np.abs(match_PR[:,0] - match_BS)
-                match_PR[match_EE<=20, 0] = 1
-                match_PR[match_EE> 20, 0] = 0
+                match_PR[match_EE<=10, 0] = 1
+                match_PR[match_EE> 10, 0] = 0
                 match_PR[np.isnan(match_PR)]=0
                 match_path = os.path.join(pr_dir, file_name+'_match.json')
                 print (match_path)

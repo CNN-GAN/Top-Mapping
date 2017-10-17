@@ -6,6 +6,7 @@ from src.model.model import Net
 from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
+from src.model.model_BIGAN_GTAV import Net_BIGAN_GTAV
 
 # For the first paper, Unsupervised LiDAR Feature Learning
 from src.plot.ULFL.plotDraw_joint import Plot_Joint
@@ -21,6 +22,7 @@ from src.plot.SLFL.plotDraw_slfl import Plot_SLFL
 # For the third paper, Common Feature Learning
 from src.plot.CFL.plotDraw_simpleCYC import Plot_simpleCYC
 from src.plot.CFL.plotDraw_VGG import Plot_VGG
+from src.plot.CFL.plotDraw_biganGTAV import Plot_biganGTAV
 
 # SeqSLAM for LiDAR inputs
 from src.third_function.pyseqslam.seq_lidar import Seq_LiDAR
@@ -58,6 +60,8 @@ def main(_):
             Plot_simpleCYC(args)
         if args.plot_VGG == True:
             Plot_VGG(args)
+        if args.plot_biganGTAV == True:
+            Plot_biganGTAV(args)
         if args.plot_slfl == True:
             Plot_SLFL(args)
 
@@ -96,6 +100,10 @@ def main(_):
 
     if args.method == 'simpleCYC':
         Net_model = Net_simpleCYC
+        args.dataset = 'GTAV'
+
+    if args.method == 'BiGAN_GTAV':
+        Net_model = Net_BIGAN_GTAV
         args.dataset = 'GTAV'
 
     if args.is_train == False:

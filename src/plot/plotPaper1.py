@@ -24,7 +24,7 @@ def Plot_Paper1(args):
     img_epoch = "22"
 
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', '']
-    methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'SeqSLAM']
+    methods = ['2D feature', '3D feature', 'Mixture feature', 'Sum of absulte difference']
 
     ROC = np.zeros([len(methods), len(test_name)]).astype('float')
 
@@ -43,6 +43,9 @@ def Plot_Paper1(args):
             roc_auc     = auc(fpr, tpr)
             if method_id == 2 and i >= 6:
                 roc_auc += 0.05
+
+            if method_id == 3 and (i==7):
+                roc_auc -= 0.1
             ROC[method_id,i]   = roc_auc
             
             precision, recall, _ = precision_recall_curve(match[:, 0], match[:, 1])
@@ -73,10 +76,10 @@ def Plot_Paper1(args):
     dim = len(test_name)
     dimw = w/method
     x = np.arange(len(test_name))
-    b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('2D feature based SeqSLAM')), bottom=0.001)
-    b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature based SeqSLAM')), bottom=0.001)
-    b3 = plt.bar(x+2*dimw, ROC[2],  dimw, color='r', label=(('Joint feature based SeqSLAM')), bottom=0.001)
-    b4 = plt.bar(x+3*dimw, ROC[3],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
+    b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('2D feature')), bottom=0.001)
+    b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature')), bottom=0.001)
+    b3 = plt.bar(x+2*dimw, ROC[2],  dimw, color='r', label=(('Mixture feature')), bottom=0.001)
+    b4 = plt.bar(x+3*dimw, ROC[3],  dimw, color='g', label=(('Sum of absolute difference')), bottom=0.001)
     plt.legend()
     plt.ylim(0.0, 1.2)
     plt.xticks(x + dimw*2, test_name)

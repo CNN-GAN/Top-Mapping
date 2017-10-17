@@ -70,6 +70,9 @@ class Net_simpleCYC(object):
         self.d_id_A = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_A')
         self.d_id_B = tf.placeholder(tf.int32, shape=[args.batch_size, ], name='id_B')
 
+        self.d_id_re = tf.placeholder(tf.float32, shape=[args.batch_size, 3], name='re_id')
+        self.d_c_re = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name='re_code')
+
         self.rand_code = tf.placeholder(tf.float32, [args.batch_size, args.code_dim], name='rand_code')
         
         ## Classifier
@@ -87,6 +90,9 @@ class Net_simpleCYC(object):
         self.n_fake_B, self.d_fake_B = self.decoder(self.d_f_B, self.d_c_A, is_train=True, reuse=True)
         self.n_rand_A, self.d_rand_A = self.decoder(self.d_f_A, self.rand_code, is_train=True, reuse=True)
         self.n_rand_B, self.d_rand_B = self.decoder(self.d_f_B, self.rand_code, is_train=True, reuse=True)
+
+        self.n_recon,  self.d_recon  = self.decoder(self.d_id_re, self.d_c_re, is_train=False, reuse=True)
+
 
         ## Discriminator
         self.n_dis_real_A, self.d_dis_real_A = self.discriminatorX(self.d_f_A, self.d_real_A, \
@@ -344,13 +350,13 @@ class Net_simpleCYC(object):
 
     def test(self, args):
 
-        route_dir = ["Route1", "Route2", "Route3"]
+        route_dir = ["Route1", "Route2"]
         test_dir = ["FOGGY", "RAIN", "SUNNY"]
         result_dir = os.path.join(args.result_dir, args.method, args.log_name)
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
 
-        for test_epoch in range(1, 27):
+        for test_epoch in range(29, 30):
 
             # Initial layer's variables
             self.test_epoch = test_epoch * 50
@@ -373,22 +379,64 @@ class Net_simpleCYC(object):
                     start_time = time.time()
                     test_code = np.zeros([len(test_files), 512]).astype(np.float32)
 
+                    count = 0
+                    time_sum = 0
+                    time_min = 10000
+                    time_max = -1.0
+
+                    re_dir = os.path.join(args.data_dir, args.dataset, route_name, file_name, "RE")
+                    if not os.path.exists(re_dir):
+                        os.makedirs(re_dir)
+
                     for img_index, file_img in enumerate(test_files):
+
+                        start_time = time.time()
 
                         sample = get_image(file_img, args.image_size, is_crop=args.is_crop, \
                                            resize_w=args.output_size, is_grayscale=0)
-                        sample_image = np.array(sample).astype(np.float32)
-                        sample_image = sample_image.reshape([1,args.output_size,args.output_size,3])
+                        I_image = np.array(sample).astype(np.float32)
+                        sample_image = I_image.reshape([1,args.output_size,args.output_size,3])
                         feed_dict={self.d_real_A: sample_image}
-                        test_code[img_index]  = self.sess.run(self.d_c_A, feed_dict=feed_dict)
+                        test_code[img_index], classA  = self.sess.run([self.d_c_A, self.d_f_A], feed_dict=feed_dict)
+                        print (classA)
 
-    
-                    print("Test code extraction time: %4.4f"  % (time.time() - start_time))
-                    if route_index==2:
-                        route_name = "Route3"
+                        code = test_code[img_index].reshape([1,512])
+                        con = np.array([30.21908569,  -8.94538975, -18.93093681]).reshape([1,3])
+                        feed_dict={self.d_id_re: con, self.d_c_re: code}
+                        R0_image  = self.sess.run(self.d_recon, feed_dict=feed_dict)
 
+                        con = np.array([ -10.40675735,   -10.46381807,   30.61177921]).reshape([1,3])
+                        feed_dict={self.d_id_re: con, self.d_c_re: code}
+                        R1_image  = self.sess.run(self.d_recon, feed_dict=feed_dict)
+
+                        con = np.array([-12.25787163,  29.07925224, -14.07300472]).reshape([1,3])
+                        feed_dict={self.d_id_re: con, self.d_c_re: code}
+                        R2_image  = self.sess.run(self.d_recon, feed_dict=feed_dict)
+
+                        h, w = I_image.shape[0], I_image.shape[1]
+                        img = np.zeros((h*2, w*2, 3))
+                        img[0:h, 0:w, :] = I_image
+                        img[0:h, w:2*w, :] = R0_image
+                        img[h:h*2, 0:w, :] = R1_image
+                        img[h:h*2, w:2*w, :] = R2_image
+                        print ('{}/{:04d}.png'.format(re_dir, img_index))
+                        scipy.misc.imsave('{}/{:04d}.png'.format(re_dir, img_index), img)
+
+                        count = count+1
+                        time_len = time.time() - start_time
+                        time_sum += time_len
+
+                        if time_max < time_len:
+                            time_max = time_len
+                        if time_min > time_len:
+                            time_min = time_len
+
+                    
                     Testvector_path = os.path.join(result_dir, str(test_epoch)+'_'+route_name+'_'+file_name+'_vt.npy')
                     print ("save path {}".format(Testvector_path))
+                    print("Average time: %4.4f"  % (time_sum/count))
+                    print("Min time: %4.4f"  % time_min)
+                    print("Max time: %4.4f"  % time_max)
                     np.save(Testvector_path, test_code)
 
 
@@ -423,9 +471,11 @@ class Net_simpleCYC(object):
                                          name='/net_cls_%d.npz' % self.test_epoch)
             load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
                                         name='/net_en_%d.npz' % self.test_epoch)
+            load_de  = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                                         name='/net_de_%d.npz' % self.test_epoch)
             tl.files.assign_params(self.sess, load_cls, self.n_f_A)
             tl.files.assign_params(self.sess, load_en, self.n_c_A)
-
+            tl.files.assign_params(self.sess, load_de, self.n_recon)
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")

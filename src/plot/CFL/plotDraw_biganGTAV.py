@@ -4,25 +4,21 @@ import os
 import sys
 import json
 
-from glob import glob
-
-import scipy.misc
 from src.util.utils import *
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 
-def Plot_simpleCYC(args):
+def Plot_biganGTAV(args):
 
     route_dir = ["Route1", "Route2"]
     test_dir = ["FOGGY", "RAIN", "SUNNY"]
     
-    result_dir = os.path.join(args.result_dir, 'simpleCYC', args.log_name)
+    result_dir = os.path.join(args.result_dir, 'BiGAN_GTAV', args.log_name)
     matrix_dir = os.path.join(result_dir, 'MATRIX')
     pr_dir = os.path.join(result_dir, 'PR')
     match_dir = os.path.join(result_dir, 'MATCH')
-    pair_dir = os.path.join(result_dir, 'PAIR')
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)   
@@ -36,21 +32,13 @@ def Plot_simpleCYC(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    if not os.path.exists(pair_dir):
-        os.makedirs(pair_dir)   
-
-
-    for epoch_id in range(29, 30):
+    for epoch_id in range(1, 18):
         for route_id, route_name in enumerate(route_dir):
             for w_i in range(len(test_dir)):
                 Trainvector_path = os.path.join(result_dir, \
                                                 str(epoch_id)+'_'+route_name+'_'+test_dir[w_i]+'_vt.npy')
                 train_code = np.load(Trainvector_path)
                 #train_code = train_code[0:args.test_len]
-
-                ## Evaulate test data
-                train_files  = glob(os.path.join(args.data_dir, 'GTAV', route_name, 'o'+test_dir[w_i], "*.jpg"))
-                train_files.sort()
             
                 for w_j in range(w_i+1, len(test_dir)):
 
@@ -64,35 +52,9 @@ def Plot_simpleCYC(args):
 
                     scipy.misc.imsave(os.path.join(matrix_dir, file_name+'_matrix.jpg'), D * 255)
                     scipy.misc.imsave(os.path.join(matrix_dir, file_name+'_enhance.jpg'), DD * 255)
-                    
-                    #D_sub = D[100:300, 300:500]
-                    #scipy.misc.imsave(os.path.join(matrix_dir, \
-                    #            str(epoch_id)+'_'+route_name+'_'+file_name+'_'+Base_cmp+'_matrix.jpg'), D * 255)
-
-                    #DD_sub = DD[100:300, 300:500]
-                    #scipy.misc.imsave(os.path.join(matrix_dir, \
-                    #            str(epoch_id)+'_'+route_name+'_'+file_name+'_'+Base_cmp+'_enhance.jpg'), DD * 255)
-
-                    ## Evaulate test data
-                    test_files  = glob(os.path.join(args.data_dir, 'GTAV', route_name, 'o'+test_dir[w_j], "*.jpg"))
-                    test_files.sort()
             
-                    ## Extract Video
+                    ## Save matching 
                     match = getMatches(DD, 0, args)
-                    #print (match)
-
-                    for mt in range(5, len(match)-10):
-                        #print (test_files[mt])
-                        #print (train_files[np.int(match[mt, 0])])
-                        img_Test  = scipy.misc.imread(test_files[mt], mode='RGB')
-                        img_Train = scipy.misc.imread(train_files[np.int(match[mt, 0])], mode='RGB')
-                        h, w = img_Test.shape[0], img_Test.shape[1]
-                        img = np.zeros((h, w*2, 3))
-                        img[0:h, 0:w, :] = img_Test
-                        img[0:h, w:2*w, :] = img_Train
-                        scipy.misc.imsave('{}/{}_{}_{:04d}.png'.format(pair_dir, test_dir[w_i], test_dir[w_j], mt), img)
-
-                    ## Save Matches
                     m = match[:,0]
                     thresh = 0.95
                     matched = match[match[:,1]<thresh, 1]
@@ -145,30 +107,3 @@ def Plot_simpleCYC(args):
                     plt.savefig(os.path.join(pr_dir, file_name+'_PR.jpg'))
                     plt.close()
                     plt.clf()
-
-
-
-
-                '''
-                ## Save sub matrix
-                plt.figure()
-                fig, ax = plt.subplots()
-                ax.imshow(D_sub, cmap=plt.cm.gray, interpolation='nearest')
-                #ax.set_title('Difference Matrix')
-                ax.spines['right'].set_visible(False)
-                ax.spines['top'].set_visible(False)
-                ax.spines['left'].set_visible(False)
-                ax.spines['bottom'].set_visible(False)
-                plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_FOGGY1_sub_matrix.jpg'))
-            
-                ## Save sub enhance
-                plt.figure()
-                fig, ax = plt.subplots()
-                ax.imshow(DD_sub, cmap=plt.cm.gray, interpolation='nearest')
-                #ax.set_title('Enhance Matrix')
-                ax.spines['right'].set_visible(False)
-                ax.spines['top'].set_visible(False)
-                ax.spines['left'].set_visible(False)
-                ax.spines['bottom'].set_visible(False)
-                plt.savefig(os.path.join(matrix_dir, str(epoch_id)+'_'+route_name+'_'+file_name+'_FOGGY1_sub_enhance.jpg'))
-                '''

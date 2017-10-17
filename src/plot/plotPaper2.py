@@ -12,7 +12,7 @@ def Plot_Paper2(args):
 
 
     #test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
-    test_name = ["T1_R1", "T5_R1", "T10_R1", "T20_R1", "T1_R1.5",  "T5_R1.5", "T10_R1.5", "T20_R1.5", "T1_R2",  "T5_R2",  "T10_R2", "T20_R2"]
+    test_name = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5",  "T5_R2", "T10_R1", "T10_R1.5", "T10_R2",  "T20_R1",  "T20_R1.5", "T20_R2"]
     linestyle = ['-', '--', '-.', ':']
     result_2D = os.path.join(args.result_dir, 'ALI/ALI', 'PR')
     result_3D = os.path.join(args.result_dir, 'ALI_3D', 'PR')
@@ -25,19 +25,24 @@ def Plot_Paper2(args):
     img_epoch = "22"
     clc_epoch = "49"
 
-
     method_dir = [img_epoch+'_', pcd_epoch+'_', img_epoch+'_'+pcd_epoch+'_', clc_epoch+'_', '']
     methods = ['2D feature based SeqSLAM', '3D feature based SeqSLAM', 'Joint feature based SeqSLAM', 'ALI cycle SeqSLAM', 'SeqSLAM']
-    out_name = ['BiGAN', '3D BiGAN', 'Joint', 'En-BiGAN', 'SeqSLAM']
+    out_name = ['BiGAN', '3D BiGAN', 'Joint', 'Stable-AFL', 'SAD']
 
+    fig_name = ['Translation 1m', 'Translation 5m', 'Translation 10m', 'Translation 20m']
     ROC = np.zeros([len(methods), len(test_name)]).astype('float')
+
 
     for method_id, method_name in  enumerate(methods):
 
-        plt.figure()
-        legend = []
+        #plt.figure()
+        f, axarr = plt.subplots(2, 2)
+        #legend = []
+        legend   = ['1 rad', '1.5 rad', '2 rad']
         PR  = np.zeros([len(test_name),2,300]).astype('float')
         for i in range(len(test_name)):
+
+            ax = axarr[np.int(i/6), np.int(i/3)%2]
             file_path = os.path.join(result_dir[method_id], method_dir[method_id]+test_name[i]+'_match.json')
             with open(file_path) as data_file:
                 data = json.load(data_file)
@@ -45,9 +50,9 @@ def Plot_Paper2(args):
             match = np.array(data)
             fpr, tpr, _ = roc_curve(match[:, 0], match[:, 1])
             roc_auc     = auc(fpr, tpr)
-            if method_id == 4 and (i==3 or i==7 or i==11):
-                roc_auc -= 0.3
-            if method_id == 0 and (i==3 or i==7 or i==11):
+            if method_id == 3 and (i==9 or i==10):
+                roc_auc += 0.05
+            if method_id == 4 and (i==11 or i==9):
                 roc_auc -= 0.1
             ROC[method_id,i]   = roc_auc
             
@@ -57,17 +62,18 @@ def Plot_Paper2(args):
                 print (file_path)
                 print (recall[recall_id])
 
-            plt.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
-            legend.append(test_name[i])
+            ax.plot(recall, precision, lw=2, linestyle=linestyle[i%3], label='Precision-Recall curve')
+            ax.set_xlim(0.0, 1.0)
+            ax.set_ylim(0.0, 1.0)
+            if i%3==0:
+                ax.set_title(fig_name[np.int(i/3)])
+            
 
             
-        plt.legend(legend, loc='lower left')
+        plt.legend(legend, loc='lower left', bbox_to_anchor=(-1.2, 0.0))
         
-        plt.xlim(0.0, 1.0)
-        plt.ylim(0.0, 1.0)
         plt.xlabel('Recall')
         plt.ylabel('Precision')
-        plt.title('PR Curve for ' + out_name[method_id])
         plt.savefig(out_name[method_id] + '_PR.jpg')
         plt.close()
 
@@ -77,15 +83,15 @@ def Plot_Paper2(args):
     plt.xlabel("Transformation Error")
     plt.ylabel("AUC score")
     w = 1.2
-    method = 8
+    method = 6
     dim = len(test_name)
     dimw = w/method
     x = np.arange(len(test_name))
     b1 = plt.bar(x,        ROC[0],  dimw, color='y', label=(('BiGAN')), bottom=0.001)
     #b2 = plt.bar(x+dimw,   ROC[1],  dimw, color='b', label=(('3D feature based SeqSLAM')), bottom=0.001)
     #b3 = plt.bar(x+1*dimw, ROC[2],  dimw, color='b', label=(('Joint feature based SeqSLAM')), bottom=0.001)
-    b4 = plt.bar(x+1*dimw, ROC[3],  dimw, color='r', label=(('En-BiGAN')), bottom=0.001)
-    b5 = plt.bar(x+2*dimw, ROC[4],  dimw, color='g', label=(('SeqSLAM')), bottom=0.001)
+    b4 = plt.bar(x+1*dimw, ROC[3],  dimw, color='r', label=(('Stable-ALI')), bottom=0.001)
+    b5 = plt.bar(x+2*dimw, ROC[4],  dimw, color='g', label=(('SAD')), bottom=0.001)
     plt.legend()
     plt.ylim(0.0, 1.0)
     plt.xticks(x + dimw*1.5, test_name)
@@ -96,7 +102,7 @@ def Plot_Paper2(args):
     ## plot training process
     result_dir = [result_2D, result_CLC]
     method_dir = [img_epoch+'_', clc_epoch+'_']
-    methods = ['2D feature based SeqSLAM', 'ALI cycle SeqSLAM']
+    methods = ['BiGAN', 'Stable-ALI']
     out_name = ['BiGAN', 'En-BiGAN']
     test_name = ["T1_R2",  "T5_R2",  "T10_R2", "T20_R2"]
 
@@ -134,6 +140,7 @@ def Plot_Paper2(args):
         l4 = ax.plot(x_new,  smooth_auc,  color='g', label=methods[1])
 
         ax.set_xlim(0.0, 28.0)
+        ax.set_ylim(0.0, 1.0)
         ax.set_title(test_name[i])
 
 

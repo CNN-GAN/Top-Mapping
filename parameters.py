@@ -31,7 +31,7 @@ def Param():
     flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "simpleCYC",        "conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI_CLC", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -91,11 +91,12 @@ def Param():
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
     ## Plot for paper 2
-    flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
+    flags.DEFINE_boolean("plot_slfl",      True,        "True for ploting Joint")
+    flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
-    flags.DEFINE_boolean("plot_paper3",    True,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
+    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
 
     return flags.FLAGS
