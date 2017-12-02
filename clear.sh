@@ -1,3 +1,3 @@
 rm *~ */*~ */*/*~ *.jpg
-rm *.pyc */*.pyc */*/*.pyc */*/*/*.pyc
+rm *.pyc */*.pyc */*/*.pyc */*/*/*.pyc */*/*/*/*.pyc
 clear

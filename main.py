@@ -34,7 +34,7 @@ from src.third_function.vgg16.vgg16 import Seq_VGG
 # Obtain parameters
 args = Param()
 
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def main(_):
 
