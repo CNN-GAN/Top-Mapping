@@ -154,7 +154,7 @@ class Net3D(object):
             print("[!] Initial network done")
 
         # Initial global variables
-        self.writer = tf.summary.FileWriter('./logs', self.sess.graph)
+        self.writer = tf.summary.FileWriter(args.log_dir, self.sess.graph)
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)        
 
@@ -311,7 +311,7 @@ class Net3D(object):
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):
         summary = self.sess.run([self.summ_merge], feed_dict=feed_dict)
-        self.writer.add_summary(summary, self.iter_counter)
+        self.writer.add_summary(summary[0], self.iter_counter)
 
     def loadParam(self, args):
         # load the latest checkpoints
@@ -322,32 +322,22 @@ class Net3D(object):
                 check_path = self.model
 
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de.npz')
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en.npz')
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dX.npz')
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dZ.npz')
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ.npz')
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de.npz')
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en.npz')
+                load_dX = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dX.npz')
+                load_dZ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dZ.npz')
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ.npz')
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d.npz' % self.test_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dX_%d.npz' % self.test_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dZ_%d.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d.npz' % self.test_epoch)
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d.npz' % self.test_epoch)
+                load_dX = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dX_%d.npz' % self.test_epoch)
+                load_dZ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dZ_%d.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
@@ -360,22 +350,16 @@ class Net3D(object):
                 check_path = self.model
 
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d00.npz' % args.c_epoch)
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % args.c_epoch)
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % args.c_epoch)
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_de_%d.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_en_%d.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, check_path), \
-                                            name='/net_dJ_%d.npz' % self.test_epoch)
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d.npz' % self.test_epoch)
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d.npz' % self.test_epoch)
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
@@ -383,7 +367,7 @@ class Net3D(object):
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
         if args.is_3D == True:
-            save_dir = os.path.join(args.checkpoint_dir, args.method+"_3D")
+            save_dir = args.checkpoint_dir
 
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)

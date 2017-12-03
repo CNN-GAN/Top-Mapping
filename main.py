@@ -1,6 +1,8 @@
 import os
 import sys
 import tensorflow as tf
+
+from time import strftime
 from parameters import *
 from src.model.model import Net
 from src.model.model3D import Net3D
@@ -37,6 +39,14 @@ args = Param()
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def main(_):
+
+
+    # Current model string
+    args.run_id_string = "{}/{}".format(args.method, strftime(args.date_format))
+    args.log_dir = os.path.join(args.log_dir, args.run_id_string)
+    args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.run_id_string)
+    args.sample_dir = os.path.join(args.sample_dir, args.run_id_string)
+    args.result_dir = os.path.join(args.sample_dir, args.run_id_string)
 
     # Original SeqSLAM method
     if args.SeqSLAM == True:
@@ -81,11 +91,8 @@ def main(_):
         os.makedirs(args.sample_dir)
     if not os.path.exists(args.result_dir):
         os.makedirs(args.result_dir)
-
-    log_path = os.path.join(args.log_dir, args.log_name)
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
-
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
 
     if args.is_3D == True:
         Net_model = Net3D

@@ -16,6 +16,7 @@ def Param():
         
     ## Data
     flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, GTAV, loam]")
+    flags.DEFINE_string("date_format",    "%m.%d_%H-%M",   "Date format")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
     flags.DEFINE_integer("output_size",   64,           "The size of the output images to produce [64]")
@@ -23,15 +24,16 @@ def Param():
     flags.DEFINE_integer("condition_dim", 64,           "condition code dimension")
     
     ## Dir
+    flags.DEFINE_string("run_id_string",  "",           "run_id_string")
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
     flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
     flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
+    #flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -71,7 +73,7 @@ def Param():
     flags.DEFINE_float("match_thres",      80,           "match threshold for GTAV")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
+    flags.DEFINE_boolean("is_3D",         True,        "True for train the 3D module")
     flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_reconstruct",False,         "True for reconstruct")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
