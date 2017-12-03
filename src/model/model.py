@@ -229,10 +229,9 @@ class Net(object):
             print("[!] Initial network done")
 
         # Initial global variables
-        log_dir = os.path.join(args.log_dir, args.method, args.log_name)
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)     
-        self.writer = tf.summary.FileWriter(log_dir, self.sess.graph)
+        if not os.path.exists(args.log_dir):
+            os.makedirs(args.log_dir)
+        self.writer = tf.summary.FileWriter(args.log_dir, self.sess.graph)
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
 
@@ -328,9 +327,8 @@ class Net(object):
 
     def test(self, args):
 
-        result_dir = os.path.join(args.result_dir, args.method, args.log_name)
-        if not os.path.exists(result_dir):
-            os.makedirs(result_dir)
+        if not os.path.exists(args.result_dir):
+            os.makedirs(args.result_dir)
 
         #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2", "T10_R1", "T10_R1.5", "T10_R2"]
         test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
@@ -443,15 +441,15 @@ class Net(object):
         # load the latest checkpoints
         if self.model == 'ALI_CLC':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.run_id_string), \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.run_id_string), \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.run_id_string), \
                                             name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.run_id_string), \
                                             name='/net_dZ_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.run_id_string), \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -459,15 +457,15 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dX = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dX = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_dX_%d00.npz' % self.test_epoch)
-                load_dZ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dZ = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_dZ_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -476,21 +474,21 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
         elif self.model == 'ALI':
             if args.is_train == True:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_de_%d00.npz' % args.c_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_en_%d00.npz' % args.c_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                load_de = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_de = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_de_%d00.npz' % self.test_epoch)
-                load_en = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_en = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_en_%d00.npz' % self.test_epoch)
-                load_dJ = tl.files.load_npz(path=os.path.join(args.checkpoint_dir, args.method, args.log_name), \
+                load_dJ = tl.files.load_npz(path=args.checkpoint_dir, \
                                             name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
@@ -498,9 +496,9 @@ class Net(object):
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")
-        save_dir = os.path.join(args.checkpoint_dir, args.method, args.log_name)
+        save_dir = args.checkpoint_dir
         if not os.path.exists(save_dir):
-            os.makedirs(save_dir)        
+            os.makedirs(save_dir)
         print (save_dir)
 
         if self.model == 'ALI_CLC':
