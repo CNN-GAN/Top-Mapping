@@ -73,7 +73,7 @@ def Param():
     flags.DEFINE_float("match_thres",      80,           "match threshold for GTAV")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         True,        "True for train the 3D module")
+    flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
     flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_reconstruct",False,         "True for reconstruct")
     flags.DEFINE_boolean("is_crop",       True,         "True for crop image")

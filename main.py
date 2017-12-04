@@ -40,9 +40,13 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def main(_):
 
-
     # Current model string
-    args.run_id_string = "{}/{}".format(args.method, strftime(args.date_format))
+    if args.is_3D == True:
+        args.method_path = args.method + '_3D'
+    else:
+        args.method_path = args.method
+
+    args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
     args.log_dir = os.path.join(args.log_dir, args.run_id_string)
     args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.run_id_string)
     args.sample_dir = os.path.join(args.sample_dir, args.run_id_string)
