@@ -82,9 +82,15 @@ class Net3D(object):
 
         self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
                                           self.lossCYC(self.d_real_z, self.d_cycl_z))
-
+        
+        '''
         self.loss_dicJ    = tf.reduce_mean(self.d_dic_J - self.d_dic_fJ)
         self.loss_dicfJ   = tf.reduce_mean(self.d_dic_fJ - self.d_dic_J)
+        '''
+
+        self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
+        self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
+
 
         self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
                                              self.lossGAN(self.d_dic_fx,0))
