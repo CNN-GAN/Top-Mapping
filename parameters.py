@@ -13,9 +13,11 @@ def Param():
     flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
     flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
+    flags.DEFINE_float("distance_threshold",   0.4,     "threshold for far/near frames")
+
         
     ## Data
-    flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, GTAV, loam]")
+    flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, NCTL, GTAV]")
     flags.DEFINE_string("date_format",    "%m.%d_%H-%M",   "Date format")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
@@ -26,14 +28,14 @@ def Param():
     ## Dir
     flags.DEFINE_string("run_id_string",  "",           "run_id_string")
     flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
-    flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
-    flags.DEFINE_string("result_dir",     "logs/results",    "Directory name to save SeqSLAM results [results]")
+    flags.DEFINE_string("result_dir",     "result",    "Directory name to save SeqSLAM results [results]")
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
-    #flags.DEFINE_string("log_name",       "r1_C_0.1",           "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
+    flags.DEFINE_string("model_date",     "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
     
     ## Training
-    flags.DEFINE_string("method",         "ALI", "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
+    flags.DEFINE_string("method",         "ALI",        "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -49,6 +51,10 @@ def Param():
     flags.DEFINE_integer("d_iter",        4,            "The number of iteration for discriminator")
     flags.DEFINE_integer("g_iter",        8,            "The number of iteration for generator")
     flags.DEFINE_integer("iteration",     10000000,     "Training iteration")
+
+    ## Mahanobis 
+    flags.DEFINE_integer("frame_near",    2,           "Frames to skip for mahanobis")    
+    flags.DEFINE_integer("frame_far",     8,           "Frames to skip for mahanobis")    
 
     ## 3D conv
     flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")
@@ -73,12 +79,13 @@ def Param():
     flags.DEFINE_float("match_thres",      80,           "match threshold for GTAV")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",         False,        "True for train the 3D module")
-    flags.DEFINE_boolean("is_train",      True,         "True for training, False for testing [False]")
-    flags.DEFINE_boolean("is_reconstruct",False,         "True for reconstruct")
-    flags.DEFINE_boolean("is_crop",       True,         "True for crop image")
-    flags.DEFINE_boolean("restore",       False,        "restore from pre trained")
-    flags.DEFINE_boolean("visualize",     False,        "True for visualizing, False for nothing [False]")
+    flags.DEFINE_boolean("is_3D",             True,         "True for train the 3D module")
+    flags.DEFINE_boolean("is_train",          False,        "True for training, False for testing [False]")
+    flags.DEFINE_boolean("is_reconstruct",    False,        "True for reconstruct")
+    flags.DEFINE_boolean("is_obtain_feature", False,     "True for reconstruct")
+    flags.DEFINE_boolean("is_crop",           True,         "True for crop image")
+    flags.DEFINE_boolean("restore",           False,        "restore from pre trained")
+    flags.DEFINE_boolean("visualize",         False,        "True for visualizing, False for nothing [False]")
     
     ## Origional SeqSLAM
     flags.DEFINE_boolean("SeqSLAM",       False,        "SeqSLAM")
@@ -95,7 +102,7 @@ def Param():
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
 
     ## Plot for paper 2
-    flags.DEFINE_boolean("plot_slfl",      True,        "True for ploting Joint")
+    flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
 
     ## Plot for paper 3

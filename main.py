@@ -46,11 +46,27 @@ def main(_):
     else:
         args.method_path = args.method
 
-    args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
-    args.log_dir = os.path.join(args.log_dir, args.run_id_string)
-    args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.run_id_string)
-    args.sample_dir = os.path.join(args.sample_dir, args.run_id_string)
-    args.result_dir = os.path.join(args.sample_dir, args.run_id_string)
+    if args.is_train == True:
+        args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
+    else:
+        args.run_id_string = "{}/{}".format(args.method_path, strftime(args.model_date))
+
+    args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.dataset, args.run_id_string)
+    args.sample_dir = os.path.join(args.sample_dir, args.dataset, args.run_id_string)
+    args.result_dir = os.path.join(args.result_dir, args.dataset, args.run_id_string)
+    args.log_dir = os.path.join(args.log_dir, args.dataset, args.run_id_string)
+
+    # check the existence of directories
+    if args.is_train == True:
+        if not os.path.exists(args.checkpoint_dir):
+            os.makedirs(args.checkpoint_dir)
+        if not os.path.exists(args.sample_dir):
+            os.makedirs(args.sample_dir)
+        if not os.path.exists(args.log_dir):
+            os.makedirs(args.log_dir)
+    else:
+        if not os.path.exists(args.result_dir):
+            os.makedirs(args.result_dir)
 
     # Original SeqSLAM method
     if args.SeqSLAM == True:
@@ -88,19 +104,8 @@ def main(_):
 
         return
 
-    # check the existence of directories
-    if not os.path.exists(args.checkpoint_dir):
-        os.makedirs(args.checkpoint_dir)
-    if not os.path.exists(args.sample_dir):
-        os.makedirs(args.sample_dir)
-    if not os.path.exists(args.result_dir):
-        os.makedirs(args.result_dir)
-    if not os.path.exists(args.log_dir):
-        os.makedirs(args.log_dir)
-
     if args.is_3D == True:
         Net_model = Net3D
-        args.dataset = 'new_loam'
         args.batch_size = 64
     else:
         Net_model = Net
@@ -134,12 +139,18 @@ def main(_):
         model = Net_model(sess, args)
         if args.is_train == True:
             model.train(args) 
-        else:
-            if args.is_reconstruct == True:
-                model.reconstruct(args)
-            else:
-                model.test(args)
+            return
+            
+        if args.is_reconstruct == True:
+            model.reconstruct(args)
+            return
+
+        if args.is_obtain_feature == True:
+            model.generate_codes(args)
+            return
+
+        model.test(args)
+        return
 
 if __name__ == '__main__':
     tf.app.run()
-

@@ -165,7 +165,13 @@ class Net3D(object):
         self.sess.run(init_op)        
 
         # Load Data files
-        data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        data_dir = []
+        if args.dataset == 'new_loam':
+            data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+        
+        if args.dataset == 'NCTL':
+            data_dir = ['2012-01-08', '2012-01-15', '2012-01-22']
+
         data_files = []
         for data_name in data_dir:
             read_path = os.path.join("./data", args.dataset, data_name, "pcd/*.pcd")
@@ -252,15 +258,17 @@ class Net3D(object):
 
     def test(self, args):
 
-        result_model = self.model + '_3D'
-        result_dir = os.path.join(args.result_dir, result_model)
-        if not os.path.exists(result_dir):
-            os.makedirs(result_dir)
+        # For new_loam dataset
+        if args.dataset == 'new_loam':
+            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+            sequence_name = '00'
 
-        #test_dir = ["gt", "T1_R0.1", "T1_R0.5", "T1_R1", "T1_R1.5", "T1_R2", "T5_R0.5", "T5_R1", "T5_R1.5", "T5_R2", "T10_R0.5", "T10_R1", "T10_R1.5", "T10_R2", "T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2"]
+        # For NCTL dataset            
+        if args.dataset == 'NCTL':
+            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+            sequence_name = '2012-01-22'
 
-        test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
-        for test_id in range(1, 7):
+        for test_id in range(1, 50):
 
             # Initial layer's variables
             test_epoch = test_id * 50
@@ -268,11 +276,10 @@ class Net3D(object):
             self.loadParam(args)
             print("[*] Load network done")
 
-
             for dir_id, dir_name in enumerate(test_dir):
 
                 ## Evaulate train data
-                train_files = glob(os.path.join(args.data_dir, args.dataset, '00', dir_name, "pcd/*.pcd"))
+                train_files = glob(os.path.join(args.data_dir, args.dataset, sequence_name, dir_name, "pcd/*.pcd"))
                 train_files.sort()
 
                 ## Extract Train data code
@@ -307,12 +314,49 @@ class Net3D(object):
                     if time_min > time_len:
                         time_min = time_len
                 
-                print("For {}".format(dir_name))
+                print("For {} {}".format(test_id, dir_name))
                 print("Average time: %4.4f"  % (time_sum/args.test_len))
                 print("Min time: %4.4f"  % time_min)
                 print("Max time: %4.4f"  % time_max)
-                GTvector_path = os.path.join(result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
+                GTvector_path = os.path.join(args.result_dir, str(test_id)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, train_code)
+
+    def generate_codes(self, args):
+
+        # For new_loam dataset
+        if args.dataset == 'new_loam':
+            data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+
+        # For NCTL dataset            
+        if args.dataset == 'NCTL':
+            data_dir = ['2012-01-08', '2012-01-15', '2012-01-22']
+
+        data_files = []
+        for data_name in data_dir:
+            read_path = os.path.join("./data", args.dataset, data_name, "pcd/*.pcd")
+            print (read_path)
+            data_file = glob(read_path)[40:]
+            data_file.sort()
+            data_files = data_files + data_file
+
+        # Initial layer's variables
+        self.test_epoch = test_epoch
+        self.loadParam(args)
+        print("[*] Load network done")
+        
+        ## Extract Train data code
+        for id in range(len(data_files)):
+            
+            sample_file = train_files[id]
+            sample = get_pcd(sample_file, args)
+            sample_pcd = np.array(sample).astype(np.float32)
+            sample_pcd = sample_pcd.reshape([1, args.voxel_size, args.voxel_size, \
+                                                 int(args.voxel_size/8), 1])
+            feed_dict={self.d_real_x: sample_pcd}    
+            train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            
+        GTvector_path = os.path.join(args.result_dir, 'code_vt.npy')
+        np.save(GTvector_path, train_code)
 
 
     def makeSample(self, feed_dict, sample_dir, epoch, idx):

@@ -34,6 +34,41 @@ class DataSampler(object):
         return batch_images
 
 
+class TriDataSampler(object):
+    def __init__(self, args, v_img, v_pcd, v_pose):
+        self.shape = [args.output_size, args.output_size, args.img_dim]
+        self.v_img  = v_img
+        self.v_pcd  = v_pcd        
+        self.v_pose = v_pose        
+        self.batch_len = len(v_img)
+        self.fn = args.frame_near
+        self.ff = args.frame_far
+        self.current_id = self.ff
+
+        self.batch_size = 1
+        self.is_crop = args.is_crop
+        self.output_size = args.output_size
+        self.image_size = args.image_size
+
+    def load_new_data(self):
+        ### Get datas ###
+        self.cc_img = self.v_img[current_id]
+        self.cc_pcd = self.v_pcd[current_id]
+        
+        self.cn_img = self.v_img[current_id-self.fn]
+        self.cn_pcd = self.v_pcd[current_id-self.fn]
+
+        self.cf_img = self.v_img[current_id-self.ff]
+        self.cf_pcd = self.v_pcd[current_id-self.ff]
+
+
+    def __call__(self):
+        if self.current_id >= self.batch_len:
+            self.current_id = self.ff
+
+        self.load_new_data()
+        self.current_id += 1            
+        return self.cc_img, self.cc_pcd, self.cn_img, self.cn_pcd, self.cf_img, self.cf_pcd
 
 class NoiseSampler(object):
     def __init__(self, args):

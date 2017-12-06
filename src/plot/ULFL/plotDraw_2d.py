@@ -12,18 +12,22 @@ from parameters import *
 
 def Plot_2D(args):
 
-    #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5", "T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
-    #test_dir = ["T1_R0.1", "T1_R0.5", "T5_R0.5", "T10_R0.5"]
-    test_dir = ["T20_R0.5", "T20_R1", "T20_R1.5", "T20_R2", "T20_R2"]
-    result_dir = os.path.join(args.result_dir, 'ALI/ALI')
+    # For new_loam dataset
+    if args.dataset == 'new_loam':
+        test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+        sequence_name = '00'
+
+    # For NCTL dataset            
+    if args.dataset == 'NCTL':
+        test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+        sequence_name = '2012-01-22'
+
+    result_dir = args.result_dir
     matrix_dir = os.path.join(result_dir,      'MATRIX')
     pr_dir     = os.path.join(result_dir,      'PR')
     match_dir  = os.path.join(result_dir,      'MATCH')
-    pose_dir   = os.path.join(args.data_dir,   'new_loam', '00')
+    pose_dir   = os.path.join(args.data_dir,   args.dataset, sequence_name)
     
-
-    if not os.path.exists(result_dir):
-        os.makedirs(result_dir)   
         
     if not os.path.exists(matrix_dir):
         os.makedirs(matrix_dir)       
@@ -49,7 +53,7 @@ def Plot_2D(args):
 
             Testvector_pose = os.path.join(pose_dir, file_name, 'pose.txt')
             test_pose = np.loadtxt(Testvector_pose)
-            test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]        
+            test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
 
             D = Euclidean(train_img, test_img)
             DD = enhanceContrast(D, 30)
