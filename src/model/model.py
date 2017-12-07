@@ -414,29 +414,32 @@ class Net(object):
         data_files = []
         for data_name in data_dir:
             read_path = os.path.join("./data", args.dataset, data_name, "img/*.jpg")
-            print (read_path)
             data_file = glob(read_path)[40:]
             data_file.sort()
             data_files = data_files + data_file
 
+        print("[*] Load {} files in total".format(len(data_files)))
+
         # Initial layer's variables
-        self.test_epoch = test_epoch
+        self.test_epoch = args.get_epoch
         self.loadParam(args)
         print("[*] Load network done")
         
         ## Extract Train data code
-        for id in range(len(data_files)):
-                            
-            sample_file = train_files[id]
+        feature_code  = np.zeros([len(data_files), 512]).astype(np.float32)
+        for idx, val in enumerate(data_files):
+
+            print ("Read {} file".format(idx))
+            sample_file = val
             sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                resize_w=args.output_size, is_grayscale=0)
             sample_image = np.array(sample).astype(np.float32)
             sample_image = sample_image.reshape([1,64,64,3])
             feed_dict={self.d_real_x: sample_image}
-            train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+            feature_code[idx]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                             
-        GTvector_path = os.path.join(args.result_dir, 'code_vt.npy')
-        np.save(GTvector_path, train_code)
+        GTvector_path = os.path.join(args.result_dir, str(args.get_epoch)+'_code_vt.npy')
+        np.save(GTvector_path, feature_code)
 
     def reconstruct(self, args):
 

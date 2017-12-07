@@ -9,6 +9,7 @@ from src.model.model3D import Net3D
 from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
 from src.model.model_BIGAN_GTAV import Net_BIGAN_GTAV
+from src.model.model_reweight import Net_REWEIGHT
 
 # For the first paper, Unsupervised LiDAR Feature Learning
 from src.plot.ULFL.plotDraw_joint import Plot_Joint
@@ -39,7 +40,7 @@ args = Param()
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def main(_):
-
+    
     # Current model string
     if args.is_3D == True:
         args.method_path = args.method + '_3D'
@@ -67,6 +68,33 @@ def main(_):
     else:
         if not os.path.exists(args.result_dir):
             os.makedirs(args.result_dir)
+
+    # set gpu usage
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
+    config = tf.ConfigProto(gpu_options=gpu_options)
+    config.gpu_options.allow_growth=True
+
+    # Reweighting module
+    if args.method == 'Reweight':
+
+        args.v_img_path = os.path.join('result', args.dataset, 'ALI_CLC', args.img_date)
+        args.v_pcd_path = os.path.join('result', args.dataset, 'ALI_3D',  args.pcd_date)
+
+        if not os.path.exists(args.v_img_path):
+            print ('no such img code {}'.format(args.v_img_path))
+            return
+
+        if not os.path.exists(args.v_pcd_path):
+            print ('no such pcd code {}'.format(args.v_pcd_path))
+            return
+
+        with tf.Session(config=config) as sess:
+            model = Net_REWEIGHT(sess, args)
+            if args.is_train == True:
+                model.train(args) 
+            else:
+                model.test(args)                 
+        return
 
     # Original SeqSLAM method
     if args.SeqSLAM == True:
@@ -124,10 +152,6 @@ def main(_):
 
     if args.is_train == False:
         args.batch_size = 1
-
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
-    config = tf.ConfigProto(gpu_options=gpu_options)
-    config.gpu_options.allow_growth=True
 
     with tf.Session(config=config) as sess:
 

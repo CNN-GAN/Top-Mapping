@@ -18,9 +18,9 @@ from glob import glob
 from sklearn.metrics import precision_recall_curve
 from matplotlib import pyplot as plt
 from tensorlayer.layers import *
-import src.module.module   as module2d
-import src.module.module3d as module3d
-import src.module.module_rewight as module_reweight
+import src.module.module   as module2D
+import src.module.module3D as module3D
+from src.module.module_reweight import *
 from src.util.utils import *
 from src.data import *
 
@@ -29,15 +29,14 @@ class Net_REWEIGHT(object):
         self.sess = sess
         self.summary = tf.summary
 
-        self.LSTM_Encoder = module_reweight.LSTM_Encoder
-        self.Mahalanobis_Loss = module_reweight.Mahalanobis_Loss
+        self.LSTM_Encoder = LSTM_Encoder
 
         # ALI approach
         self.model    = args.method
         self.is_train = args.is_train 
 
         # Data iterator
-        self.data_iter = Tri_data_iter
+        self.data_iter = TriDataSampler
 
         # SeqSLAM
         self.vec_D    = Euclidean
@@ -117,9 +116,9 @@ class Net_REWEIGHT(object):
         self.sess.run(init_op)
 
         # Load codes
-        v_img_path = os.path.join(args.v_img_path, 'code_vt.npy')
+        v_img_path = os.path.join(args.v_img_path, str(args.img_epoch)+'_code_vt.npy')
         v_img = np.load(v_img_path)
-        v_pcd_path = os.path.join(args.v_pcd_path, 'code_vt.npy')
+        v_pcd_path = os.path.join(args.v_pcd_path, str(args.pcd_epoch)+'_code_vt.npy')
         v_pcd = np.load(v_pcd_path)
 
         # For new_loam dataset
@@ -143,7 +142,6 @@ class Net_REWEIGHT(object):
         self.iter_counter = 0
 
         for idx in xrange(0, args.iteration):
-
             self.iter_counter += 1
             
             ### Update Nets ###
