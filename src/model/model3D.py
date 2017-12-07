@@ -258,14 +258,16 @@ class Net3D(object):
 
     def test(self, args):
 
+        test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2", \
+                    "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
+                    "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
+
         # For new_loam dataset
         if args.dataset == 'new_loam':
-            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
             sequence_name = '00'
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
-            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
             sequence_name = '2012-01-22'
 
         for test_id in range(1, 50):

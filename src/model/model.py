@@ -336,15 +336,17 @@ class Net(object):
 
     def test(self, args):
 
+        test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2", \
+                    "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
+                    "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
+
         # For new_loam dataset
         if args.dataset == 'new_loam':
-            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
             sequence_name = '00'
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
-            test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
-            sequence_name = '2012-01-22'
+            sequence_name = '2012-02-02'
 
 
         for test_epoch in range(1, 100):
@@ -357,22 +359,25 @@ class Net(object):
             for dir_id, dir_name in enumerate(test_dir):
 
                 ## Evaulate train data
-                train_files = glob(os.path.join(args.data_dir, args.dataset, sequence_name, dir_name, "img/*.jpg"))
-                train_files.sort()
+                test_path = os.path.join(args.data_dir, args.dataset, sequence_name, dir_name, "img/*.jpg")
+                test_files = glob(test_path)
+                test_files.sort()
                 
+                print (test_path)
+                print (len(test_files))
                 ## Extract Train data code
-                train_code  = np.zeros([args.test_len, 512]).astype(np.float32)
+                test_code  = np.zeros([args.test_len, 512]).astype(np.float32)
                 count = 0
                 time_sum = 0
                 time_min = 10000
                 time_max = -1.0
-                for id in range(len(train_files)):
+                for id in range(len(test_files)):
 
                     start_time = time.time()
                     if id%args.frame_skip != 0:
                         continue
 
-                    sample_file = train_files[id]
+                    sample_file = test_files[id]
                     sample = get_image(sample_file, args.image_size, is_crop=args.is_crop, \
                                        resize_w=args.output_size, is_grayscale=0)
                     sample_image = np.array(sample).astype(np.float32)
@@ -382,7 +387,7 @@ class Net(object):
                     if count >= args.test_len:
                         break
 
-                    train_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
                     count = count+1
                     time_len = time.time() - start_time
                     time_sum += time_len
@@ -398,7 +403,7 @@ class Net(object):
                 print("Max time: %4.4f"  % time_max)
                 print("save file {}".format(str(test_epoch)+'_'+dir_name+'_vt.npy'))
                 GTvector_path = os.path.join(args.result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
-                np.save(GTvector_path, train_code)
+                np.save(GTvector_path, test_code)
 
 
     def generate_codes(self, args):
