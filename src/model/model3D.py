@@ -167,7 +167,7 @@ class Net3D(object):
         # Load Data files
         data_dir = []
         if args.dataset == 'new_loam':
-            data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+            data_dir = ['01', '02', '03', '04','05', '06','07', '08', '09']
         
         if args.dataset == 'NCTL':
             data_dir = ['2012-01-08', '2012-01-15', '2012-01-22']
@@ -258,9 +258,13 @@ class Net3D(object):
 
     def test(self, args):
 
+        #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
+        test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
+        '''
         test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2", \
                     "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
                     "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
+        '''
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
@@ -268,12 +272,12 @@ class Net3D(object):
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
-            sequence_name = '2012-01-22'
+            sequence_name = '2012-02-02'
 
-        for test_id in range(1, 50):
+        for test_id in range(1, 100):
 
             # Initial layer's variables
-            test_epoch = test_id * 50
+            test_epoch = test_id
             self.test_epoch = test_epoch
             self.loadParam(args)
             print("[*] Load network done")
@@ -290,7 +294,7 @@ class Net3D(object):
                 time_min = 10000
                 time_max = -1.0
                 count = 0
-                for id in range(len(train_files)):
+                for id in range(100, len(train_files)):
 
                     start_time = time.time()
                     if id%args.frame_skip != 0:

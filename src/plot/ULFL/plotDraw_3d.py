@@ -12,16 +12,15 @@ from parameters import *
 
 def Plot_3D(args):
 
+    #test_dir = ["T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
+    test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
     # For new_loam dataset
     if args.dataset == 'new_loam':
-        test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
         sequence_name = '00'
 
     # For NCTL dataset            
     if args.dataset == 'NCTL':
-        test_dir = ["gt", "T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
         sequence_name = '2012-01-22'    
-
 
     result_dir = args.result_dir
     matrix_dir = os.path.join(result_dir,      'MATRIX')

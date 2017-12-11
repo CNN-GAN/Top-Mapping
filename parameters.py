@@ -6,6 +6,7 @@ def Param():
     
     ## Param
     flags.DEFINE_integer("epoch",         40,           "Epoch to train [40]")
+    flags.DEFINE_integer("iter_num",     1000000,      "iteration to train [40]")
     flags.DEFINE_integer("c_epoch",       0,            "current Epoch")
     flags.DEFINE_integer("get_epoch",     15,           "get features from Epoch")
 
@@ -15,7 +16,7 @@ def Param():
     flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
     flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
-    flags.DEFINE_float("distance_threshold",   0.4,     "threshold for far/near frames")
+    flags.DEFINE_float("distance_threshold",   6.0,     "threshold for far/near frames")
 
         
     ## Data
@@ -34,22 +35,24 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
-    flags.DEFINE_string("model_date",     "12.04_10-56",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("model_date",     "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
 
-    flags.DEFINE_string("img_date",     "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("pcd_date",     "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("new_loam_img",   "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("new_loam_pcd",   "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("nctl_img",       "12.10_11-16",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
 
     flags.DEFINE_integer("img_epoch",   15,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("pcd_epoch",   15,           "The size of the output images to produce [64]")
 
 
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",        "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight")
+    flags.DEFINE_string("method",         "headingInv",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
-    flags.DEFINE_integer("sample_step",   1,            "The interval of generating sample. [500]")
-    flags.DEFINE_integer("save_step",     50,           "The interval of saveing checkpoints. [500]")
+    flags.DEFINE_integer("sample_step",   5,            "The interval of generating sample. [500]")
+    flags.DEFINE_integer("save_step",     500,         "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")
     flags.DEFINE_integer("dX_dim",        1024,         "The number of discriminator for image")
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
@@ -78,7 +81,7 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,           "velocity gap")
     flags.DEFINE_float("vmax",            1.2,           "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,            "rainbow")
-    flags.DEFINE_integer("frame_skip",    1,             "frame skip")    
+    flags.DEFINE_integer("frame_skip",    5,             "frame skip")    
     flags.DEFINE_integer("Knn",           5,             "K nearest point")
     flags.DEFINE_integer("test_len",      300,           "test data length")
     flags.DEFINE_integer("test_base",     0,             "test data base")
@@ -102,11 +105,11 @@ def Param():
     flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        False,        "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        True,        "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
 

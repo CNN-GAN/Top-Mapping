@@ -241,7 +241,7 @@ class Net(object):
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
-            data_dir = ['01', '02', '03', '04','05', '06','07', '08']
+            data_dir = ['01', '02', '03', '04','05', '06','07', '08', '09']
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
@@ -336,9 +336,11 @@ class Net(object):
 
     def test(self, args):
 
-        test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2", \
-                    "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
-                    "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
+        #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
+        #test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
+        #"T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
+        #"T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
+        test_dir = ["R0.50", "R0.75", "R1.00", "R1.25", "R1.50", "R1.75", "R2.00", "R2.25", "R2.50", "R3.00"]
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
@@ -371,7 +373,7 @@ class Net(object):
                 time_sum = 0
                 time_min = 10000
                 time_max = -1.0
-                for id in range(len(test_files)):
+                for id in range(100, len(test_files)):
 
                     start_time = time.time()
                     if id%args.frame_skip != 0:

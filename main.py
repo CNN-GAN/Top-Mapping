@@ -10,6 +10,7 @@ from src.model.model_feature import Net_Feature
 from src.model.model_simpleCYC import Net_simpleCYC
 from src.model.model_BIGAN_GTAV import Net_BIGAN_GTAV
 from src.model.model_reweight import Net_REWEIGHT
+from src.model.model_headingInv import Net_HEADINGINV
 
 # For the first paper, Unsupervised LiDAR Feature Learning
 from src.plot.ULFL.plotDraw_joint import Plot_Joint
@@ -37,20 +38,30 @@ from src.third_function.vgg16.vgg16 import Seq_VGG
 # Obtain parameters
 args = Param()
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-
 def main(_):
     
     # Current model string
     if args.is_3D == True:
-        args.method_path = args.method + '_3D'
+        args.method_path = 'ALI_3D'
+        os.environ["CUDA_VISIBLE_DEVICES"]="0"
     else:
         args.method_path = args.method
+        os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
     if args.is_train == True:
         args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
     else:
-        args.run_id_string = "{}/{}".format(args.method_path, strftime(args.model_date))
+        if args.dataset == "new_loam":
+            if args.is_3D == True:
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.new_loam_pcd))
+            else:
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.new_loam_img))
+        else:
+            if args.is_3D == True:
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.nctl_pcd))
+            else:
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.nctl_img))
+
 
     args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.dataset, args.run_id_string)
     args.sample_dir = os.path.join(args.sample_dir, args.dataset, args.run_id_string)
@@ -149,6 +160,9 @@ def main(_):
     if args.method == 'BiGAN_GTAV':
         Net_model = Net_BIGAN_GTAV
         args.dataset = 'GTAV'
+
+    if args.method == 'headingInv':
+        Net_model = Net_HEADINGINV
 
     if args.is_train == False:
         args.batch_size = 1

@@ -71,7 +71,7 @@ class Net_REWEIGHT(object):
         self.loss_far  = tl.cost.mean_squared_error(self.cc_code, self.cf_code)
 
         # max(0, 1-||ht-ht_n||/(||ht-ht_1||+beta))
-        self.loss_maha = tf.nn.relu(tf.sbu(1, tf.div(self.loss_far, tf.add(self.loss_near, args.distance_threshold))))
+        self.loss_maha = tf.nn.relu(tf.sub(1, tf.div(self.loss_far, tf.add(self.loss_near, args.distance_threshold))))
 
         # Make summary
         with tf.name_scope('LSTM_Encoder'):
