@@ -282,7 +282,7 @@ def getMatches(DD, Ann, args):
         #match = [min_idx + v_ds/2, min_value / min_value_2nd]
         match = [min_idx + v_ds/2, 1. / min_value]
         if match[1] > 1:
-            match = 1.0
+            match[1] = 1.0
 
         matches[N,:] = match
         

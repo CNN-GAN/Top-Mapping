@@ -6,16 +6,20 @@ import json
 
 from src.util.utils import *
 import numpy as np
+import cv2
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
+from glob import glob
+import scipy.misc
 
 def Plot_2D(args):
 
     #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
     #test_dir = ["R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
     #test_dir = ['gt']
-    test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
+    #test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
+    test_dir = ["R0"]
     '''
     "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
     "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
@@ -45,13 +49,18 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1, 100):
+    for epoch_id in range(1, 20):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
         Trainvector_pose = os.path.join(pose_dir, 'R1', 'pose.txt')
         train_pose = np.loadtxt(Trainvector_pose)
         train_pose = train_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
+
+        train_path = os.path.join(pose_dir, 'R1', "img/*.jpg")
+        train_files = glob(train_path)
+        train_files.sort()
+
 
         for file_id, file_name in enumerate(test_dir):
             print('Load data file:{}'.format(file_name)) 
@@ -61,6 +70,10 @@ def Plot_2D(args):
             Testvector_pose = os.path.join(pose_dir, file_name, 'pose.txt')
             test_pose = np.loadtxt(Testvector_pose)
             test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
+
+            test_path  = os.path.join(pose_dir, 'R0', "img/*.jpg")
+            test_files = glob(test_path)
+            test_files.sort()
 
             D = N2One_Euclidean(train_img, test_img)
             DD = enhanceContrast(D, 30)
@@ -72,6 +85,25 @@ def Plot_2D(args):
             ## Save matching 
             match = getMatches(DD, 0, args)
             m = match[:,0]
+            epoch_dir = os.path.join(match_dir, str(epoch_id))
+            if not os.path.exists(epoch_dir):
+                os.makedirs(epoch_dir)       
+
+            count_id = 1
+            for test_id, match_id in enumerate(m):
+
+                if np.isnan(match_id):
+                    continue
+
+                print ("plot for test id {}".format(test_id))
+                for iid in range(2):
+                    img1 = cv2.imread(test_files[int(100 + test_id*5+iid*2)])
+                    img2 = cv2.imread(train_files[int(100 + match_id*5+iid*2)])
+
+                    vis = np.concatenate((img1, img2), axis=1)
+                    cv2.imwrite(os.path.join(epoch_dir, str(count_id).zfill(5)+'.jpg'), vis)
+                    count_id += 1
+            
             thresh = 0.95
             matched = match[match[:,1]<thresh, 1]
             score = np.mean(matched)
@@ -92,7 +124,6 @@ def Plot_2D(args):
                 train_id = int(match_PR[match_id, 0])
                 test_id  = match_id+int(int(args.v_ds/2))
                 distance = np.linalg.norm(train_pose[train_id]-test_pose[test_id])
-
                 if distance <= args.match_distance:
                     match_PR[match_id,0] = 1
                 else:

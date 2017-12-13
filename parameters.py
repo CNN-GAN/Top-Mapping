@@ -109,7 +109,7 @@ def Param():
     flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           True,        "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
