@@ -78,10 +78,10 @@ class HeadINVdataSampler(object):
         self.rp1  = rp1_files
         self.rp2  = rp2_files
 
-        self.batch_len = len(r0_files) // (args.batch_size * 2)
+        self.batch_len = len(r0_files) //args.batch_size
         self.current_batch = 0
 
-        self.bag_ids = np.arange(len(r0_files))
+        self.bag_ids = np.arange(len(r0_files)-2*args.frame_skip)
         np.random.shuffle(self.bag_ids)
         print("[*] Dataset shuffled!")
 
@@ -89,6 +89,7 @@ class HeadINVdataSampler(object):
         self.is_crop = args.is_crop
         self.output_size = args.output_size
         self.image_size = args.image_size
+        self.frame_skip = args.frame_skip
 
     def load_new_data(self):
         ### Get datas ###
@@ -98,29 +99,29 @@ class HeadINVdataSampler(object):
         data_rp1 = []
         data_rp2 = []
 
-        start_id = self.current_batch * 2 * self.batch_size
-        for idx in range(self.batch_size):
-            data_idx =  self.bag_ids[start_id+idx]
-            data_rn2 += [self.rn2[data_idx]]
-            data_rn1 += [self.rn1[data_idx]]
-            data_r0  += [self.r0[data_idx]]
-            data_rp1 += [self.rp1[data_idx]]
-            data_rp2 += [self.rp2[data_idx]]
-
         data_orn2 = []
         data_orn1 = []
         data_or0 = []
         data_orp1 = []
         data_orp2 = []
 
-        start_id = (self.current_batch * 2 + 1) * self.batch_size
+        start_id = self.current_batch * self.batch_size
         for idx in range(self.batch_size):
+
             data_idx =  self.bag_ids[start_id+idx]
+
             data_orn2 += [self.rn2[data_idx]]
             data_orn1 += [self.rn1[data_idx]]
             data_or0  += [self.r0[data_idx]]
             data_orp1 += [self.rp1[data_idx]]
             data_orp2 += [self.rp2[data_idx]]
+
+            data_rn2 += [self.rn2[data_idx+self.frame_skip]]
+            data_rn1 += [self.rn1[data_idx+self.frame_skip]]
+            data_r0  += [self.r0[data_idx+self.frame_skip]]
+            data_rp1 += [self.rp1[data_idx+self.frame_skip]]
+            data_rp2 += [self.rp2[data_idx+self.frame_skip]]
+
                     
         ## get real images
         batch_rn2        = [get_image(batch_file, self.image_size, is_crop=self.is_crop, \
@@ -176,7 +177,7 @@ class HeadINVdataSampler(object):
 
 
     def __call__(self):
-        if self.current_batch >= self.batch_len:
+        if self.current_batch > self.batch_len-1:
             self.current_batch = 0
             np.random.shuffle(self.bag_ids)
 

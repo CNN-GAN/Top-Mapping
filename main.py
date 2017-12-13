@@ -43,14 +43,17 @@ def main(_):
     # Current model string
     if args.is_3D == True:
         args.method_path = 'ALI_3D'
-        os.environ["CUDA_VISIBLE_DEVICES"]="0"
     else:
         args.method_path = args.method
-        os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
     if args.is_train == True:
         args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
+        os.environ["CUDA_VISIBLE_DEVICES"]="1"
+        with open('log.txt', 'a') as the_file:
+            the_file.write(args.run_id_string)
+            the_file.write(args.log_notes) 
     else:
+        os.environ["CUDA_VISIBLE_DEVICES"]="0"
         if args.dataset == "new_loam":
             if args.is_3D == True:
                 args.run_id_string = "{}/{}".format(args.method_path, strftime(args.new_loam_pcd))

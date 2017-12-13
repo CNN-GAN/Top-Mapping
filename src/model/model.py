@@ -340,7 +340,11 @@ class Net(object):
         #test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
         #"T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
         #"T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
-        test_dir = ["R0.50", "R0.75", "R1.00", "R1.25", "R1.50", "R1.75", "R2.00", "R2.25", "R2.50", "R3.00"]
+        #test_dir = ["R0.50", "R0.75", "R1.00", "R1.25", "R1.50", "R1.75", "R2.00", "R2.25", "R2.50", "R3.00"]
+
+        #test_dir = ["R0.50", "R1.00", "R1.50", "R2.00", "R2.50", "R3.00"]
+        #test_dir = ["R4", "R8", "R12", "R16"]
+        test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16",]
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
@@ -348,16 +352,17 @@ class Net(object):
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
-            sequence_name = '2012-02-02'
+            sequence_name = '2012-02-02_A'
 
 
-        for test_epoch in range(1, 100):
+        for test_epoch in range(1, 23):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
             self.loadParam(args)
             print("[*] Load network done")
 
+            joint_code  = np.zeros([args.test_len, 8, 512]).astype(np.float32)
             for dir_id, dir_name in enumerate(test_dir):
 
                 ## Evaulate train data
@@ -390,6 +395,9 @@ class Net(object):
                         break
 
                     test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
+                    if dir_id%2 == 0:
+                        joint_code[count, (dir_id//2-1)] = test_code[count]
+
                     count = count+1
                     time_len = time.time() - start_time
                     time_sum += time_len
@@ -399,6 +407,7 @@ class Net(object):
                     if time_min > time_len:
                         time_min = time_len
                 
+
                 print("For {}".format(dir_name))
                 print("Average time: %4.4f"  % (time_sum/args.test_len))
                 print("Min time: %4.4f"  % time_min)
@@ -407,6 +416,11 @@ class Net(object):
                 GTvector_path = os.path.join(args.result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, test_code)
 
+            '''
+            print("save file {}".format(str(test_epoch)+'_joint_vt.npy'))
+            GTvector_path = os.path.join(args.result_dir, str(test_epoch)+'_joint_vt.npy')
+            np.save(GTvector_path, joint_code)
+            '''
 
     def generate_codes(self, args):
 

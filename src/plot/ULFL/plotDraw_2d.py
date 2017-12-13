@@ -15,7 +15,7 @@ def Plot_2D(args):
     #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
     #test_dir = ["R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
     #test_dir = ['gt']
-    test_dir = ["R0.50", "R0.75", "R1.00", "R1.25", "R1.50", "R1.75", "R2.00", "R2.25", "R2.50", "R3.00"]
+    test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
     '''
     "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
     "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
@@ -45,11 +45,11 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1, 21):
-        Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_R1.50_vt.npy')
+    for epoch_id in range(1, 100):
+        Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
-        Trainvector_pose = os.path.join(pose_dir, 'R1.50', 'pose.txt')
+        Trainvector_pose = os.path.join(pose_dir, 'R1', 'pose.txt')
         train_pose = np.loadtxt(Trainvector_pose)
         train_pose = train_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
 
@@ -62,7 +62,7 @@ def Plot_2D(args):
             test_pose = np.loadtxt(Testvector_pose)
             test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
 
-            D = Euclidean(train_img, test_img)
+            D = N2One_Euclidean(train_img, test_img)
             DD = enhanceContrast(D, 30)
 
             print (D.shape)

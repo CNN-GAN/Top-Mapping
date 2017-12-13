@@ -76,6 +76,24 @@ def Euclidean(train, test):
             D[x,y] = np.linalg.norm(train[x]-test[y])
     return D
 
+def NV_Euclidean(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            distance = train[x] - test[y,2]
+            value = np.linalg.norm(distance, axis=1, keepdims=True)
+            D[x,y] = value.min()
+    return D
+
+def N2One_Euclidean(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            distance = train[x] - test[y]
+            value = np.linalg.norm(distance, axis=1, keepdims=True)
+            D[x,y] = value.min()
+    return D
+
 def Manhattan(train, test):
     D = np.zeros([train.shape[0], test.shape[0]])
     for x in range(train.shape[0]):

@@ -5,18 +5,21 @@ def Param():
     flags = tf.app.flags
     
     ## Param
-    flags.DEFINE_integer("epoch",         40,           "Epoch to train [40]")
-    flags.DEFINE_integer("iter_num",     1000000,      "iteration to train [40]")
-    flags.DEFINE_integer("c_epoch",       0,            "current Epoch")
-    flags.DEFINE_integer("get_epoch",     15,           "get features from Epoch")
+    flags.DEFINE_integer("epoch",              40,           "Epoch to train [40]")
+    flags.DEFINE_integer("iter_num",         1000000,        "iteration to train [40]")
+    flags.DEFINE_integer("c_epoch",            0,            "current Epoch")
+    flags.DEFINE_integer("get_epoch",          15,           "get features from Epoch")
 
-    flags.DEFINE_integer("enhance",       20,           "Enhancement for different matrix")
-    flags.DEFINE_float("lr",              0.0002,       "Learning rate of for adam [0.0002]")
-    flags.DEFINE_float("beta1",           0.5,          "Momentum term of adam [0.5]")
-    flags.DEFINE_float("side_D",          0.1,          "side discriminator for cycle updating")
-    flags.DEFINE_float("cycle",           0.1,          "threshold for cycle updating")
-    flags.DEFINE_float("in_cycle",        1.0,          "threshold for inner cycle updating")
-    flags.DEFINE_float("distance_threshold",   6.0,     "threshold for far/near frames")
+    flags.DEFINE_integer("enhance",            20,           "Enhancement for different matrix")
+    flags.DEFINE_float("lr",                   0.0002,       "Learning rate of for adam [0.0002]")
+    flags.DEFINE_float("beta1",                0.5,          "Momentum term of adam [0.5]")
+    flags.DEFINE_float("side_D",               0.1,          "side discriminator for cycle updating")
+    flags.DEFINE_float("cycle",                0.1,          "threshold for cycle updating")
+    flags.DEFINE_float("head_diff",            0.1,          "threshold for cycle updating")
+    flags.DEFINE_float("maha",                 0.5,          "threshold for cycle updating")
+    flags.DEFINE_float("trans",                0.2,          "threshold for cycle updating")
+    flags.DEFINE_float("in_cycle",             1.0,          "threshold for inner cycle updating")
+    flags.DEFINE_float("distance_weighting",   1.0,     "threshold for far/near frames")
 
         
     ## Data
@@ -39,20 +42,21 @@ def Param():
 
     flags.DEFINE_string("new_loam_img",   "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("new_loam_pcd",   "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("nctl_img",       "12.10_11-16",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("nctl_img",       "12.08_23-19",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
 
     flags.DEFINE_integer("img_epoch",   15,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("pcd_epoch",   15,           "The size of the output images to produce [64]")
-
+    
+    flags.DEFINE_string("log_notes",      "headingInv model, with frame_skip 10",      "logs")
 
     ## Training
-    flags.DEFINE_string("method",         "headingInv",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
+    flags.DEFINE_string("method",         "ALI_CLC",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
-    flags.DEFINE_integer("sample_step",   5,            "The interval of generating sample. [500]")
-    flags.DEFINE_integer("save_step",     500,         "The interval of saveing checkpoints. [500]")
+    flags.DEFINE_integer("sample_step",   2,            "The interval of generating sample. [500]")
+    flags.DEFINE_integer("save_step",     100,         "The interval of saveing checkpoints. [500]")
     flags.DEFINE_integer("img_filter",    64,           "The number of image filters")
     flags.DEFINE_integer("dX_dim",        1024,         "The number of discriminator for image")
     flags.DEFINE_integer("dZ_dim",        1024,         "The number of discriminator for code")
@@ -72,7 +76,7 @@ def Param():
     flags.DEFINE_integer("voxel_filter",  64,           "The number of image filters")
     flags.DEFINE_integer("voxel_size",    64,           "Set map scale [128, 128, 16]")
     flags.DEFINE_integer("voxel_dim",     1,            "voxel map dim")
-    flags.DEFINE_integer("voxel_code",    512,          "voxel code dimension")
+    flags.DEFINE_integer("voxel_code",    128,          "voxel code dimension")
 
     ## SeqSLAM
     flags.DEFINE_float("v_ds",            10,            "seqslam distance")
@@ -105,22 +109,22 @@ def Param():
     flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,        "True for ploting figures")
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        True,        "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        True,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
 
     ## Plot for paper 2
     flags.DEFINE_boolean("plot_slfl",      False,        "True for ploting Joint")
-    flags.DEFINE_boolean("plot_paper2",    False,         "True for ploting paper2")
+    flags.DEFINE_boolean("plot_paper2",    False,        "True for ploting paper2")
 
     ## Plot for paper 3
     flags.DEFINE_boolean("plot_simplecyc", False,         "True for ploting simplecyc")
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
     flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
-    flags.DEFINE_boolean("plot_paper3",    False,        "True for ploting paper3")
+    flags.DEFINE_boolean("plot_paper3",    False,         "True for ploting paper3")
 
     return flags.FLAGS

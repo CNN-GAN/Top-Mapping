@@ -87,25 +87,30 @@ class Net_HEADINGINV(object):
         self.n_rn1_c, self.d_rn1_c   = self.encoder(self.d_RN1, is_train=True, reuse=True)
         self.n_rn2_c, self.d_rn2_c   = self.encoder(self.d_RN2, is_train=True, reuse=True)
 
-        self.n_other_c, self.d_other_c = self.encoder(self.d_OR0,  is_train=False, reuse=True)
-        self.n_orp1_c, self.d_orp1_c   = self.encoder(self.d_ORP1, is_train=False, reuse=True)
-        self.n_orp2_c, self.d_orp2_c   = self.encoder(self.d_ORP2, is_train=False, reuse=True)
-        self.n_orn1_c, self.d_orn1_c   = self.encoder(self.d_ORN1, is_train=False, reuse=True)
-        self.n_orn2_c, self.d_orn2_c   = self.encoder(self.d_ORN2, is_train=False, reuse=True)
+        self.n_other_c, self.d_other_c = self.encoder(self.d_OR0,  is_train=True, reuse=True)
+        self.n_orp1_c, self.d_orp1_c   = self.encoder(self.d_ORP1, is_train=True, reuse=True)
+        self.n_orp2_c, self.d_orp2_c   = self.encoder(self.d_ORP2, is_train=True, reuse=True)
+        self.n_orn1_c, self.d_orn1_c   = self.encoder(self.d_ORN1, is_train=True, reuse=True)
+        self.n_orn2_c, self.d_orn2_c   = self.encoder(self.d_ORN2, is_train=True, reuse=True)
 
         ## Decoder
+        self.n_reco_r0,  self.d_reco_r0, self.n_code_r0,  self.d_code_r0 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=False)
+        self.n_reco_rn2, self.d_reco_rn2, self.n_code_rn2, self.d_code_rn2 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(0, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_reco_rn1, self.d_reco_rn1, self.n_code_rn1, self.d_code_rn1 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(1, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_reco_rd,  self.d_reco_rd, self.n_code_rd, self.d_code_rd  = self.decoder(self.d_fake_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_reco_rp1, self.d_reco_rp1, self.n_code_rp1, self.d_code_rp1 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(3, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_reco_rp2, self.d_reco_rp2, self.n_code_rp2, self.d_code_rp2 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(4, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
 
-        self.n_reco_r0,  self.d_reco_r0  = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=False)
-        self.n_reco_rn2, self.d_reco_rn2 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(0, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_reco_rn1, self.d_reco_rn1 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(1, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_reco_rd,  self.d_reco_rd  = self.decoder(self.d_fake_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_reco_rp1, self.d_reco_rp1 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(3, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_reco_rp2, self.d_reco_rp2 = self.decoder(self.d_real_c, tf.tile(tf.reshape(tf.one_hot(4, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_cyc_rn2, self.d_cyc_rn2, self.n_code_crn2, self.d_code_crn2 = self.decoder(self.d_rn2_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_cyc_rn1, self.d_cyc_rn1, self.n_code_crn1, self.d_code_crn1 = self.decoder(self.d_rn1_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_cyc_rp1, self.d_cyc_rp1, self.n_code_crp1, self.d_code_crp1 = self.decoder(self.d_rp1_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_cyc_rp2, self.d_cyc_rp2, self.n_code_crp2, self.d_code_crp2 = self.decoder(self.d_rp2_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
 
-        self.n_cyc_rn2, self.d_cyc_rn2 = self.decoder(self.d_rn2_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_cyc_rn1, self.d_cyc_rn1 = self.decoder(self.d_rn1_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_cyc_rp1, self.d_cyc_rp1 = self.decoder(self.d_rp1_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
-        self.n_cyc_rp2, self.d_cyc_rp2 = self.decoder(self.d_rp2_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=True, reuse=True )
+        self.n_reco_or0,  self.d_reco_or0, self.n_code_or0,  self.d_code_or0 = self.decoder(self.d_other_c, tf.tile(tf.reshape(tf.one_hot(2, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True)
+        self.n_reco_orn2, self.d_reco_orn2, self.n_code_orn2, self.d_code_orn2 = self.decoder(self.d_orn2_c, tf.tile(tf.reshape(tf.one_hot(0, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
+        self.n_reco_orn1, self.d_reco_orn1, self.n_code_orn1, self.d_code_orn1 = self.decoder(self.d_orn1_c, tf.tile(tf.reshape(tf.one_hot(1, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
+        self.n_reco_orp1, self.d_reco_orp1, self.n_code_orp1, self.d_code_orp1 = self.decoder(self.d_orp1_c, tf.tile(tf.reshape(tf.one_hot(3, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
+        self.n_reco_orp2, self.d_reco_orp2, self.n_code_orp2, self.d_code_orp2 = self.decoder(self.d_orp2_c, tf.tile(tf.reshape(tf.one_hot(4, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
 
         #self.n_back_rn2, self.d_back_rn2 = self.decoder(self.d_rn2_c, tf.tile(tf.reshape(tf.one_hot(4, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
         #self.n_back_rn1, self.d_back_rn1 = self.decoder(self.d_rn1_c, tf.tile(tf.reshape(tf.one_hot(3, 5), [-1, 5]), [args.batch_size, 5]), is_train=False, reuse=True )
@@ -118,33 +123,36 @@ class Net_HEADINGINV(object):
         self.n_dis_rand, self.d_dis_rand = self.discriminator(self.d_reco_rd, is_train=True, reuse=True )
         
         ## loss for cycle updating
-        self.loss_r0       = self.lossCYC(self.d_R0, self.d_reco_r0)
-        #self.loss_back_rn2 = self.lossCYC(self.d_R0, self.d_back_rn2)
-        #self.loss_back_rn1 = self.lossCYC(self.d_R0, self.d_back_rn1)
-        #self.loss_back_rp1 = self.lossCYC(self.d_R0, self.d_back_rp1)
-        #self.loss_back_rp2 = self.lossCYC(self.d_R0, self.d_back_rp2)
+        self.loss_cyc_r0   = self.lossCYC(self.d_R0,  self.d_reco_r0)
+        self.loss_cyc_rp1  = self.lossCYC(self.d_RP1, self.d_cyc_rp1)
+        self.loss_cyc_rp2  = self.lossCYC(self.d_RP2, self.d_cyc_rp2)
+        self.loss_cyc_rn1  = self.lossCYC(self.d_RN1, self.d_cyc_rn1)
+        self.loss_cyc_rn2  = self.lossCYC(self.d_RN2, self.d_cyc_rn2)
 
         self.loss_rp1  = self.lossCYC(self.d_RP1, self.d_reco_rp1)
         self.loss_rp2  = self.lossCYC(self.d_RP2, self.d_reco_rp2)
         self.loss_rn1  = self.lossCYC(self.d_RN1, self.d_reco_rn1)
         self.loss_rn2  = self.lossCYC(self.d_RN2, self.d_reco_rn2)
 
-        self.loss_cyc_rp1  = self.lossCYC(self.d_RP1, self.d_cyc_rp1)
-        self.loss_cyc_rp2  = self.lossCYC(self.d_RP2, self.d_cyc_rp2)
-        self.loss_cyc_rn1  = self.lossCYC(self.d_RN1, self.d_cyc_rn1)
-        self.loss_cyc_rn2  = self.lossCYC(self.d_RN2, self.d_cyc_rn2)
+        self.loss_cycle = self.loss_cyc_r0 + self.loss_cyc_rp1 + self.loss_cyc_rp2 + self.loss_cyc_rn1 + self.loss_cyc_rn2
+        self.loss_head_diff = self.loss_rp1 + self.loss_rp2 + self.loss_rn1 + self.loss_rn2
 
-
-        self.loss_cycle = args.cycle * (self.loss_r0 + self.loss_rp1 + self.loss_rp2 + self.loss_rn1 + self.loss_rn2 + \
-                                        self.loss_cyc_rp1 + self.loss_cyc_rp2 + self.loss_cyc_rn1 + self.loss_cyc_rn2)
+        ## loss for transformation
+        self.loss_trans_rp1  = self.lossCYC(self.d_code_r0, self.d_code_rp1)
+        self.loss_trans_rp2  = self.lossCYC(self.d_code_r0, self.d_code_rp2)
+        self.loss_trans_rn1  = self.lossCYC(self.d_code_r0, self.d_code_rn1)
+        self.loss_trans_rn2  = self.lossCYC(self.d_code_r0, self.d_code_rn2)
         
+        self.loss_trans = (self.loss_trans_rn2 + self.loss_trans_rn1 + self.loss_trans_rp1 + self.loss_trans_rp2)/4.0
+
         ## loss for encoder
+        '''
         self.loss_crp1  = self.lossCYC(self.d_rp1_c, self.d_real_c)
         self.loss_crp2  = self.lossCYC(self.d_rp2_c, self.d_real_c)
         self.loss_crn1  = self.lossCYC(self.d_rn1_c, self.d_real_c)
         self.loss_crn2  = self.lossCYC(self.d_rn2_c, self.d_real_c)
         
-        '''
+
         self.loss_same_similar = self.lossCYC(self.d_rp1_c, self.d_real_c) + \
                                  self.lossCYC(self.d_rp2_c, self.d_real_c) + \
                                  self.lossCYC(self.d_rn1_c, self.d_real_c) + \
@@ -168,7 +176,7 @@ class Net_HEADINGINV(object):
                                   self.lossCYC(self.d_orn2_c, self.d_orp2_c) + \
                                   self.lossCYC(self.d_orn2_c, self.d_orn1_c)
         '''
-
+        '''
         self.loss_same_center  = self.lossCYC(self.d_real_c, self.d_real_c) + \
                                  self.lossCYC(self.d_rp1_c, self.d_real_c) + \
                                  self.lossCYC(self.d_rp2_c, self.d_real_c) + \
@@ -180,10 +188,22 @@ class Net_HEADINGINV(object):
                                   self.lossCYC(self.d_orp2_c, self.d_real_c) + \
                                   self.lossCYC(self.d_orn1_c, self.d_real_c) + \
                                   self.lossCYC(self.d_orn2_c, self.d_real_c)
+        '''
+
+        self.loss_same_center  = (self.lossCYC(self.d_code_r0, self.d_code_r0) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rp1) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rp2) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rn1) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rn2))/5.0
+
+        self.loss_other_center = (self.lossCYC(self.d_code_r0, self.d_code_or0) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rn2) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rn1) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rp1) + \
+                                  self.lossCYC(self.d_code_r0, self.d_code_rp2)) / 5.0
 
         # max(0, 1-||ht-ht_n||/(||ht-ht_1||+beta))
-        self.loss_maha = tf.nn.relu(tf.subtract(1.0, tf.div(self.loss_other_center, tf.add(self.loss_same_center, args.distance_threshold))))
-
+        self.loss_maha = tf.nn.relu(tf.subtract(1.0, tf.div(self.loss_other_center, tf.add(self.loss_same_center, self.loss_same_center * args.distance_weighting))))
 
         ## loss for generator          
         self.loss_gen = self.lossGAN(self.d_dis_reco, 1) + self.lossGAN(self.d_dis_rand, 1)
@@ -196,11 +216,13 @@ class Net_HEADINGINV(object):
         # Make summary
         with tf.name_scope('cycle'):        
             self.summ_cyc = tf.summary.scalar('cyc_loss', self.loss_cycle)
+            self.summ_head_diff = tf.summary.scalar('head_loss', self.loss_head_diff)
             #self.summ_same_similar = tf.summary.scalar('similar_same_loss', self.loss_same_similar)
             #self.summ_other_similar = tf.summary.scalar('similar_other_loss', self.loss_other_similar)
             self.summ_same_center  = tf.summary.scalar('similar_same',  self.loss_same_center)
             self.summ_other_center = tf.summary.scalar('similar_other', self.loss_other_center)
             self.summ_maha         = tf.summary.scalar('maha_distance', self.loss_maha)
+            self.summ_trans        = tf.summary.scalar('trans_distance', self.loss_trans)
 
         with tf.name_scope('gen-dis-loss'):
             self.summ_gen = tf.summary.scalar('gen_loss', self.loss_gen)
@@ -211,6 +233,8 @@ class Net_HEADINGINV(object):
             self.summ_r0_real = tf.summary.image('r0_orig', true_image[0:4], 4)
             true_image = tf.reshape(self.d_reco_r0, [-1, args.output_size, args.output_size, 3])
             self.summ_r0_reco = tf.summary.image('r0_reco', true_image[0:4], 4)
+            true_image = tf.reshape(self.d_OR0, [-1, args.output_size, args.output_size, 3])
+            self.summ_or0_real = tf.summary.image('or0_real', true_image[0:4], 4)
 
         with tf.name_scope('RP1'):
             true_image = tf.reshape(self.d_RP1,      [-1, args.output_size, args.output_size, 3])
@@ -277,10 +301,13 @@ class Net_HEADINGINV(object):
     def train(self, args):
         
         # Set optimal for cycle updating
-        self.cyc_optim  = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                 .minimize(self.loss_cycle, var_list=self.var_cycle)
+        self.cyc_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                 .minimize(self.loss_cycle * args.cycle, var_list=self.var_cycle)
+        self.head_diff_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                       .minimize(self.loss_head_diff *  args.head_diff, var_list=self.var_cycle)
         self.maha_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                             .minimize(self.loss_maha, var_list=self.var_encoder)
+                             .minimize(self.loss_maha * args.maha, var_list=self.var_encoder)
+
         # Set optimal for discriminator
         self.gen_optim = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                  .minimize(self.loss_gen, var_list=self.var_decoder)
@@ -319,23 +346,23 @@ class Net_HEADINGINV(object):
             print (data_name)
             files = glob(os.path.join(args.data_dir, args.dataset, data_name, 'R0.5/img/*.jpg'))
             files.sort()
-            rn2_files += files
+            rn2_files += files[200:]
 
             files = glob(os.path.join(args.data_dir, args.dataset, data_name, 'R1.0/img/*.jpg'))
             files.sort()
-            rn1_files += files
+            rn1_files += files[200:]
 
             files  = glob(os.path.join(args.data_dir, args.dataset, data_name, 'R1.5/img/*.jpg'))
             files.sort()
-            r0_files += files
+            r0_files += files[200:]
 
             files = glob(os.path.join(args.data_dir, args.dataset, data_name, 'R2.0/img/*.jpg'))
             files.sort()
-            rp1_files += files
+            rp1_files += files[200:]
 
             files = glob(os.path.join(args.data_dir, args.dataset, data_name, 'R2.5/img/*.jpg'))
             files.sort()
-            rp2_files += files
+            rp2_files += files[200:]
 
         print ("Bag length is {}".format(len(r0_files)))
 
@@ -357,12 +384,14 @@ class Net_HEADINGINV(object):
             err_gen = 0
 
             ## Cycle updating    
-            err_cyc, err_maha, err_same, err_other,  _, _ = self.sess.run([self.loss_cycle, self.loss_same_center, self.loss_other_center, \
-                                                     self.loss_maha, self.cyc_optim, self.maha_optim], feed_dict=feed_dict)
+            err_cyc, err_head, err_trans, err_same, err_other, err_maha, _, _, _ = \
+                                    self.sess.run([self.loss_cycle, self.loss_head_diff, self.loss_trans, self.loss_same_center, \
+                                                   self.loss_other_center, self.loss_maha, self.cyc_optim, self.maha_optim, self.head_diff_optim], \
+                                                  feed_dict=feed_dict)
 
-            print("Loop: [%2d/%2d] time: %4.4f, sim_same: %4.4f, sim_other: %4.4f, cyc: %4.4f, maha: %4.4f"  % \
+            print("Loop: [%2d/%2d] time: %4.4f, sim_same: %4.4f, sim_other: %4.4f, cyc: %4.4f, head: %4.4f, trans: %4.4f, maha: %4.4f"  % \
                   (it_loop, args.iter_num, time.time() - start_time, \
-                   err_same, err_other, err_cyc, err_maha))
+                   err_same, err_other, err_cyc, err_head, err_trans, err_maha))
             sys.stdout.flush()
             self.iter_counter += 1
             
@@ -389,8 +418,7 @@ class Net_HEADINGINV(object):
         if args.dataset == 'NCTL':
             sequence_name = '2012-02-02'
 
-
-        for test_epoch in range(1, 12):
+        for test_epoch in range(16, 22):
 
             # Initial layer's variables
             self.test_epoch = test_epoch
@@ -407,12 +435,12 @@ class Net_HEADINGINV(object):
                 print (test_path)
                 print (len(test_files))
                 ## Extract Train data code
-                test_code  = np.zeros([args.test_len, 512]).astype(np.float32)
+                test_code  = np.zeros([args.test_len, 5, args.code_dim]).astype(np.float32)
                 count = 0
                 time_sum = 0
                 time_min = 10000
                 time_max = -1.0
-                for id in range(1000, len(test_files)):
+                for id in range(2000, len(test_files)):
 
                     start_time = time.time()
                     if id%args.frame_skip != 0:
@@ -428,7 +456,14 @@ class Net_HEADINGINV(object):
                     if count >= args.test_len:
                         break
 
-                    test_code[count]  = self.sess.run(self.d_real_c, feed_dict=feed_dict)
+                    code_rn2, code_rn1, code_r0, code_rp1, code_rp2 = self.sess.run([self.d_code_rn2, self.d_code_rn1, self.d_code_r0, \
+                                                                                     self.d_code_rp1, self.d_code_rp2], feed_dict=feed_dict)
+                    test_code[count, 0] = code_rn2
+                    test_code[count, 1] = code_rn1
+                    test_code[count, 2] = code_r0
+                    test_code[count, 3] = code_rp1
+                    test_code[count, 4] = code_rp2
+
                     count = count+1
                     time_len = time.time() - start_time
                     time_sum += time_len
@@ -445,8 +480,6 @@ class Net_HEADINGINV(object):
                 print("save file {}".format(str(test_epoch)+'_'+dir_name+'_vt.npy'))
                 GTvector_path = os.path.join(args.result_dir, str(test_epoch)+'_'+dir_name+'_vt.npy')
                 np.save(GTvector_path, test_code)
-
-
 
 
     def loadParam(self, args):
@@ -466,7 +499,9 @@ class Net_HEADINGINV(object):
             tl.files.assign_params(self.sess, load_dis, self.n_dis_h_A)
         else:
             load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % self.test_epoch)
+            load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % self.test_epoch)
             tl.files.assign_params(self.sess, load_en, self.n_real_c)
+            tl.files.assign_params(self.sess, load_de, self.n_reco_r0)
 
 
     def saveParam(self, args):
