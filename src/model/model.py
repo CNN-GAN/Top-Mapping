@@ -241,7 +241,7 @@ class Net(object):
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
-            data_dir = ['01', '02', '03', '04','05', '06','07', '08', '09']
+            data_dir = ['01', '02', '03', '04', '05', '06','07', '08', '09', '10']
 
         # For NCTL dataset            
         if args.dataset == 'NCTL':
@@ -249,11 +249,11 @@ class Net(object):
 
         data_files = []
         for data_name in data_dir:
-            read_path = os.path.join("./data", args.dataset, data_name, "img/*.jpg")
+            read_path = os.path.join("./data", args.dataset, data_name, 'R1', "img/*.jpg")
             print (read_path)
             data_file = glob(read_path)
             data_files = data_files + data_file
-            
+
         print (len(data_files))
         data_iter = self.data_iter(args, data_files)
         noise_iter = self.noise_iter(args)
@@ -276,7 +276,6 @@ class Net(object):
                 for g_id in range(args.g_iter):
                     errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
                     errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-
 
                 errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
                 errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
@@ -345,13 +344,12 @@ class Net(object):
         #test_dir = ["R0.50", "R1.00", "R1.50", "R2.00", "R2.50", "R3.00"]
         #test_dir = ["R4", "R8", "R12", "R16"]
         test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R0"]
-        #test_dir = ["R0"]
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
             sequence_name = '00'
 
-        # For NCTL dataset            
+        # For NCTL dataset
         if args.dataset == 'NCTL':
             sequence_name = '2012-02-02'
 
@@ -378,7 +376,7 @@ class Net(object):
                 time_sum = 0
                 time_min = 10000
                 time_max = -1.0
-                for id in range(100, len(test_files)):
+                for id in range(args.test_base, len(test_files)):
 
                     start_time = time.time()
                     if id%args.frame_skip != 0:
@@ -526,16 +524,9 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                #load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % self.test_epoch)
                 load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % self.test_epoch)
-                #load_dX = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dX_%d00.npz' % self.test_epoch)
-                #load_dZ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dZ_%d00.npz' % self.test_epoch)
-                #load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                #tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                #tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
-                #tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
-                #tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
+
         elif self.model == 'ALI':
             if args.is_train == True:
                 load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % args.c_epoch)
@@ -545,12 +536,8 @@ class Net(object):
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
-                #load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % self.test_epoch)
                 load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % self.test_epoch)
-                #load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d00.npz' % self.test_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
-                #tl.files.assign_params(self.sess, load_de, self.n_fake_x)
-                #tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
 
     def saveParam(self, args):
         print("[*] Saving checkpoints...")

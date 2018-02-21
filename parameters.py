@@ -23,7 +23,7 @@ def Param():
 
         
     ## Data
-    flags.DEFINE_string("dataset",        "NCTL",   "The name of dataset [new_loam, NCTL, GTAV]")
+    flags.DEFINE_string("dataset",        "NCTL",   "The name of dataset [new_loam, NCTL, GTAV, nordland]")
     flags.DEFINE_string("date_format",    "%m.%d_%H-%M",   "Date format")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
@@ -38,9 +38,9 @@ def Param():
     flags.DEFINE_string("data_dir",       "data",       "Directory name to extract image datas")
     flags.DEFINE_string("log_dir",        "logs",       "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
-    flags.DEFINE_string("model_date",     "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("model_date",     "01.03_20-20",      "Directory name to save tensorboard [tb_logs]")
 
-    flags.DEFINE_string("new_loam_img",   "12.02_10-34",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("new_loam_img",   "01.03_20-20",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("new_loam_pcd",   "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("nctl_img",       "12.08_23-19",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
@@ -85,20 +85,20 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,           "velocity gap")
     flags.DEFINE_float("vmax",            1.2,           "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,            "rainbow")
-    flags.DEFINE_integer("frame_skip",    5,             "frame skip")    
+    flags.DEFINE_integer("frame_skip",    1,             "frame skip")    
     flags.DEFINE_integer("Knn",           5,             "K nearest point")
-    flags.DEFINE_integer("test_len",      300,           "test data length")
-    flags.DEFINE_integer("test_base",     0,             "test data base")
+    flags.DEFINE_integer("test_len",      2000,           "test data length")
+    flags.DEFINE_integer("test_base",     200,             "test data base")
     flags.DEFINE_string("test_dir",    "test_T10_R2",    "Directory name to extract image datas")
     flags.DEFINE_string("match_method",   "ANN",         "ANN or Force")
     flags.DEFINE_float("match_distance",   10,           "match threshold for distance")
     flags.DEFINE_float("match_thres",      80,           "match threshold for GTAV")
 
     ## Flag
-    flags.DEFINE_boolean("is_3D",             False,         "True for train the 3D module")
+    flags.DEFINE_boolean("is_3D",             False,        "True for train the 3D module")
     flags.DEFINE_boolean("is_train",          False,        "True for training, False for testing [False]")
     flags.DEFINE_boolean("is_reconstruct",    False,        "True for reconstruct")
-    flags.DEFINE_boolean("is_obtain_feature", False,         "True for obtain features from sequence")
+    flags.DEFINE_boolean("is_obtain_feature", False,        "True for obtain features from sequence")
     flags.DEFINE_boolean("is_crop",           True,         "True for crop image")
     flags.DEFINE_boolean("restore",           False,        "restore from pre trained")
     flags.DEFINE_boolean("visualize",         False,        "True for visualizing, False for nothing [False]")

@@ -49,18 +49,17 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1, 20):
+    for epoch_id in range(1,2):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
         Trainvector_pose = os.path.join(pose_dir, 'R1', 'pose.txt')
         train_pose = np.loadtxt(Trainvector_pose)
-        train_pose = train_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
+        train_pose = train_pose[args.test_base:args.test_len*args.frame_skip:args.frame_skip, 1:3]
 
         train_path = os.path.join(pose_dir, 'R1', "img/*.jpg")
         train_files = glob(train_path)
         train_files.sort()
-
 
         for file_id, file_name in enumerate(test_dir):
             print('Load data file:{}'.format(file_name)) 
@@ -75,14 +74,44 @@ def Plot_2D(args):
             test_files = glob(test_path)
             test_files.sort()
 
+            print('Load data done :{}'.format(file_name))
             D = N2One_Euclidean(train_img, test_img)
+            print('Done Euclidean :{}'.format(file_name))
             DD = enhanceContrast(D, 30)
 
-            print (D.shape)
             scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_matrix.jpg'), D * 255)
             scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_enhance.jpg'), DD * 255)
         
             ## Save matching 
+            tmp_D = np.transpose(D)
+            N = 3
+            min_arr = np.zeros([len(test_img), N])
+            Inf=100000000
+            for i in range(len(tmp_D)):
+                temp = []
+                for _ in range(N):
+                    if tmp_D[i, np.argmin(tmp_D[i])] < 17.3:
+                        temp.append(np.argmin(tmp_D[i]))
+                        tmp_D[i, np.argmin(tmp_D[i])] = Inf
+                    else:
+                        temp.append(0)                        
+
+                min_arr[i] = np.array(temp)
+
+            print(min_arr)
+
+            plt.figure()
+            plt.xlabel('Test data')
+            plt.ylabel('Stored data')
+            for i in range (len(min_arr)):
+                for j in range(N):
+                    if min_arr[i,j] > 0:
+                        plt.plot(i, min_arr[i,j],'b.') 
+
+            plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
+            plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+file_name+'_ann.jpg'))
+            plt.close()
+
             match = getMatches(DD, 0, args)
             m = match[:,0]
             epoch_dir = os.path.join(match_dir, str(epoch_id))
@@ -96,14 +125,18 @@ def Plot_2D(args):
                     continue
 
                 print ("plot for test id {}".format(test_id))
-                for iid in range(2):
-                    img1 = cv2.imread(test_files[int(100 + test_id*5+iid*2)])
-                    img2 = cv2.imread(train_files[int(100 + match_id*5+iid*2)])
-
-                    vis = np.concatenate((img1, img2), axis=1)
-                    cv2.imwrite(os.path.join(epoch_dir, str(count_id).zfill(5)+'.jpg'), vis)
-                    count_id += 1
-            
+                
+                print (test_id)
+                print (match_id)
+                print (test_files[int(args.test_base + test_id*args.frame_skip)])
+                print (train_files[int(args.test_base + match_id*args.frame_skip)])
+                img1 = cv2.imread(test_files[int(args.test_base + test_id*args.frame_skip)])
+                img2 = cv2.imread(train_files[int(args.test_base + match_id*args.frame_skip)])
+                
+                vis = np.concatenate((img1, img2), axis=1)
+                cv2.imwrite(os.path.join(epoch_dir, str(count_id).zfill(5)+'.jpg'), vis)
+                count_id += 1
+                
             thresh = 0.95
             matched = match[match[:,1]<thresh, 1]
             score = np.mean(matched)

@@ -86,12 +86,17 @@ def NV_Euclidean(train, test):
     return D
 
 def N2One_Euclidean(train, test):
+    print (train.shape)
     D = np.zeros([train.shape[0], test.shape[0]])
+    opt_feature = np.zeros_like(test)
     for x in range(train.shape[0]):
+        print ('Done {}'.format(x))
         for y in range(test.shape[0]):
             distance = train[x] - test[y]
             value = np.linalg.norm(distance, axis=1, keepdims=True)
+            opt_feature[x] = train[x, np.argmin(value)]
             D[x,y] = value.min()
+
     return D
 
 def Manhattan(train, test):
@@ -208,6 +213,7 @@ def log(x):
 ##=================================== function in SeqSLAM ================================##
 ##=================================== function in SeqSLAM ================================##
 def enhanceContrast(D, enhance):
+    print (D.shape)
     # TODO parallelize
     DD = np.zeros(D.shape)
     
