@@ -84,10 +84,10 @@ def Param():
     flags.DEFINE_float("vskip",           0.1,           "velocity gap")
     flags.DEFINE_float("vmax",            1.2,           "max velocity of seqslam")
     flags.DEFINE_integer("Rwindow",       10,            "rainbow")
-    flags.DEFINE_integer("frame_skip",    1,             "frame skip")    
+    flags.DEFINE_integer("frame_skip",    4,             "frame skip")    
     flags.DEFINE_integer("Knn",           5,             "K nearest point")
-    flags.DEFINE_integer("test_len",      2000,           "test data length")
-    flags.DEFINE_integer("test_base",     200,             "test data base")
+    flags.DEFINE_integer("test_len",      200,           "test data length")
+    flags.DEFINE_integer("test_base",     0,             "test data base")
     flags.DEFINE_string("test_dir",    "test_T10_R2",    "Directory name to extract image datas")
     flags.DEFINE_string("match_method",   "ANN",         "ANN or Force")
     flags.DEFINE_float("match_distance",   10,           "match threshold for distance")
@@ -108,7 +108,7 @@ def Param():
     flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")

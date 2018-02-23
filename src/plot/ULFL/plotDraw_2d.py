@@ -20,10 +20,6 @@ def Plot_2D(args):
     #test_dir = ['gt']
     #test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
     test_dir = ["R0"]
-    '''
-    "T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
-    "T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
-    '''
 
     # For new_loam dataset
     if args.dataset == 'new_loam':
@@ -49,7 +45,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1,2):
+    for epoch_id in range(1,20):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
@@ -63,6 +59,11 @@ def Plot_2D(args):
 
         for file_id, file_name in enumerate(test_dir):
             print('Load data file:{}'.format(file_name)) 
+
+            cur_file_dir = os.path.join(matrix_dir, file_name)
+            if not os.path.exists(cur_file_dir):
+                os.makedirs(cur_file_dir)
+
             Testvector_img = os.path.join(result_dir, str(epoch_id)+'_'+file_name+'_vt.npy')
             test_img = np.load(Testvector_img)
 
@@ -70,17 +71,18 @@ def Plot_2D(args):
             test_pose = np.loadtxt(Testvector_pose)
             test_pose = test_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]
 
-            test_path  = os.path.join(pose_dir, 'R0', "img/*.jpg")
+            test_path  = os.path.join(pose_dir, file_name, "img/*.jpg")
             test_files = glob(test_path)
             test_files.sort()
 
             print('Load data done :{}'.format(file_name))
             D = N2One_Euclidean(train_img, test_img)
+            #D = Euclidean(train_img[:,7], train_img[:,7])
             print('Done Euclidean :{}'.format(file_name))
             DD = enhanceContrast(D, 30)
 
-            scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_matrix.jpg'), D * 255)
-            scipy.misc.imsave(os.path.join(matrix_dir, str(epoch_id)+'_'+file_name+'_enhance.jpg'), DD * 255)
+            scipy.misc.imsave(os.path.join(matrix_dir, file_name, str(epoch_id)+'_matrix.jpg'), D * 255)
+            scipy.misc.imsave(os.path.join(matrix_dir, file_name, str(epoch_id)+'_enhance.jpg'), DD * 255)
         
             ## Save matching 
             tmp_D = np.transpose(D)
@@ -109,12 +111,16 @@ def Plot_2D(args):
                         plt.plot(i, min_arr[i,j],'b.') 
 
             plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
-            plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+file_name+'_ann.jpg'))
+            cur_file_dir = os.path.join(match_dir, file_name)
+            if not os.path.exists(cur_file_dir):
+                os.makedirs(cur_file_dir)
+
+            plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_ann.jpg'))
             plt.close()
 
             match = getMatches(DD, 0, args)
             m = match[:,0]
-            epoch_dir = os.path.join(match_dir, str(epoch_id))
+            epoch_dir = os.path.join(match_dir, file_name, str(epoch_id))
             if not os.path.exists(epoch_dir):
                 os.makedirs(epoch_dir)       
 
@@ -147,7 +153,7 @@ def Plot_2D(args):
             plt.text(60, .025, r"score=%4.4f, point=%d" % (score, len(matched)))
             plt.plot(m,'.') 
             plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
-            plt.savefig(os.path.join(match_dir, str(epoch_id)+'_'+file_name+'_match.jpg'))
+            plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_match.jpg'))
             plt.close()
 
             ## Caculate Precision and Recall Curve
