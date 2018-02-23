@@ -6,7 +6,7 @@ def Param():
     
     ## Param
     flags.DEFINE_integer("epoch",              40,           "Epoch to train [40]")
-    flags.DEFINE_integer("iter_num",         1000000,        "iteration to train [40]")
+    flags.DEFINE_integer("iter_num",           1000000,      "iteration to train [40]")
     flags.DEFINE_integer("c_epoch",            0,            "current Epoch")
     flags.DEFINE_integer("get_epoch",          15,           "get features from Epoch")
 
@@ -20,7 +20,6 @@ def Param():
     flags.DEFINE_float("trans",                0.2,          "threshold for cycle updating")
     flags.DEFINE_float("in_cycle",             1.0,          "threshold for inner cycle updating")
     flags.DEFINE_float("distance_weighting",   1.0,     "threshold for far/near frames")
-
         
     ## Data
     flags.DEFINE_string("dataset",        "NCTL",   "The name of dataset [new_loam, NCTL, GTAV, nordland]")
@@ -45,8 +44,8 @@ def Param():
     flags.DEFINE_string("nctl_img",       "12.08_23-19",      "Directory name to save tensorboard [tb_logs]")
     flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
 
-    flags.DEFINE_integer("img_epoch",   15,           "The size of the output images to produce [64]")
-    flags.DEFINE_integer("pcd_epoch",   15,           "The size of the output images to produce [64]")
+    flags.DEFINE_integer("img_epoch",     15,           "The size of the output images to produce [64]")
+    flags.DEFINE_integer("pcd_epoch",     15,           "The size of the output images to produce [64]")
     
     flags.DEFINE_string("log_notes",      "headingInv model, with frame_skip 10",      "logs")
 
@@ -109,7 +108,7 @@ def Param():
     flags.DEFINE_boolean("SeqVGG",        False,        "SeqVGG")
 
     ## Plotting
-    flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
+    flags.DEFINE_boolean("plot",           False,         "True for ploting figures")
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
