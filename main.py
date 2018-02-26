@@ -35,6 +35,7 @@ from src.third_function.pyseqslam.seq_gtav import Seq_GTAV
 # SeqSLAM with VGG cnn features
 from src.third_function.vgg16.vgg16 import Seq_VGG
 
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 # Obtain parameters
 args = Param()
 
@@ -48,22 +49,20 @@ def main(_):
 
     if args.is_train == True:
         args.run_id_string = "{}/{}".format(args.method_path, strftime(args.date_format))
-        os.environ["CUDA_VISIBLE_DEVICES"]="1"
         with open('log.txt', 'a') as the_file:
             the_file.write(args.run_id_string)
             the_file.write(args.log_notes) 
     else:
-        os.environ["CUDA_VISIBLE_DEVICES"]="0"
         if args.dataset == "new_loam":
-            if args.is_3D == True:
-                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.new_loam_pcd))
+            if args.method == "ALI":
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.ali_kitti_img))
             else:
-                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.new_loam_img))
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.aliclc_kitti_img))
         else:
-            if args.is_3D == True:
-                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.nctl_pcd))
+            if args.method == "ALI":
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.ali_nctl_img))
             else:
-                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.nctl_img))
+                args.run_id_string = "{}/{}".format(args.method_path, strftime(args.aliclc_nctl_img))
 
 
     args.checkpoint_dir = os.path.join(args.checkpoint_dir, args.dataset, args.run_id_string)

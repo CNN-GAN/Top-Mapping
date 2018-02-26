@@ -22,7 +22,7 @@ def Param():
     flags.DEFINE_float("distance_weighting",   1.0,     "threshold for far/near frames")
         
     ## Data
-    flags.DEFINE_string("dataset",        "NCTL",   "The name of dataset [new_loam, NCTL, GTAV, nordland]")
+    flags.DEFINE_string("dataset",        "new_loam",   "The name of dataset [new_loam, NCTL, GTAV, nordland]")
     flags.DEFINE_string("date_format",    "%m.%d_%H-%M",   "Date format")
     flags.DEFINE_integer("sample_size",   64,           "The number of sample images [64]")
     flags.DEFINE_integer("img_dim",       3,            "Dimension of image color. [3]")
@@ -39,10 +39,13 @@ def Param():
     flags.DEFINE_string("sample_dir",     "logs/samples",    "Directory name to save the image samples [samples]")
     flags.DEFINE_string("model_date",     "01.03_20-20",      "Directory name to save tensorboard [tb_logs]")
 
-    flags.DEFINE_string("new_loam_img",   "01.03_20-20",      "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("new_loam_pcd",   "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("nctl_img",       "12.08_23-19",      "Directory name to save tensorboard [tb_logs]")
-    flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
+    #flags.DEFINE_string("new_loam_img",   "01.03_20-20",      "Directory name to save tensorboard [tb_logs]")
+    #flags.DEFINE_string("new_loam_pcd",   "12.03_09-03",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("ali_nctl_img",    "02.23_15-24",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("aliclc_nctl_img", "02.25_17-18",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("ali_kitti_img",   "02.25_14-27",      "Directory name to save tensorboard [tb_logs]")
+    flags.DEFINE_string("aliclc_kitti_img","02.25_17-34",      "Directory name to save tensorboard [tb_logs]")
+    #flags.DEFINE_string("nctl_pcd",       "12.08_23-18",      "Directory name to save tensorboard [tb_logs]")
 
     flags.DEFINE_integer("img_epoch",     15,           "The size of the output images to produce [64]")
     flags.DEFINE_integer("pcd_epoch",     15,           "The size of the output images to produce [64]")
@@ -50,7 +53,7 @@ def Param():
     flags.DEFINE_string("log_notes",      "headingInv model, with frame_skip 10",      "logs")
 
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
+    flags.DEFINE_string("method",         "ALI",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -64,7 +67,7 @@ def Param():
     flags.DEFINE_integer("train_size",    np.inf,       "The size of train images [np.inf]")
     flags.DEFINE_integer("batch_size",    64,           "The number of batch images [64]")
     flags.DEFINE_integer("d_iter",        4,            "The number of iteration for discriminator")
-    flags.DEFINE_integer("g_iter",        8,            "The number of iteration for generator")
+    flags.DEFINE_integer("g_iter",        4,            "The number of iteration for generator")
     flags.DEFINE_integer("iteration",     10000000,     "Training iteration")
 
     ## Mahanobis 

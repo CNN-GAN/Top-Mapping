@@ -78,52 +78,21 @@ class Net(object):
 
         self.n_dic_x,  self.d_dic_x  = self.discX(self.d_real_x, is_train=True, reuse=False)
         self.n_dic_fx, self.d_dic_fx = self.discX(self.d_fake_x, is_train=True, reuse=True)
-        self.n_dic_z,  self.d_dic_z  = self.discZ(self.d_real_z, is_train=True, reuse=False)
-        self.n_dic_fz, self.d_dic_fz = self.discZ(self.d_fake_z, is_train=True, reuse=True)
+
         self.n_dic_J,  self.d_dic_J  = self.discJ(self.d_real_x, self.d_fake_z, is_train=True, reuse=False)
         self.n_dic_fJ, self.d_dic_fJ = self.discJ(self.d_fake_x, self.d_real_z, is_train=True, reuse=True)
 
 
         if self.model == 'ALI_CLC':
             # Apply Loss
-            self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x) + \
-                                              self.lossCYC(self.d_real_z, self.d_cycl_z))
-
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
 
-            self.loss_encoder = args.side_D * self.lossGAN(self.d_dic_fz, 1)
+            self.loss_cycle   = args.cycle * (self.lossCYC(self.d_real_x, self.d_cycl_x))
             self.loss_decoder = args.side_D * self.lossGAN(self.d_dic_fx, 1)
-
             self.loss_dicX    = args.side_D*0.5*(self.lossGAN(self.d_dic_x, 1) + \
                                                  self.lossGAN(self.d_dic_fx,0))
-            self.loss_dicZ    = args.side_D*0.5*(self.lossGAN(self.d_dic_z, 1) + \
-                                                 self.lossGAN(self.d_dic_fz,0))
 
-
-            #self.loss_decoder = args.side_D * tf.reduce_mean(-self.d_dic_fx)
-            #self.loss_dicX    = args.side_D * tf.reduce_mean(-self.d_dic_x + self.d_dic_fx)
-
-            '''
-            epsilon1 = tf.random_uniform([], 0.0, 1.0)
-            x_hat = epsilon1 * self.d_real_x + (1-epsilon1) * self.d_fake_x
-            _,  dX_hat  = self.discX(x_hat, is_train=False, reuse=True)
-            ddX = tf.gradients(dX_hat, x_hat)[0]
-            ddX = tf.sqrt(tf.reduce_sum(tf.square(ddX), axis=1))
-            ddX = tf.reduce_mean(tf.square(ddX-1.0) * args.scale)
-            self.loss_dicX += args.side_D * 10 * ddX
-            '''
-            #self.loss_encoder = args.side_D * tf.reduce_mean(-self.d_dic_fz)
-            #self.loss_dicZ    = args.side_D * tf.reduce_mean( self.d_dic_fz - self.d_dic_z)
-            '''
-            epsilon2 = tf.random_uniform([], 0.0, 1.0)
-            z_hat = epsilon2 * self.d_real_z + (1-epsilon2) * self.d_fake_z
-            _,  dZ_hat  = self.discZ(z_hat, is_train=False, reuse=True)
-            ddZ = tf.gradients(dZ_hat, z_hat)[0]
-            ddZ = tf.sqrt(tf.reduce_sum(tf.square(ddZ), axis=1))
-            ddZ = tf.reduce_mean(tf.square(ddZ-1.0) * args.scale)
-            self.loss_dicZ += args.side_D * ddZ
-            '''
         else:
             self.loss_dicJ    = 0.5 * (self.lossGAN(self.d_dic_J, 1) + self.lossGAN(self.d_dic_fJ, 0))
             self.loss_dicfJ   = 0.5 * (self.lossGAN(self.d_dic_J, 0) + self.lossGAN(self.d_dic_fJ, 1))
@@ -133,10 +102,6 @@ class Net(object):
             with tf.name_scope('X_space'):
                 self.summ_decoder = tf.summary.scalar('decoder_loss', self.loss_decoder/args.side_D)
                 self.summ_dicX    = tf.summary.scalar('d_X_loss',     self.loss_dicX/args.side_D)
-
-            with tf.name_scope('Z_space'):
-                self.summ_encoder = tf.summary.scalar('encoder_loss', self.loss_encoder/args.side_D)
-                self.summ_dicZ    = tf.summary.scalar('d_Z_loss',     self.loss_dicZ/args.side_D)
 
             with tf.name_scope('J_space'):
                 self.summ_cycle   = tf.summary.scalar('clc_loss',     self.loss_cycle/args.cycle)
@@ -174,8 +139,7 @@ class Net(object):
         if self.model == 'ALI_CLC':
             feed_dict.update(self.n_dic_J.all_drop)
             feed_dict.update(self.n_dic_fJ.all_drop)
-            feed_dict.update(self.n_dic_z.all_drop)
-            feed_dict.update(self.n_dic_fz.all_drop)
+            feed_dict.update(self.n_dic_fx.all_drop)
         else:
             feed_dict.update(self.n_dic_J.all_drop)
             feed_dict.update(self.n_dic_fJ.all_drop)
@@ -188,33 +152,19 @@ class Net(object):
         # Set optimal for nets
         if self.model == 'ALI_CLC':
 
-            self.optim_cycle   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                         .minimize(self.loss_cycle,   var_list=self.var_gen)
             self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
             self.optim_dicfJ   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicfJ,   var_list=self.var_gen)
 
-
-            self.optim_encoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_encoder, var_list=self.var_encoder)
+            # upper bound
+            self.optim_cycle   = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
+                                         .minimize(self.loss_cycle,   var_list=self.var_gen)
+            # gan on X
             self.optim_decoder = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_decoder, var_list=self.var_decoder)
             self.optim_dicX    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                 .minimize(self.loss_dicX,    var_list=self.var_dicX)
-            self.optim_dicZ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
-                                .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
-
-            '''
-            self.optim_encoder = tf.train.RMSPropOptimizer(5e-5) \
-                                         .minimize(self.loss_encoder, var_list=self.var_encoder)
-            self.optim_decoder = tf.train.RMSPropOptimizer(5e-5) \
-                                         .minimize(self.loss_decoder, var_list=self.var_decoder)
-            self.optim_dicX    = tf.train.RMSPropOptimizer(5e-5) \
-                                         .minimize(self.loss_dicX,    var_list=self.var_dicX)
-            self.optim_dicZ    = tf.train.RMSPropOptimizer(5e-5) \
-                                         .minimize(self.loss_dicZ,    var_list=self.var_dicZ)
-            '''
         else:
             self.optim_dicJ    = tf.train.AdamOptimizer(args.lr, beta1=args.beta1) \
                                          .minimize(self.loss_dicJ,    var_list=self.var_dicJ)
@@ -234,10 +184,6 @@ class Net(object):
         self.writer = tf.summary.FileWriter(args.log_dir, self.sess.graph)
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
-
-        # Load Data files
-        #data_dir = ['01', '02', '03', '04','05', '06','07', '08']
-        #data_dir = ['00/gt', '05', '07', '08']
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
@@ -271,47 +217,15 @@ class Net(object):
             if self.model == 'ALI_CLC':
                 # Update Joint
                 feed_dict = self.feed_datas(data_iter, noise_iter)
-                #self.sess.run(self.clip_J)
-                errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
+                errJ, errX, errClc, _, _, _  = self.sess.run(
+                    [self.loss_dicJ, self.loss_dicX, self.loss_cycle,\
+                     self.optim_dicJ, self.optim_dicX, self.optim_cycle],\
+                    feed_dict=feed_dict)
                 for g_id in range(args.g_iter):
-                    errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-                    errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
+                    errfJ, errD, _, _  = self.sess.run([self.loss_dicfJ, self.loss_decoder, \
+                                                        self.optim_decoder, self.optim_dicfJ], \
+                                                       feed_dict=feed_dict)
 
-                errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
-                errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
-
-                '''
-                # Update Joint
-                feed_dict = self.feed_datas(data_iter, noise_iter)
-                #self.sess.run(self.clip_J)
-                errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
-                for g_id in range(args.g_iter):
-                    errfJ, _  = self.sess.run([self.loss_dicfJ, self.optim_dicfJ], feed_dict=feed_dict)
-
-                errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
-                errD, _   = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
-                errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-                '''
-                '''
-                # Update Side
-                d_iter = 2
-                if self.iter_counter%50==0 or self.iter_counter<25:
-                    d_iter = 4
-                    print ('dense disc with iter counter {}'.format(self.iter_counter))
-
-                for _ in range (d_iter):
-                    feed_dict = self.feed_datas(data_iter, noise_iter)
-                    self.sess.run(self.clip_X)
-                    #self.sess.run(self.clip_Z)
-                    errX, _ = self.sess.run([self.loss_dicX,   self.optim_dicX],    feed_dict=feed_dict)
-                    #errZ, _ = self.sess.run([self.loss_dicZ,   self.optim_dicZ],    feed_dict=feed_dict)
-
-                feed_dict = self.feed_datas(data_iter, noise_iter)
-                #errE, _ = self.sess.run([self.loss_encoder, self.optim_encoder], feed_dict=feed_dict)
-                errD, _ = self.sess.run([self.loss_decoder, self.optim_decoder], feed_dict=feed_dict)
-
-                #errClc, _ = self.sess.run([self.loss_cycle, self.optim_cycle], feed_dict=feed_dict)
-                '''
             elif self.model == 'ALI':
                 feed_dict = self.feed_datas(data_iter, noise_iter)
                 errJ, _ = self.sess.run([self.loss_dicJ,   self.optim_dicJ],    feed_dict=feed_dict)
@@ -335,16 +249,8 @@ class Net(object):
 
     def test(self, args):
 
-        #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
-        #test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
-        #"T5_R-2", "T5_R-1", "T5_R0", "T5_R1", "T5_R2", \
-        #"T10_R-2", "T10_R-1", "T10_R0", "T10_R1", "T10_R2"]
-        #test_dir = ["R0.50", "R0.75", "R1.00", "R1.25", "R1.50", "R1.75", "R2.00", "R2.25", "R2.50", "R3.00"]
-
-        #test_dir = ["R0.50", "R1.00", "R1.50", "R2.00", "R2.50", "R3.00"]
-        #test_dir = ["R4", "R8", "R12", "R16"]
-        #test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R0"]
-        test_dir = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"]
+        test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R0", "T1", "T2", "T3", "T4", "T5"]
+        #, "T6", "T7", "T8", "T9", "T10"
 
         # For new_loam dataset
         if args.dataset == 'new_loam':
@@ -354,10 +260,10 @@ class Net(object):
         if args.dataset == 'NCTL':
             sequence_name = '2012-02-02'
 
-        for test_epoch in range(1, 20):
+        for test_epoch in range(1, 11):
 
             # Initial layer's variables
-            self.test_epoch = test_epoch
+            self.test_epoch = test_epoch*5
             self.loadParam(args)
             print("[*] Load network done")
 
@@ -394,7 +300,7 @@ class Net(object):
                         break
 
                     test_code[count]  = self.sess.run(self.d_fake_z, feed_dict=feed_dict)
-                    if dir_id%2 == 0 and dir_name != 'R0':
+                    if dir_id%2 == 0 and dir_id < 16  and dir_name != 'R0':
                         joint_code[count, (dir_id//2-1)] = test_code[count]
 
                     count = count+1
@@ -517,12 +423,10 @@ class Net(object):
                 load_de = tl.files.load_npz(path=args.checkpoint_dir, name='/net_de_%d00.npz' % args.c_epoch)
                 load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % args.c_epoch)
                 load_dX = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dX_%d00.npz' % args.c_epoch)
-                load_dZ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dZ_%d00.npz' % args.c_epoch)
                 load_dJ = tl.files.load_npz(path=args.checkpoint_dir, name='/net_dJ_%d00.npz' % args.c_epoch)
                 tl.files.assign_params(self.sess, load_en, self.n_fake_z)
                 tl.files.assign_params(self.sess, load_de, self.n_fake_x)
                 tl.files.assign_params(self.sess, load_dX, self.n_dic_x)
-                tl.files.assign_params(self.sess, load_dZ, self.n_dic_z)
                 tl.files.assign_params(self.sess, load_dJ, self.n_dic_J)
             else:
                 load_en = tl.files.load_npz(path=args.checkpoint_dir, name='/net_en_%d00.npz' % self.test_epoch)
@@ -549,13 +453,11 @@ class Net(object):
             net_de_iter_name = os.path.join(save_dir, 'net_de_%d.npz' % self.iter_counter)
             net_en_iter_name = os.path.join(save_dir, 'net_en_%d.npz' % self.iter_counter)
             net_dX_iter_name = os.path.join(save_dir, 'net_dX_%d.npz' % self.iter_counter)
-            net_dZ_iter_name = os.path.join(save_dir, 'net_dZ_%d.npz' % self.iter_counter)
             net_dJ_iter_name = os.path.join(save_dir, 'net_dJ_%d.npz' % self.iter_counter)
 
             tl.files.save_npz(self.n_fake_x.all_params, name=net_de_iter_name, sess=self.sess)
             tl.files.save_npz(self.n_fake_z.all_params, name=net_en_iter_name, sess=self.sess)
             tl.files.save_npz(self.n_dic_x.all_params,  name=net_dX_iter_name, sess=self.sess)
-            tl.files.save_npz(self.n_dic_z.all_params,  name=net_dZ_iter_name, sess=self.sess)
             tl.files.save_npz(self.n_dic_J.all_params,  name=net_dJ_iter_name, sess=self.sess)
         elif self.model == 'ALI':
             # this version is for future re-check and visualization analysis

@@ -19,7 +19,8 @@ def Plot_2D(args):
     #test_dir = ["R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
     #test_dir = ['gt']
     #test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
-    test_dir = ["R0"]
+    test_dir = ["R2", "R4", "R6", "R8", "R10", "R12", "R14", "R16"]
+    #, "T1", "T2", "T3", "T4", "T5"
 
     # For new_loam dataset
     if args.dataset == 'new_loam':
@@ -45,7 +46,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1,20):
+    for epoch_id in range(1,11):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
@@ -115,7 +116,7 @@ def Plot_2D(args):
             if not os.path.exists(cur_file_dir):
                 os.makedirs(cur_file_dir)
 
-            plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_ann.jpg'))
+            #plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_ann.jpg'))
             plt.close()
 
             match = getMatches(DD, 0, args)
