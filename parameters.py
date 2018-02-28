@@ -53,7 +53,7 @@ def Param():
     flags.DEFINE_string("log_notes",      "headingInv model, with frame_skip 10",      "logs")
 
     ## Training
-    flags.DEFINE_string("method",         "ALI",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
+    flags.DEFINE_string("method",         "ALI_CLC",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -115,7 +115,7 @@ def Param():
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        True,         "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
 
@@ -128,5 +128,10 @@ def Param():
     flags.DEFINE_boolean("plot_VGG",       False,         "True for VGG")
     flags.DEFINE_boolean("plot_biganGTAV", False,         "True for biganGTAV")
     flags.DEFINE_boolean("plot_paper3",    False,         "True for ploting paper3")
+
+    # paper iros
+    flags.DEFINE_boolean("plot_AUC",       True,         "True for biganGTAV")
+    flags.DEFINE_boolean("plot_IROS",      False,         "True for ploting paper3")
+
 
     return flags.FLAGS

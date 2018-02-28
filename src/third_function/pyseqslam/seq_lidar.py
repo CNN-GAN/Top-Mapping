@@ -15,19 +15,19 @@ import json
 def Seq_LiDAR(args):
 
     # set the parameters
-    #test_dir = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
-
-    #test_dir = ["T1_R0.5", "T5_R0.5", "T10_R0.5", "T20_R0.5"]
-    test_dir = ["T1_R1", "T5_R1", "T10_R1", "T1_R1.5", "T5_R1.5", "T10_R1.5", "T1_R2", "T5_R2", "T10_R2"]
+    test_dir = ["R2", "R4", "R6", "R8", "R10", "R12", "R14", "R16"]
     # start with default parameters
     params = defaultParameters()    
     
     # dirs
-    result_dir = os.path.join(args.result_dir, 'SeqSLAM')
+    result_dir = os.path.join('result', args.dataset, 'SeqSLAM')
     matrix_dir = os.path.join(result_dir, 'MATRIX')
     pr_dir     = os.path.join(result_dir, 'PR')
     match_dir  = os.path.join(result_dir, 'MATCH')
-    data_dir   = os.path.join(args.data_dir, 'new_loam', '00')
+    if args.dataset == 'new_loam':
+        data_dir   = os.path.join(args.data_dir, 'new_loam', '00')
+    else:
+        data_dir   = os.path.join(args.data_dir, 'NCTL', '2012-02-02')
 
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)   
@@ -41,14 +41,14 @@ def Seq_LiDAR(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    Trainvector_pose = os.path.join(data_dir, 'gt', 'pose.txt')
+    Trainvector_pose = os.path.join(data_dir, 'R1', 'pose.txt')
     train_pose = np.loadtxt(Trainvector_pose)
     train_pose = train_pose[0:args.test_len*args.frame_skip:args.frame_skip, 1:3]        
 
     # Nordland spring dataset
     ds = AttributeDict()
     ds.name = 'train'
-    ds.imagePath = os.path.join(data_dir, 'gt', 'img')
+    ds.imagePath = os.path.join(data_dir, 'R1', 'img')
     
     ds.imageSkip = args.frame_skip  # use every n-nth image
     ds.imageIndices = range(10, 1010, ds.imageSkip)    
@@ -128,6 +128,7 @@ def Seq_LiDAR(args):
             # save match matrix
             match_PR[np.isnan(match_PR)]=0
             match_path = os.path.join(pr_dir, file_name+'_match.json')
+            print (match_path)
             with open(match_path, 'w') as data_out:
                 json.dump(match_PR.tolist(), data_out)            
 

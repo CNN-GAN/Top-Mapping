@@ -12,6 +12,7 @@ from sklearn.metrics import precision_recall_curve, roc_curve, auc
 from parameters import *
 from glob import glob
 import scipy.misc
+import math
 
 def Plot_2D(args):
 
@@ -46,7 +47,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(1,11):
+    for epoch_id in range(6, 7):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
@@ -125,6 +126,31 @@ def Plot_2D(args):
             if not os.path.exists(epoch_dir):
                 os.makedirs(epoch_dir)       
 
+
+            ## Extract Video
+            datas = np.zeros([DD.shape[1]])
+            pairs = np.zeros([DD.shape[1]])
+            for i in range(DD.shape[1]):
+                plt.figure()
+                plt.xlim(0.0, DD.shape[1]*1.0)
+                plt.ylim(0.0, DD.shape[1]*1.0)
+                plt.xlabel('Test Sequence')
+                plt.ylabel('Referend Sequence')
+                if math.isnan(match[i, 0]):
+                    pair = i
+                else:
+                    pair = match[i, 0]
+                
+                datas[i] = i
+                pairs[i]=pair
+                
+                plt.imshow(DD[:, :i+1],  cmap=plt.cm.gray, interpolation='nearest')
+                plt.plot(datas[:i+1], pairs[:i+1], 'r*')
+                print (os.path.join(match_dir, file_name, str(epoch_id), 'Match_{:04d}.jpg'.format(i)))
+                plt.savefig(os.path.join(match_dir, file_name, str(epoch_id), 'Match_{:04d}.jpg'.format(i)))
+                plt.close()
+
+            '''
             count_id = 1
             for test_id, match_id in enumerate(m):
 
@@ -200,3 +226,4 @@ def Plot_2D(args):
             plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.jpg'))
             plt.close()
             plt.clf()
+            '''
