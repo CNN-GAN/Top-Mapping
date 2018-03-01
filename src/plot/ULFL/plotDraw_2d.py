@@ -126,6 +126,13 @@ def Plot_2D(args):
             if not os.path.exists(epoch_dir):
                 os.makedirs(epoch_dir)       
 
+            '''
+            rgb = np.zeros((200, 200), dtype=np.uint8)
+            rgb[:,:]=DD
+            img = cv2.cvtColor(rgb, cv2.COLOR_GRAY2BGR)
+            cv2.imwrite(os.path.join(match_dir, file_name, str(epoch_id)+'_match.jpg'), img)
+            '''
+
 
             ## Extract Video
             datas = np.zeros([DD.shape[1]])
@@ -144,11 +151,14 @@ def Plot_2D(args):
                 datas[i] = i
                 pairs[i]=pair
                 
-                plt.imshow(DD[:, :i+1],  cmap=plt.cm.gray, interpolation='nearest')
+                plt.imshow(DD[:, :i+1],  cmap=plt.cm.brg, interpolation='nearest')
                 plt.plot(datas[:i+1], pairs[:i+1], 'r*')
                 print (os.path.join(match_dir, file_name, str(epoch_id), 'Match_{:04d}.jpg'.format(i)))
-                plt.savefig(os.path.join(match_dir, file_name, str(epoch_id), 'Match_{:04d}.jpg'.format(i)))
+
+                #plt.savefig(os.path.join(match_dir, file_name, str(epoch_id), 'Match.jpg'.format(int(i))))
+                plt.show('1.jpg')
                 plt.close()
+
 
             '''
             count_id = 1

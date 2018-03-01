@@ -12,11 +12,19 @@ plt.rcParams["font.family"] = "Times New Roman"
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
+font_size = 18
+f_size = 'x-large'
+plt.rcParams.update({'axes.labelsize': f_size})
+matplotlib.rc('xtick', labelsize=font_size) 
+matplotlib.rc('ytick', labelsize=font_size) 
+
+
 def Plot_AUC(args):
 
     conditions = ["R2", "R4", "R6", "R8", "R10", "R12", "R14", "R16"]
     angle_diff = ["22.5", "67.5", "112.5", "157.5", "202.5", "247.5", "292.5", "337.5"]
 
+    '''
     epoch_len  = 8
     ROC_NCTL   = np.zeros([epoch_len]).astype('float')
     ROC_KITTI  = np.zeros([epoch_len]).astype('float')
@@ -66,7 +74,7 @@ def Plot_AUC(args):
             ROC_NCTL[epoch_id]  +=0.05
 
 
-    plt.figure(figsize=(10, 4))
+    plt.figure(figsize=(10, 2))
     plt.xlabel("Epoch")
     plt.ylabel("AUC score")
 
@@ -77,7 +85,7 @@ def Plot_AUC(args):
 
 
     plt.title('AUC vs Epoch')
-    plt.plot(xnew, f(xnew),  color='dodgerblue', linewidth=4.0, markevery=100, label='NCTL')
+    plt.plot(xnew, f(xnew),  color='red', linewidth=4.0, markevery=100, label='NCTL')
 
     f = interp1d(x, ROC_KITTI, kind='quadratic')
     xnew = np.linspace(0, len(ROC_KITTI)-1, num=100, endpoint=True)
@@ -90,7 +98,6 @@ def Plot_AUC(args):
     plt.legend(loc='center right')
     plt.savefig('AUC_epoch.pdf', dpi=300)
     plt.close()
-
     '''
     linestyle = ['-', '--', '-.', ':']
 
@@ -116,7 +123,7 @@ def Plot_AUC(args):
     keep_re = 0
     keep_pr = 0
     plt.figure()
-    f, axarr = plt.subplots(1, len(conditions), sharey=True, figsize=(10, 4))
+    f, axarr = plt.subplots(1, len(conditions), sharey=True, figsize=(10, 2.5))
     for data_id, data_name in  enumerate(conditions):
         
         ax = axarr[data_id]
@@ -179,19 +186,20 @@ def Plot_AUC(args):
 
             ax.plot(recall, precision, lw=2, linestyle=linestyle[data_id%3], label=method_name)
             legend.append(method_name)
-            ax.set_title(angle_diff[data_id])
+            ax.set_title(angle_diff[data_id], fontsize=font_size)
+            if data_id != 0:
+                ax.get_xaxis().set_visible(False)
 
         if data_id == 7:
-            ax.legend(loc="lower right")
+            ax.legend(loc="lower right", fontsize=f_size)
 
     #f.suptitle('PR Curve for {}'.format(args.dataset))
-    plt.savefig(args.dataset+'_'+'_PR.pdf')
+    plt.savefig(args.dataset+'_PR.pdf')
     plt.close()
 
 
-    plt.figure(figsize=(10, 6))
-    plt.xlabel("condition")
-    plt.ylabel("AUC score")
+    plt.figure(figsize=(10, 2.5))
+    plt.ylabel("AUC Index")
     ## plot in figure
     w = 1.2
     method = 6
@@ -208,11 +216,10 @@ def Plot_AUC(args):
 
 
     plt.xticks(x + dimw*2, angle_diff)
-    plt.legend(loc='lower left')
+    plt.legend(loc='lower left', fontsize=f_size)
     
-    plt.savefig(args.dataset+'_AUC_score.pdf')
+    plt.savefig(args.dataset+'_AUC.pdf')
     plt.close()
-    '''
 
     '''
     for w_i in range(len(test_dir)):

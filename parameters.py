@@ -115,7 +115,7 @@ def Param():
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
-    flags.DEFINE_boolean("plot_2D",        False,         "True for ploting 2D")
+    flags.DEFINE_boolean("plot_2D",        True,         "True for ploting 2D")
     flags.DEFINE_boolean("plot_joint",     False,        "True for ploting Joint")
     flags.DEFINE_boolean("plot_paper1",    False,        "True for ploting paper1")
 
@@ -130,7 +130,7 @@ def Param():
     flags.DEFINE_boolean("plot_paper3",    False,         "True for ploting paper3")
 
     # paper iros
-    flags.DEFINE_boolean("plot_AUC",       True,         "True for biganGTAV")
+    flags.DEFINE_boolean("plot_AUC",       False,         "True for biganGTAV")
     flags.DEFINE_boolean("plot_IROS",      False,         "True for ploting paper3")
 
 
