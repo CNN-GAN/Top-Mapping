@@ -11,7 +11,7 @@ from scipy.interpolate import spline
 def Plot_Paper2(args):
 
 
-    #test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
+    #test_name = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1",  "T5_R1.5",  "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2"]
     test_name = ["T1_R1", "T1_R1.5", "T1_R2", "T5_R1", "T5_R1.5",  "T5_R2", "T10_R1", "T10_R1.5", "T10_R2",  "T20_R1",  "T20_R1.5", "T20_R2"]
     linestyle = ['-', '--', '-.', ':']
     result_2D = os.path.join(args.result_dir, 'ALI/ALI', 'PR')

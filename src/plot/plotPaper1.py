@@ -66,7 +66,6 @@ def Plot_Paper1(args):
         plt.savefig(method_name + '_PR.jpg')
         plt.close()
 
-
     ## plot in figure
     plt.figure(figsize=(15, 7.5))
     plt.xlabel("Transformation Error")

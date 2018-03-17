@@ -50,8 +50,6 @@ In the file parameters.py
 ## Loss Update
 * use Wessentian GAN to update the Loss **(done)**
 
-
-
 # Update Notes:
 ## 2017/07/10 10:53:42 CST
 Update model.py, to save difference matrix for latter use.
@@ -63,3 +61,12 @@ Add gtav_cls for gtav scene classification
 Add simpleCYC model, this work is based on the alpha-GAN and conditional GAN.
 We extract the weather condition invariant code from different style images, and use the latent code 
 to do the LCD job.
+
+# Install FFmpeg
+sudo add-apt-repository ppa:mc3man/trusty-media
+sudo apt-get update
+sudo apt-get install ffmpeg
+sudo apt-get install frei0r-plugins
+
+# Use FFmpeg to generate video
+ffmpeg -framerate 25 -i %05d.jpg -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p output.mp4

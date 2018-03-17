@@ -76,6 +76,29 @@ def Euclidean(train, test):
             D[x,y] = np.linalg.norm(train[x]-test[y])
     return D
 
+def NV_Euclidean(train, test):
+    D = np.zeros([train.shape[0], test.shape[0]])
+    for x in range(train.shape[0]):
+        for y in range(test.shape[0]):
+            distance = train[x] - test[y,2]
+            value = np.linalg.norm(distance, axis=1, keepdims=True)
+            D[x,y] = value.min()
+    return D
+
+def N2One_Euclidean(train, test):
+    print (train.shape)
+    D = np.zeros([train.shape[0], test.shape[0]])
+    opt_feature = np.zeros_like(test)
+    for x in range(train.shape[0]):
+        print ('Done {}'.format(x))
+        for y in range(test.shape[0]):
+            distance = train[x] - test[y]
+            value = np.linalg.norm(distance, axis=1, keepdims=True)
+            opt_feature[x] = train[x, np.argmin(value)]
+            D[x,y] = value.min()
+
+    return D
+
 def Manhattan(train, test):
     D = np.zeros([train.shape[0], test.shape[0]])
     for x in range(train.shape[0]):
@@ -190,6 +213,7 @@ def log(x):
 ##=================================== function in SeqSLAM ================================##
 ##=================================== function in SeqSLAM ================================##
 def enhanceContrast(D, enhance):
+    print (D.shape)
     # TODO parallelize
     DD = np.zeros(D.shape)
     
@@ -264,7 +288,7 @@ def getMatches(DD, Ann, args):
         #match = [min_idx + v_ds/2, min_value / min_value_2nd]
         match = [min_idx + v_ds/2, 1. / min_value]
         if match[1] > 1:
-            match = 1.0
+            match[1] = 1.0
 
         matches[N,:] = match
         

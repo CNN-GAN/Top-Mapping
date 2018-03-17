@@ -12,16 +12,21 @@ from parameters import *
 
 def Plot_3D(args):
 
-    test_dir = ["T1_R1", "T1_R1.5", "T1_R2",  "T5_R1", "T5_R1.5", "T5_R2",  "T10_R1", "T10_R1.5", "T10_R2", "T20_R1", "T20_R1.5", "T20_R2"]
-    
-    result_dir = os.path.join(args.result_dir, 'ALI_3D')
-    matrix_dir = os.path.join(result_dir, 'MATRIX')
-    pr_dir     = os.path.join(result_dir, 'PR')
-    match_dir  = os.path.join(result_dir, 'MATCH')
-    pose_dir   = os.path.join(args.data_dir,   'new_loam', '00')
-    
-    if not os.path.exists(result_dir):
-        os.makedirs(result_dir)   
+    #test_dir = ["T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
+    test_dir = ["gt", "R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
+    # For new_loam dataset
+    if args.dataset == 'new_loam':
+        sequence_name = '00'
+
+    # For NCTL dataset            
+    if args.dataset == 'NCTL':
+        sequence_name = '2012-01-22'    
+
+    result_dir = args.result_dir
+    matrix_dir = os.path.join(result_dir,      'MATRIX')
+    pr_dir     = os.path.join(result_dir,      'PR')
+    match_dir  = os.path.join(result_dir,      'MATCH')
+    pose_dir   = os.path.join(args.data_dir,   args.dataset, sequence_name)
         
     if not os.path.exists(matrix_dir):
         os.makedirs(matrix_dir)       
@@ -32,9 +37,9 @@ def Plot_3D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for id in range(5, 6):
+    for id in range(1, 16):
 
-        epoch_id = id*50
+        epoch_id = id
         Trainvector_path = os.path.join(result_dir, str(epoch_id)+'_gt_vt.npy')
         train_code = np.load(Trainvector_path)
 
