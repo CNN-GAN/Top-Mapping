@@ -18,11 +18,20 @@ plt.rcParams.update({'axes.labelsize': f_size})
 matplotlib.rc('xtick', labelsize=font_size) 
 matplotlib.rc('ytick', labelsize=font_size) 
 
-
 def Plot_AUC(args):
 
     conditions = ["R2", "R4", "R6", "R8", "R10", "R12", "R14", "R16"]
     angle_diff = ["22.5", "67.5", "112.5", "157.5", "202.5", "247.5", "292.5", "337.5"]
+
+    if args.is_one == True:
+        PR_path = 'PR_one'
+        Matrix_path = 'MATRIX_one'
+        Match_path = 'MATCH_one'
+    else:
+        PR_path = 'PR'
+        Matrix_path = 'MATRIX'
+        Match_path = 'MATCH'
+
 
     '''
     epoch_len  = 8
@@ -103,11 +112,11 @@ def Plot_AUC(args):
 
     result_seqSLAM = os.path.join('result', args.dataset, 'SeqSLAM', 'PR')
     if args.dataset == 'NCTL':
-        result_seqALI = os.path.join('result', args.dataset, 'ALI', args.ali_nctl_img, 'PR')
-        result_seqCYC  = os.path.join('result', args.dataset,  'ALI_CLC', args.aliclc_nctl_img, 'PR')
+        result_seqALI = os.path.join('result', args.dataset, 'ALI', args.ali_nctl_img, PR_path)
+        result_seqCYC  = os.path.join('result', args.dataset,  'ALI_CLC', args.aliclc_nctl_img, PR_path)
     else:
-        result_seqALI = os.path.join('result', args.dataset, 'ALI', args.ali_kitti_img, 'PR')
-        result_seqCYC  = os.path.join('result', args.dataset,  'ALI_CLC', args.aliclc_kitti_img, 'PR')
+        result_seqALI = os.path.join('result', args.dataset, 'ALI', args.ali_kitti_img, PR_path)
+        result_seqCYC  = os.path.join('result', args.dataset,  'ALI_CLC', args.aliclc_kitti_img, PR_path)
 
     result_dir = [result_seqALI, result_seqSLAM, result_seqCYC]
     

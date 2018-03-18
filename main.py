@@ -36,7 +36,7 @@ from src.third_function.pyseqslam.seq_gtav import Seq_GTAV
 # SeqSLAM with VGG cnn features
 from src.third_function.vgg16.vgg16 import Seq_VGG
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 # Obtain parameters
 args = Param()
 

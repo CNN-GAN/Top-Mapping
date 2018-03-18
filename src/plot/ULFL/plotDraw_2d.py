@@ -16,9 +16,6 @@ import math
 
 def Plot_2D(args):
 
-    #test_dir = ["gt", "T1_R-2", "T1_R-1", "T1_R0", "T1_R1", "T1_R2"]
-    #test_dir = ["R0.2", "R0.4", "R0.6", "R0.8", "R1.0"]
-    #test_dir = ['gt']
     #test_dir = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16"]
     test_dir = ["R2", "R4", "R6", "R8", "R10", "R12", "R14", "R16"]
     #, "T1", "T2", "T3", "T4", "T5"
@@ -31,10 +28,19 @@ def Plot_2D(args):
     if args.dataset == 'NCTL':
         sequence_name = '2012-02-02'
 
+    if args.is_one == True:
+        PR_path = 'PR_one'
+        Matrix_path = 'MATRIX_one'
+        Match_path = 'MATCH_one'
+    else:
+        PR_path = 'PR'
+        Matrix_path = 'MATRIX'
+        Match_path = 'MATCH'
+    
     result_dir = args.result_dir
-    matrix_dir = os.path.join(result_dir,      'MATRIX')
-    pr_dir     = os.path.join(result_dir,      'PR')
-    match_dir  = os.path.join(result_dir,      'MATCH')
+    matrix_dir = os.path.join(result_dir,      Matrix_path)
+    pr_dir     = os.path.join(result_dir,      PR_path)
+    match_dir  = os.path.join(result_dir,      Match_path)
     pose_dir   = os.path.join(args.data_dir,   args.dataset, sequence_name)
     
         
@@ -47,7 +53,7 @@ def Plot_2D(args):
     if not os.path.exists(match_dir):
         os.makedirs(match_dir)   
 
-    for epoch_id in range(6, 7):
+    for epoch_id in range(14, 29):
         Trainvector_img = os.path.join(result_dir, str(epoch_id)+'_joint_vt.npy')
         train_img = np.load(Trainvector_img)
 
@@ -77,9 +83,11 @@ def Plot_2D(args):
             test_files = glob(test_path)
             test_files.sort()
 
+            print (train_img.shape)
+            print (test_img.shape)
             print('Load data done :{}'.format(file_name))
-            D = N2One_Euclidean(train_img, test_img)
-            #D = Euclidean(train_img[:,7], train_img[:,7])
+            #D = N2One_Euclidean(train_img, test_img)
+            D = Euclidean(train_img[:,4], test_img)
             print('Done Euclidean :{}'.format(file_name))
             DD = enhanceContrast(D, 30)
 
@@ -102,8 +110,7 @@ def Plot_2D(args):
 
                 min_arr[i] = np.array(temp)
 
-            print(min_arr)
-
+            '''
             plt.figure()
             plt.xlabel('Test data')
             plt.ylabel('Stored data')
@@ -112,13 +119,15 @@ def Plot_2D(args):
                     if min_arr[i,j] > 0:
                         plt.plot(i, min_arr[i,j],'b.') 
 
+            
             plt.title('Epoch_'+str(epoch_id)+'_'+file_name)
             cur_file_dir = os.path.join(match_dir, file_name)
             if not os.path.exists(cur_file_dir):
                 os.makedirs(cur_file_dir)
 
-            #plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_ann.jpg'))
+            plt.savefig(os.path.join(match_dir, file_name, str(epoch_id)+'_ann.jpg'))
             plt.close()
+            '''
 
             match = getMatches(DD, 0, args)
             m = match[:,0]
@@ -126,19 +135,12 @@ def Plot_2D(args):
             if not os.path.exists(epoch_dir):
                 os.makedirs(epoch_dir)       
 
-            '''
-            rgb = np.zeros((200, 200), dtype=np.uint8)
-            rgb[:,:]=DD
-            img = cv2.cvtColor(rgb, cv2.COLOR_GRAY2BGR)
-            cv2.imwrite(os.path.join(match_dir, file_name, str(epoch_id)+'_match.jpg'), img)
-            '''
-
 
             ## Extract Video
             datas = np.zeros([DD.shape[1]])
             pairs = np.zeros([DD.shape[1]])
-            for i in range(DD.shape[1]):
-                plt.figure()
+            for i in range(D.shape[1]):
+                fig, ax = plt.subplots()
                 plt.xlim(0.0, DD.shape[1]*1.0)
                 plt.ylim(0.0, DD.shape[1]*1.0)
                 plt.xlabel('Test Sequence')
@@ -149,18 +151,29 @@ def Plot_2D(args):
                     pair = match[i, 0]
                 
                 datas[i] = i
-                pairs[i]=pair
-                
-                plt.imshow(DD[:, :i+1],  cmap=plt.cm.brg, interpolation='nearest')
+                pairs[i]=int(pair)
+                plt.imshow(DD[:, :i+1],  cmap=plt.cm.gray, interpolation='nearest')
                 plt.plot(datas[:i+1], pairs[:i+1], 'r*')
-                print (os.path.join(match_dir, file_name, str(epoch_id), 'Match_{:04d}.jpg'.format(i)))
 
-                #plt.savefig(os.path.join(match_dir, file_name, str(epoch_id), 'Match.jpg'.format(int(i))))
-                plt.show('1.jpg')
-                plt.close()
+                plt_path = os.path.join(match_dir, file_name, str(epoch_id), "Match_{:04d}.jpg".format(i))
+                print (plt_path)
+                fig.savefig(plt_path)
+                plt.close(fig) 
 
+            ## Extract the color image
+            fig, ax = plt.subplots()
+            ax.get_yaxis().set_visible(False)
+            ax.get_xaxis().set_visible(False)
+            plt.imshow(DD[:, :i+1],  cmap=plt.cm.gray, interpolation='nearest')
+            plt.plot(datas[:i+1], pairs[:i+1], 'r*')
+            plt_path = os.path.join(match_dir, file_name, str(epoch_id)+"_heatmap.jpg")
+            fig.savefig(plt_path,  bbox_inches='tight')
+            plt.close(fig) 
 
-            '''
+            im_in = cv2.imread(plt_path, cv2.IMREAD_GRAYSCALE)
+            heatmap = cv2.applyColorMap(im_in, cv2.COLORMAP_JET)
+            cv2.imwrite(plt_path, heatmap)
+
             count_id = 1
             for test_id, match_id in enumerate(m):
 
@@ -179,7 +192,8 @@ def Plot_2D(args):
                 vis = np.concatenate((img1, img2), axis=1)
                 cv2.imwrite(os.path.join(epoch_dir, str(count_id).zfill(5)+'.jpg'), vis)
                 count_id += 1
-                
+
+
             thresh = 0.95
             matched = match[match[:,1]<thresh, 1]
             score = np.mean(matched)
@@ -236,4 +250,3 @@ def Plot_2D(args):
             plt.savefig(os.path.join(pr_dir, str(epoch_id)+'_'+file_name+'_PR.jpg'))
             plt.close()
             plt.clf()
-            '''

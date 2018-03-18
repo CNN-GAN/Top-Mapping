@@ -260,7 +260,7 @@ class Net(object):
         if args.dataset == 'NCTL':
             sequence_name = '2012-02-02'
 
-        for test_epoch in range(1, 11):
+        for test_epoch in range(14, 50):
 
             # Initial layer's variables
             self.test_epoch = test_epoch*5

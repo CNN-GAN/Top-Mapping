@@ -53,7 +53,7 @@ def Param():
     flags.DEFINE_string("log_notes",      "headingInv model, with frame_skip 10",      "logs")
 
     ## Training
-    flags.DEFINE_string("method",         "ALI_CLC",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
+    flags.DEFINE_string("method",         "ALI",    "BiGAN_GTAV, conditionCYC, simpleCYC, ALI_CLC, ALI or ALI_IV, Reweight, headingInv")
     flags.DEFINE_string("Search",         "N",          "N normal, A ann")
     flags.DEFINE_string("Loss",           "LSGAN",      "WGAN, LSGAN")
     flags.DEFINE_float("scale",           0.1,          "Scale for WGAN")
@@ -112,6 +112,8 @@ def Param():
 
     ## Plotting
     flags.DEFINE_boolean("plot",           True,         "True for ploting figures")
+    flags.DEFINE_boolean("is_one",         True,         "not multi-bin")
+
 
     ## Plot for paper 1
     flags.DEFINE_boolean("plot_3D",        False,        "True for ploting 3D")
